@@ -20,7 +20,7 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 const KIND_STYLES: Record<ToastKind, string> = {
   success: 'border-emerald-500/40 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
   error: 'border-red-500/40 bg-red-50 text-red-800 dark:bg-red-950 dark:text-red-200',
-  info: 'border-indigo-500/40 bg-indigo-50 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-200',
+  info: 'border-brand-500/40 bg-brand-50 text-brand-800 dark:bg-brand-950 dark:text-brand-200',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

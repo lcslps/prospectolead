@@ -1,16 +1,20 @@
 import { useEffect, useState, type ReactNode } from 'react';
 
+export function initializeTheme() {
+  let dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  try { const stored = localStorage.getItem('theme'); if (stored) dark = stored === 'dark'; } catch { /* Use the system preference when storage is unavailable. */ }
+  document.documentElement.classList.toggle('dark', dark);
+}
+
 export function ThemeToggle() {
   const [dark, setDark] = useState(() => {
     if (typeof window === 'undefined') return false;
-    const stored = localStorage.getItem('theme');
-    if (stored) return stored === 'dark';
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return document.documentElement.classList.contains('dark');
   });
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark);
-    localStorage.setItem('theme', dark ? 'dark' : 'light');
+    try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch { /* The current theme still works without storage. */ }
   }, [dark]);
 
   return (
@@ -18,6 +22,7 @@ export function ThemeToggle() {
       onClick={() => setDark((v) => !v)}
       className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
       aria-label="Alternar tema"
+      aria-pressed={dark}
       title={dark ? 'Modo claro' : 'Modo escuro'}
     >
       {dark ? (

@@ -4,6 +4,8 @@ import { notFound } from '../utils/apiError';
 import { stageToStatus } from './crmStatus';
 
 const STAGE_ORDER: CrmStage[] = [
+  'SCHEDULED',
+  'FOLLOW_UP',
   'NEW',
   'SITE_GENERATED',
   'MESSAGE_SENT',
@@ -15,13 +17,15 @@ const STAGE_ORDER: CrmStage[] = [
 ];
 
 const STAGE_LABELS: Record<CrmStage, string> = {
-  NEW: 'NOVO',
+  SCHEDULED: 'AGENDADO',
+  FOLLOW_UP: 'FOLLOW UP',
+  NEW: 'BASE',
   SITE_GENERATED: 'SITE GERADO',
-  MESSAGE_SENT: 'MENSAGEM ENVIADA',
+  MESSAGE_SENT: 'ABORDADO',
   REPLIED: 'RESPONDEU',
   INTERESTED: 'INTERESSADO',
   NEGOTIATION: 'NEGOCIAÇÃO',
-  CLIENT: 'CLIENTE',
+  CLIENT: 'CONVERTIDO',
   LOST: 'PERDIDO',
 };
 

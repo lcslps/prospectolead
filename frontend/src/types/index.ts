@@ -48,6 +48,8 @@ export interface Lead {
 }
 
 export type CrmStage =
+  | 'SCHEDULED'
+  | 'FOLLOW_UP'
   | 'NEW'
   | 'SITE_GENERATED'
   | 'MESSAGE_SENT'
@@ -58,6 +60,8 @@ export type CrmStage =
   | 'LOST';
 
 export const CRM_STAGES: CrmStage[] = [
+  'SCHEDULED',
+  'FOLLOW_UP',
   'NEW',
   'SITE_GENERATED',
   'MESSAGE_SENT',

@@ -32,6 +32,8 @@ export function optionalQueryNumber() {
 }
 
 export const CRM_STAGES = [
+  'SCHEDULED',
+  'FOLLOW_UP',
   'NEW',
   'SITE_GENERATED',
   'MESSAGE_SENT',

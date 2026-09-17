@@ -24,7 +24,6 @@ function StatCard({
   label,
   value,
   icon,
-  color,
 }: {
   label: string;
   value: number;
@@ -32,12 +31,9 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="card flex items-center gap-4 p-4">
-      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${color}`}>{icon}</div>
-      <div>
-        <div className="text-2xl font-bold text-slate-900 dark:text-white">{value}</div>
-        <div className="text-xs font-medium text-slate-500 dark:text-slate-400">{label}</div>
-      </div>
+    <div className="card dashboard-metric">
+      <div className="dashboard-metric-heading"><span>{label}</span>{icon}</div>
+      <div className="dashboard-metric-value">{value.toLocaleString('pt-BR')}</div>
     </div>
   );
 }
@@ -62,7 +58,7 @@ function BarList<T extends { label: string; value: number }>({ items, empty }: {
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
+              className="dashboard-bar"
               style={{ width: `${Math.max((item.value / max) * 100, 4)}%` }}
             />
           </div>
@@ -103,16 +99,17 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
-        <StatCard label="Total de leads" value={crm?.leadsNoCrm ?? 0} color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Leads novos" value={stageCount('NEW')} color="bg-sky-500/10 text-sky-600 dark:text-sky-400" icon={<Flame className="h-5 w-5" />} />
-        <StatCard label="Contatados" value={stageCount('MESSAGE_SENT')} color="bg-violet-500/10 text-violet-600 dark:text-violet-400" icon={<Phone className="h-5 w-5" />} />
-        <StatCard label="Responderam" value={stageCount('REPLIED')} color="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400" icon={<MessageCircle className="h-5 w-5" />} />
+      <div className="workspace-heading"><div><p className="workspace-eyebrow">Seu negócio, em perspectiva</p><h2>Visão geral</h2><p>Acompanhe suas oportunidades e os próximos passos.</p></div><span className="workspace-heading-date">{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
+      <div className="dashboard-metrics">
+        <StatCard label="Total de leads" value={crm?.leadsNoCrm ?? 0} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Users className="h-5 w-5" />} />
+        <StatCard label="Leads novos" value={stageCount('NEW')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Flame className="h-5 w-5" />} />
+        <StatCard label="Contatados" value={stageCount('MESSAGE_SENT')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Phone className="h-5 w-5" />} />
+        <StatCard label="Responderam" value={stageCount('REPLIED')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<MessageCircle className="h-5 w-5" />} />
         <StatCard label="Interessados" value={stageCount('INTERESTED')} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" icon={<Star className="h-5 w-5" />} />
         <StatCard label="Negociação" value={stageCount('NEGOTIATION')} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" icon={<Handshake className="h-5 w-5" />} />
         <StatCard label="Clientes" value={stageCount('CLIENT')} color="bg-green-600/10 text-green-700 dark:text-green-400" icon={<Crown className="h-5 w-5" />} />
         <StatCard label="Perdidos" value={stageCount('LOST')} color="bg-red-500/10 text-red-600 dark:text-red-400" icon={<XCircle className="h-5 w-5" />} />
-        <StatCard label="Campanhas realizadas" value={s.campanhas} color="bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400" icon={<FolderOpen className="h-5 w-5" />} />
+        <StatCard label="Campanhas realizadas" value={s.campanhas} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<FolderOpen className="h-5 w-5" />} />
         <StatCard label="Sites gerados" value={s.sitesGerados} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" icon={<Globe className="h-5 w-5" />} />
       </div>
 
@@ -148,7 +145,7 @@ export function DashboardPage() {
       <section className="card overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-5">
           <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Últimos leads</h2>
-          <Link to="/crm" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+          <Link to="/crm" className="text-sm font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400">
             Ver todos
           </Link>
         </div>
@@ -181,7 +178,7 @@ export function DashboardPage() {
                 {data.ultimosLeads.map((lead) => (
                   <tr key={lead.id} className="border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40">
                     <td className="table-td">
-                      <Link to={`/leads/${lead.id}`} className="font-medium text-indigo-600 hover:underline dark:text-indigo-400">
+                      <Link to={`/leads/${lead.id}`} className="font-medium text-brand-600 hover:underline dark:text-brand-400">
                         {lead.nome}
                       </Link>
                     </td>

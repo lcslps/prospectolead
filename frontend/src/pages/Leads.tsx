@@ -313,7 +313,7 @@ export function LeadsPage() {
 
   return (
     <div className="space-y-4">
-      {campaignId && <div className="flex items-center justify-between text-sm text-slate-500"><span>Resultados desta pesquisa</span><Link to="/leads" className="text-indigo-600">Ver todas as pesquisas</Link></div>}
+      {campaignId && <div className="flex items-center justify-between text-sm text-slate-500"><span>Resultados desta pesquisa</span><Link to="/leads" className="text-brand-600">Ver todas as pesquisas</Link></div>}
       <div className="card p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
           <div className="col-span-2">
@@ -417,8 +417,8 @@ export function LeadsPage() {
       </div>
 
       {selected.size > 0 && (
-        <div className="card flex flex-wrap items-center gap-2 border-indigo-500/50 bg-indigo-50/50 p-3 dark:bg-indigo-950/20">
-          <span className="inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+        <div className="card flex flex-wrap items-center gap-2 border-brand-500/50 bg-brand-50/50 p-3 dark:bg-brand-950/20">
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 dark:text-brand-300">
             <CheckSquare className="h-4 w-4" />
             {selected.size} selecionados
           </span>
@@ -495,7 +495,7 @@ export function LeadsPage() {
                   <th className="table-th w-8">
                     <input
                       type="checkbox"
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                       checked={allSelected}
                       onChange={toggleAll}
                     />
@@ -526,7 +526,7 @@ export function LeadsPage() {
                       <td className="table-td">
                         <input
                           type="checkbox"
-                          className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                          className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                           checked={selected.has(lead.id)}
                           onChange={() => toggleOne(lead.id)}
                         />
@@ -534,7 +534,7 @@ export function LeadsPage() {
                       <td className="table-td max-w-[220px]">
                         <Link
                           to={`/leads/${lead.id}`}
-                          className="line-clamp-2 font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                          className="line-clamp-2 font-medium text-brand-600 hover:underline dark:text-brand-400"
                         >
                           {lead.nome}
                         </Link>
@@ -550,7 +550,7 @@ export function LeadsPage() {
                             href={lead.site}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+                            className="text-xs text-brand-600 hover:underline dark:text-brand-400"
                           >
                             Site
                           </a>
@@ -634,7 +634,7 @@ export function LeadsPage() {
                             </span>
                           ) : (
                             <button
-                              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 disabled:opacity-40"
+                              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-800 disabled:opacity-40"
                               title={isAddingCrm ? 'Enviando...' : 'Enviar para o CRM'}
                               disabled={isAddingCrm}
                               onClick={() => handleAddToCrm(lead)}

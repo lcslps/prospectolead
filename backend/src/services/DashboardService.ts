@@ -59,7 +59,7 @@ export class DashboardService {
       ]);
 
     const byCrmStage: Record<string, number> = {};
-    for (const key of ['NEW', 'SITE_GENERATED', 'MESSAGE_SENT', 'REPLIED', 'INTERESTED', 'NEGOTIATION', 'CLIENT', 'LOST']) {
+    for (const key of ['SCHEDULED', 'FOLLOW_UP', 'NEW', 'SITE_GENERATED', 'MESSAGE_SENT', 'REPLIED', 'INTERESTED', 'NEGOTIATION', 'CLIENT', 'LOST']) {
       byCrmStage[key] = 0;
     }
     for (const s of crmPorStage) byCrmStage[s.stage] = s._count._all;
@@ -108,4 +108,4 @@ export class DashboardService {
 }
 
 export const dashboardService = new DashboardService();
-const stageStatus = { NEW: 'NOVO', SITE_GENERATED: 'NOVO', MESSAGE_SENT: 'CONTATADO', REPLIED: 'RESPONDEU', INTERESTED: 'INTERESSADO', NEGOTIATION: 'NEGOCIACAO', CLIENT: 'CLIENTE', LOST: 'IGNORADO' };
+const stageStatus = { SCHEDULED: 'INTERESSADO', FOLLOW_UP: 'NEGOCIACAO', NEW: 'NOVO', SITE_GENERATED: 'NOVO', MESSAGE_SENT: 'CONTATADO', REPLIED: 'RESPONDEU', INTERESTED: 'INTERESSADO', NEGOTIATION: 'NEGOCIACAO', CLIENT: 'CLIENTE', LOST: 'IGNORADO' };

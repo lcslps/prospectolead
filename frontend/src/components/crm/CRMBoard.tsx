@@ -13,13 +13,13 @@ import {
 } from '@dnd-kit/core';
 import { Building2, Star } from 'lucide-react';
 import type { CrmLeadFull, CrmStage } from '../../types';
-import { CRM_STAGE_ORDER } from '../../lib/utils';
+import { CRM_PIPELINE_STAGES as CRM_STAGE_ORDER } from '../../lib/utils';
 import { CRMColumn } from './CRMColumn';
 
 function CardPreview({ crmLead }: { crmLead: CrmLeadFull }) {
   const lead = crmLead.lead;
   return (
-    <div className="w-72 cursor-grabbing rounded-xl border border-indigo-400 bg-white p-3 shadow-xl dark:bg-slate-800">
+    <div className="w-72 cursor-grabbing rounded-xl border border-brand-400 bg-white p-3 shadow-xl dark:bg-slate-800">
       <h4 className="truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{lead.nome}</h4>
       <p className="flex items-center gap-1 truncate text-[11px] text-slate-500">
         <Building2 className="h-3 w-3" />

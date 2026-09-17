@@ -71,7 +71,7 @@ function TemplateCard({
       <div
         className={`mb-4 flex-1 whitespace-pre-wrap rounded-lg p-3 font-sans text-sm transition ${
           showPreview
-            ? 'border border-indigo-200 bg-indigo-50/60 text-slate-700 dark:border-indigo-500/30 dark:bg-indigo-950/30 dark:text-slate-200'
+            ? 'border border-brand-200 bg-brand-50/60 text-slate-700 dark:border-brand-500/30 dark:bg-brand-950/30 dark:text-slate-200'
             : 'bg-slate-50 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300'
         }`}
       >
@@ -82,7 +82,7 @@ function TemplateCard({
         <span>Criado em {formatDate(template.createdAt)}</span>
         <div className="flex items-center gap-1">
           {showPreview && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-indigo-500/10 px-2 py-0.5 font-medium text-indigo-600 dark:text-indigo-400">
+            <span className="inline-flex items-center gap-1 rounded-full bg-brand-500/10 px-2 py-0.5 font-medium text-brand-600 dark:text-brand-400">
               <Eye className="h-3 w-3" /> prévia
             </span>
           )}
@@ -92,7 +92,7 @@ function TemplateCard({
             className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 font-semibold transition ${
               showPreview
                 ? 'border-slate-300 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                : 'border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300'
+                : 'border-brand-200 bg-brand-50 text-brand-600 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300'
             }`}
           >
             {showPreview ? (
@@ -259,7 +259,7 @@ export function TemplatesPage() {
                   key={v}
                   type="button"
                   onClick={() => insertVariable(v)}
-                  className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-xs text-indigo-600 hover:bg-indigo-100 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
+                  className="rounded-md border border-brand-200 bg-brand-50 px-2 py-0.5 font-mono text-xs text-brand-600 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
                 >
                   {v}
                 </button>

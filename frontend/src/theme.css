@@ -1,0 +1,72 @@
+:root {
+  color-scheme: light;
+  --app-canvas: #f7f7f7;
+  --app-surface: #ffffff;
+  --app-raised: #f3f3f3;
+  --app-border: #e3e3e3;
+  --app-ink: #242424;
+  --app-muted: #686868;
+  --app-faint: #858585;
+  --app-accent: #27664e;
+  --app-accent-soft: #eaf2ed;
+  --app-accent-border: #c5d8cd;
+}
+html.dark {
+  color-scheme: dark;
+  --app-canvas: #161616;
+  --app-surface: #202020;
+  --app-raised: #292929;
+  --app-border: #383838;
+  --app-ink: #eeeeee;
+  --app-muted: #b0b0b0;
+  --app-faint: #999999;
+  --app-accent: #9bc5ac;
+  --app-accent-soft: #293b30;
+  --app-accent-border: #435e4e;
+}
+body { background: var(--app-canvas); color: var(--app-ink); }
+input[type=checkbox], input[type=radio] { accent-color:var(--app-accent); }
+.workspace-shell, .dark .workspace-shell {
+  --surface: var(--app-surface); --canvas: var(--app-canvas);
+  --ink: var(--app-ink); --muted: var(--app-muted);
+  --line: var(--app-border); --accent: var(--app-accent);
+}
+.workspace-shell .workspace-sidebar { background:var(--app-surface);color:var(--app-ink);border-right:1px solid var(--app-border); }
+.workspace-shell .workspace-brand { color:var(--app-ink); }
+.workspace-shell .workspace-brand small,.workspace-shell .workspace-account small,.workspace-shell .workspace-nav-group>p,.workspace-shell .workspace-sidebar-bottom>p { color:var(--app-muted); }
+.workspace-shell .workspace-account,.workspace-shell .workspace-sidebar-bottom { border-color:var(--app-border); }
+.workspace-shell .workspace-account-mark { background:var(--app-raised);color:var(--app-ink);border-color:var(--app-border); }
+.workspace-shell .workspace-nav-link { color:var(--app-muted); }
+.workspace-shell .workspace-nav-link:hover { background:var(--app-raised);color:var(--app-ink); }
+.workspace-shell .workspace-nav-link.is-active { background:var(--app-accent-soft);border-color:var(--app-accent-border);color:var(--app-accent); }
+.workspace-shell .workspace-nav-link.is-active svg,.workspace-shell .workspace-monogram>span { color:var(--app-accent); }
+.workspace-shell .workspace-close { color:var(--app-ink); }
+.workspace-shell .dashboard-metric:first-child { background:var(--app-accent-soft)!important; }
+.workspace-shell .project-initials { background:var(--app-accent-soft);color:var(--app-accent);border-color:var(--app-accent-border); }
+.workspace-shell .project-tabs button span { color:var(--app-muted); }
+.workspace-shell .projects-empty-copy>span,.workspace-shell .projects-empty-step>span { color:var(--app-accent); }
+.workspace-shell .project-row:hover { border-color:var(--app-accent-border); }
+.workspace-shell .empty-state-icon { color:var(--app-muted); }
+.workspace-shell .crm-stat-icon { background:var(--app-accent-soft);color:var(--app-accent); }
+.studio { color-scheme:inherit;background:var(--app-canvas);color:var(--app-ink); }
+.studio .studio-toolbar,.studio .studio-left,.studio .studio-right,.studio .studio-ai-modal { background:var(--app-surface);color:var(--app-ink);border-color:var(--app-border); }
+.studio .studio-center,.studio .studio-section-list,.studio .studio-catalog { background:var(--app-canvas); }
+.studio .studio-panel-heading,.studio .studio-panel-block,.studio .studio-subgroup,.studio .studio-item-editor { border-color:var(--app-border); }
+.studio .studio-toolbar>button,.studio .studio-outline,.studio .studio-catalog button { background:var(--app-surface);border-color:var(--app-border);color:var(--app-ink); }
+.studio .studio-toolbar>button.active,.studio .studio-section-row.selected,.studio .studio-ai-proposal { background:var(--app-accent-soft);border-color:var(--app-accent-border);color:var(--app-accent); }
+.studio .studio-publish,.studio .studio-ai-button { background:#27664e!important;color:#fff!important;box-shadow:none; }
+.studio .studio-project-name,.studio .studio-field input:not([type=range]),.studio .studio-field textarea,.studio .studio-field select { background:var(--app-surface);color:var(--app-ink);border-color:var(--app-border)!important;box-shadow:none; }
+.studio .studio-panel-heading h2,.studio .studio-panel-block h3,.studio .studio-add-title { color:var(--app-ink); }
+.studio .studio-section-select,.studio .studio-field,.studio .studio-check,.studio .studio-color,.studio .studio-section-actions button,.studio .studio-save-state { color:var(--app-muted); }
+.studio .studio-panel-heading p,.studio .studio-section-select small,.studio .studio-color code,.studio .studio-draft-label { color:var(--app-faint); }
+.studio .studio-viewport-toolbar select { background:var(--app-raised);color:var(--app-ink); }
+.studio .studio-toolbar-divider { background:var(--app-border); }
+.studio .studio-text-button,.studio .studio-public-link,.studio .studio-upload,.studio .studio-device-buttons button.active,.studio .studio-ai-proposal small { color:var(--app-accent); }
+.studio .studio-upload { border-color:var(--app-accent-border); }
+.studio input[type=range],.studio input[type=checkbox] { accent-color:var(--app-accent); }
+.studio .studio-field input:focus,.studio .studio-field textarea:focus { border-color:var(--app-accent)!important;box-shadow:0 0 0 2px var(--app-accent-soft); }
+.studio .studio-section-actions button:hover { background:var(--app-raised); }
+.studio button:focus-visible,.studio a:focus-visible { outline-color:var(--app-accent); }
+.studio .studio-ai-modal>p,.studio .studio-device-buttons button,.studio .studio-viewport-toolbar,.studio .studio-item-heading button { color:var(--app-muted); }
+.studio .studio-device-buttons button.active { color:var(--app-accent); }
+.studio .studio-ai-modal>.studio-error { color:#dc7d70; }

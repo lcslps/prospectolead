@@ -4,6 +4,10 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ToastProvider } from './components/Toast';
 import './index.css';
+import './theme.css';
+import { initializeTheme } from './components/Theme';
+
+initializeTheme();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

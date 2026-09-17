@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Filter, Loader2 } from 'lucide-react';
 import { getData, postData, patchData, deleteData } from '../services/api';
 import type { CrmLeadFull, CrmStage, CrmStats } from '../types';
-import { CRM_STAGE_ORDER, CRM_STAGE_LABELS } from '../lib/utils';
+import { CRM_PIPELINE_STAGES as CRM_STAGE_ORDER, CRM_STAGE_LABELS, pipelineStage } from '../lib/utils';
 import { useToast } from '../components/Toast';
 import { CRMBoard } from '../components/crm/CRMBoard';
 import { CRMStats } from '../components/crm/CRMStats';
@@ -196,7 +196,7 @@ export function CRMPage() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Filter className="h-4 w-4 text-indigo-500" />
+          <Filter className="h-4 w-4 text-brand-500" />
           Apenas leads enviados manualmente para o CRM aparecem aqui.
         </div>
         {hasActiveCrmFilter(debounced) && (
@@ -211,7 +211,7 @@ export function CRMPage() {
       <div className="h-[calc(100vh-18rem)] min-h-[480px] overflow-hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+            <Loader2 className="h-6 w-6 animate-spin text-brand-500" />
           </div>
         ) : (
           <CRMBoard groups={groups} onMove={handleMove} onOpenCard={setSelectedId} />

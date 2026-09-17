@@ -34,8 +34,8 @@ export function CRMCard({
       onClick={onOpen}
       className={`group cursor-pointer rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md dark:bg-slate-800/80 ${
         isDragging
-          ? 'z-10 border-indigo-500 opacity-60'
-          : 'border-slate-200 hover:border-indigo-300 dark:border-slate-700 dark:hover:border-indigo-500/50'
+          ? 'z-10 border-brand-500 opacity-60'
+          : 'border-slate-200 hover:border-brand-300 dark:border-slate-700 dark:hover:border-brand-500/50'
       }`}
     >
       <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -80,7 +80,7 @@ export function CRMCard({
             lead.leadScore >= 70
               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
               : lead.leadScore >= 50
-                ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                ? 'bg-brand-500/10 text-brand-600 dark:text-brand-400'
                 : 'bg-slate-500/10 text-slate-500 dark:text-slate-400'
           }`}
         >

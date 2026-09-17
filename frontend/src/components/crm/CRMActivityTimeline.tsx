@@ -15,10 +15,10 @@ const ICONS: Record<CrmActivityType, React.ReactNode> = {
 
 const COLORS: Record<CrmActivityType, string> = {
   ADDED_TO_CRM: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
-  MESSAGE_SENT: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
-  STAGE_CHANGED: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+  MESSAGE_SENT: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
+  STAGE_CHANGED: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
   NOTE_ADDED: 'bg-amber-500/10 text-amber-600 dark:text-amber-500',
-  FOLLOW_UP_CREATED: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+  FOLLOW_UP_CREATED: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
   WHATSAPP_OPENED: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   CLIENT_WON: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
   LOST: 'bg-red-500/10 text-red-600 dark:text-red-400',

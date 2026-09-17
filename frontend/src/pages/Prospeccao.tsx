@@ -99,7 +99,7 @@ export function ProspeccaoPage() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="card p-6">
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
             <Crosshair className="h-5 w-5" />
           </div>
           <div>
@@ -151,7 +151,7 @@ export function ProspeccaoPage() {
 
           <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
             <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              <Sparkles className="h-4 w-4 text-indigo-500" />
+              <Sparkles className="h-4 w-4 text-brand-500" />
               Filtros opcionais
             </div>
             <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
@@ -219,7 +219,7 @@ export function ProspeccaoPage() {
       {loading && (
         <div className="card p-6">
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <Search className="h-8 w-8 animate-pulse text-indigo-500" />
+            <Search className="h-8 w-8 animate-pulse text-brand-500" />
             <div>
               <p className="font-semibold text-slate-800 dark:text-slate-100">Buscando empresas...</p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -260,7 +260,7 @@ export function ProspeccaoPage() {
               <div className="text-xs font-medium text-slate-500">novos resultados</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{result.existentes}</div>
+              <div className="text-2xl font-bold text-brand-600 dark:text-brand-400">{result.existentes}</div>
               <div className="text-xs font-medium text-slate-500">já estavam no sistema</div>
             </div>
             <div>

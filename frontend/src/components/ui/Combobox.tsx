@@ -104,7 +104,7 @@ export function Combobox({
                   onMouseEnter={() => setHighlight(i)}
                   className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
                     i === highlight
-                      ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300'
+                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/10 dark:text-brand-300'
                       : 'text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700/50'
                   }`}
                 >

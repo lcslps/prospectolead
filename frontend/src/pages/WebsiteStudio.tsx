@@ -6,6 +6,7 @@ import { SECTION_LABELS, newSection, type SectionType, type SiteContent, type Si
 import { WebsiteFrame } from '../components/WebsiteFrame';
 import { SectionFields, SiteFields, TextField } from '../components/WebsiteFields';
 import './studio.css';
+import { ThemeToggle } from '../components/Theme';
 
 const toDocument = (s: SiteDocument): SiteDocument => ({ name: s.name, business: s.business, theme: s.theme, sections: s.sections });
 export function WebsiteStudioPage() {
@@ -57,6 +58,7 @@ export function WebsiteStudioPage() {
   const section = doc.sections.find(s => s.id === selected);
   return <div className={`studio ${preview ? 'studio-preview' : ''}`}>
     <header className="studio-toolbar">
+      <ThemeToggle />
       <button title="Voltar aos meus projetos" onClick={async () => { try { await persist(); navigate('/sites'); } catch { /* preserve unsaved edits */ } }}><ArrowLeft size={17} /></button>
       <input aria-label="Nome do projeto" className="studio-project-name" value={doc.name} onChange={e => change({ ...doc, name: e.target.value })} />
       <button title="Desfazer" disabled={!history.length} onClick={undo}><Undo2 size={16} /></button><button title="Refazer" disabled={!future.length} onClick={redo}><Redo2 size={16} /></button>

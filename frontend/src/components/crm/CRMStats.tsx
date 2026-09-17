@@ -6,7 +6,6 @@ function StatCard({
   label,
   value,
   sub,
-  accent,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -15,13 +14,10 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="card flex items-center gap-3 p-4">
-      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${accent}`}>{icon}</div>
-      <div className="min-w-0">
-        <div className="text-xl font-bold leading-tight text-slate-900 dark:text-white">{value}</div>
-        <div className="truncate text-xs font-medium text-slate-500 dark:text-slate-400">{label}</div>
-        {sub && <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">{sub}</div>}
-      </div>
+    <div className="card p-4">
+      <div className="mb-3 flex items-center justify-between gap-2"><div className="text-2xl font-semibold leading-tight text-slate-900 dark:text-white">{value}</div><div className="crm-stat-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">{icon}</div></div>
+      <div className="text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">{label}</div>
+      {sub && <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{sub}</div>}
     </div>
   );
 }
@@ -33,20 +29,20 @@ export function CRMStats({ stats }: { stats: CrmStats | null }) {
         icon={<Users className="h-5 w-5" />}
         label="Leads no CRM"
         value={stats?.leadsNoCrm ?? 0}
-        accent="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+        accent="bg-brand-500/10 text-brand-600 dark:text-brand-400"
       />
       <StatCard
         icon={<MessageSquareText className="h-5 w-5" />}
         label="Mensagens enviadas"
         value={stats?.mensagensEnviadas ?? 0}
-        accent="bg-sky-500/10 text-sky-600 dark:text-sky-400"
+        accent="bg-brand-500/10 text-brand-600 dark:text-brand-400"
       />
       <StatCard
         icon={<Reply className="h-5 w-5" />}
         label="Responderam"
         value={stats?.responderam ?? 0}
         sub={`${stats?.taxaResposta ?? 0}% de resposta`}
-        accent="bg-violet-500/10 text-violet-600 dark:text-violet-400"
+        accent="bg-brand-500/10 text-brand-600 dark:text-brand-400"
       />
       <StatCard
         icon={<HeartHandshake className="h-5 w-5" />}

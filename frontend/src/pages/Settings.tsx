@@ -110,7 +110,7 @@ export function SettingsPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="card p-6">
         <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
             <SlidersHorizontal className="h-5 w-5" />
           </div>
           <div>
@@ -165,7 +165,7 @@ export function SettingsPage() {
 
       <div className="rounded-lg border border-slate-200 p-4 text-sm dark:border-slate-800">
         <div className="flex items-start gap-2 text-slate-600 dark:text-slate-300">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" />
           <p>
             O score é calculado no <strong>serviço LeadScoreService</strong> no backend, sempre que um lead é
             criado ou atualizado pela prospecção. Alterações aqui também são lidas pelo serviço (cache é

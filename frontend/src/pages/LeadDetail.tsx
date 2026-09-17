@@ -158,7 +158,7 @@ export function LeadDetailPage() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
-            <MapPin className="h-4 w-4 text-indigo-500" /> Informações
+            <MapPin className="h-4 w-4 text-brand-500" /> Informações
           </div>
           <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             <div>
@@ -194,7 +194,7 @@ export function LeadDetailPage() {
                     href={lead.site}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-indigo-600 hover:underline dark:text-indigo-400"
+                    className="inline-flex items-center gap-1 text-brand-600 hover:underline dark:text-brand-400"
                   >
                     <Globe className="h-3.5 w-3.5" /> {lead.site}
                   </a>
@@ -209,7 +209,7 @@ export function LeadDetailPage() {
                     href={lead.googleMapsUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-indigo-600 hover:underline dark:text-indigo-400"
+                    className="inline-flex items-center gap-1 text-brand-600 hover:underline dark:text-brand-400"
                   >
                     <Map className="h-3.5 w-3.5" /> Abrir no Google Maps
                   </a>
@@ -225,7 +225,7 @@ export function LeadDetailPage() {
           {originCampaign && (
             <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/50">
               <span className="font-semibold text-slate-700 dark:text-slate-200">Campanha de origem: </span>
-              <Link to="/campanhas" className="text-indigo-600 hover:underline dark:text-indigo-400">
+              <Link to="/campanhas" className="text-brand-600 hover:underline dark:text-brand-400">
                 {originCampaign.nome}
               </Link>
               <span className="text-slate-500">

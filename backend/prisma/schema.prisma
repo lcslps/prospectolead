@@ -23,6 +23,8 @@ enum LeadSource {
 }
 
 enum CrmStage {
+  SCHEDULED
+  FOLLOW_UP
   NEW
   SITE_GENERATED
   MESSAGE_SENT

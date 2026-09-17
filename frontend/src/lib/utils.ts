@@ -38,8 +38,8 @@ export function formatScore(score: number): { label: string; color: string; badg
   if (score >= 50)
     return {
       label: 'Lead médio',
-      color: 'text-blue-500',
-      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+      color: 'text-brand-500',
+      badgeClass: 'bg-brand-500/10 text-brand-600 dark:text-brand-400',
     };
   return {
     label: 'Lead frio',
@@ -49,9 +49,9 @@ export function formatScore(score: number): { label: string; color: string; badg
 }
 
 export const STATUS_STYLES: Record<string, string> = {
-  NOVO: 'bg-sky-500/10 text-sky-600 dark:text-sky-400 ring-sky-500/20',
-  CONTATADO: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-violet-500/20',
-  RESPONDEU: 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ring-indigo-500/20',
+  NOVO: 'bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-brand-500/20',
+  CONTATADO: 'bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-brand-500/20',
+  RESPONDEU: 'bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-brand-500/20',
   INTERESSADO: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20',
   NEGOCIACAO: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20',
   CLIENTE: 'bg-green-600/10 text-green-700 dark:text-green-400 ring-green-600/20',
@@ -100,6 +100,8 @@ export function previewTemplate(conteudo: string, servico?: string | null): stri
 }
 
 export const CRM_STAGE_ORDER: CrmStage[] = [
+  'SCHEDULED',
+  'FOLLOW_UP',
   'NEW',
   'SITE_GENERATED',
   'MESSAGE_SENT',
@@ -111,48 +113,64 @@ export const CRM_STAGE_ORDER: CrmStage[] = [
 ];
 
 export const CRM_STAGE_LABELS: Record<CrmStage, string> = {
+  SCHEDULED: 'Agendado',
+  FOLLOW_UP: 'Follow Up',
   SITE_GENERATED: 'Site gerado',
-  NEW: 'Novo',
-  MESSAGE_SENT: 'Mensagem enviada',
+  NEW: 'Base',
+  MESSAGE_SENT: 'Abordado',
   REPLIED: 'Respondeu',
   INTERESTED: 'Interessado',
   NEGOTIATION: 'Negociação',
-  CLIENT: 'Cliente',
+  CLIENT: 'Convertido',
   LOST: 'Perdido',
 };
 
 export const CRM_STAGE_HEADERS: Record<CrmStage, string> = {
+  SCHEDULED: 'Agendado',
+  FOLLOW_UP: 'Follow Up',
   SITE_GENERATED: 'Site gerado',
-  NEW: 'NOVO',
-  MESSAGE_SENT: 'MENSAGEM ENVIADA',
+  NEW: 'Base',
+  MESSAGE_SENT: 'Abordado',
   REPLIED: 'RESPONDEU',
   INTERESTED: 'INTERESSADO',
   NEGOTIATION: 'NEGOCIAÇÃO',
-  CLIENT: 'CLIENTE',
-  LOST: 'PERDIDO',
+  CLIENT: 'Convertido',
+  LOST: 'Perdido',
 };
 
 export const CRM_STAGE_STYLES: Record<CrmStage, string> = {
-  SITE_GENERATED: 'bg-cyan-500/10 text-cyan-600 ring-cyan-500/20',
+  SCHEDULED: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
+  FOLLOW_UP: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
+  SITE_GENERATED: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
   NEW: 'bg-slate-500/10 text-slate-600 dark:text-slate-300 ring-slate-500/20',
-  MESSAGE_SENT: 'bg-sky-500/10 text-sky-600 dark:text-sky-500 ring-sky-500/20',
-  REPLIED: 'bg-violet-500/10 text-violet-600 dark:text-violet-400 ring-violet-500/20',
-  INTERESTED: 'bg-amber-500/10 text-amber-600 dark:text-amber-500 ring-amber-500/20',
-  NEGOTIATION: 'bg-orange-500/10 text-orange-600 dark:text-orange-500 ring-orange-500/20',
-  CLIENT: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20',
+  MESSAGE_SENT: 'bg-brand-500/10 text-brand-600 dark:text-brand-500 ring-brand-500/20',
+  REPLIED: 'bg-brand-500/10 text-brand-600 dark:text-brand-400 ring-brand-500/20',
+  INTERESTED: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
+  NEGOTIATION: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
+  CLIENT: 'bg-brand-500/10 text-brand-600 dark:text-brand-300 ring-brand-500/20',
   LOST: 'bg-red-500/10 text-red-600 dark:text-red-400 ring-red-500/20',
 };
 
 export const CRM_DOT_COLORS: Record<CrmStage, string> = {
-  SITE_GENERATED: 'bg-cyan-500',
+  SCHEDULED: 'bg-brand-400',
+  FOLLOW_UP: 'bg-brand-500',
+  SITE_GENERATED: 'bg-brand-500',
   NEW: 'bg-slate-400',
-  MESSAGE_SENT: 'bg-sky-500',
-  REPLIED: 'bg-violet-500',
-  INTERESTED: 'bg-amber-500',
-  NEGOTIATION: 'bg-orange-500',
-  CLIENT: 'bg-emerald-500',
+  MESSAGE_SENT: 'bg-brand-500',
+  REPLIED: 'bg-brand-500',
+  INTERESTED: 'bg-brand-400',
+  NEGOTIATION: 'bg-brand-500',
+  CLIENT: 'bg-brand-600',
   LOST: 'bg-red-500',
 };
+
+export const CRM_PIPELINE_STAGES: CrmStage[] = ['NEW', 'MESSAGE_SENT', 'SCHEDULED', 'FOLLOW_UP', 'CLIENT', 'LOST'];
+export function pipelineStage(stage: CrmStage): CrmStage {
+  if (stage === 'SITE_GENERATED') return 'NEW';
+  if (stage === 'REPLIED' || stage === 'INTERESTED') return 'MESSAGE_SENT';
+  if (stage === 'NEGOTIATION') return 'FOLLOW_UP';
+  return stage;
+}
 
 export function followUpStatus(nextFollowUpAt: string | null): { late: boolean; today: boolean } {
   if (!nextFollowUpAt) return { late: false, today: false };

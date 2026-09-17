@@ -22,7 +22,7 @@ export function CRMColumn({
     <div
       ref={setNodeRef}
       className={`flex max-h-full w-72 shrink-0 flex-col rounded-2xl border bg-slate-100/60 dark:bg-slate-900/60 ${
-        over ? 'border-indigo-400 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-slate-800'
+        over ? 'border-brand-400 ring-2 ring-brand-500/20' : 'border-slate-200 dark:border-slate-800'
       }`}
     >
       <div className="flex items-center gap-2 px-3 py-2.5">

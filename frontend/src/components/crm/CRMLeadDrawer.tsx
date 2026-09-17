@@ -16,7 +16,7 @@ import {
   Clock,
 } from 'lucide-react';
 import type { CrmLeadFull, CrmStage } from '../../types';
-import { CRM_STAGE_LABELS, CRM_STAGE_ORDER, CRM_STAGE_STYLES, toDatetimeLocalValue, formatCrmDate, whatsAppLink } from '../../lib/utils';
+import { CRM_STAGE_LABELS, CRM_PIPELINE_STAGES as CRM_STAGE_ORDER, CRM_STAGE_STYLES, toDatetimeLocalValue, formatCrmDate, whatsAppLink } from '../../lib/utils';
 import { getData } from '../../services/api';
 import { Button } from '../ui/Button';
 import { Textarea } from '../ui/Textarea';
@@ -202,8 +202,8 @@ export function CRMLeadDrawer({
                   disabled={busy}
                   className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${
                     detail.stage === stage
-                      ? 'border-indigo-600 bg-indigo-600 text-white'
-                      : 'border-slate-300 bg-white text-slate-600 hover:border-indigo-400 hover:text-indigo-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                      ? 'border-brand-600 bg-brand-600 text-white'
+                      : 'border-slate-300 bg-white text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   }`}
                 >
                   {CRM_STAGE_LABELS[stage]}
@@ -222,7 +222,7 @@ export function CRMLeadDrawer({
               <InfoRow label="Endereço">{lead.endereco ?? '—'}</InfoRow>
               <InfoRow label="Telefone">
                 {lead.telefone ? (
-                  <a href={wa ?? '#'} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                  <a href={wa ?? '#'} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400">
                     <Phone className="h-3.5 w-3.5" /> {lead.telefone}
                   </a>
                 ) : (
@@ -231,7 +231,7 @@ export function CRMLeadDrawer({
               </InfoRow>
               <InfoRow label="Site">
                 {lead.site ? (
-                  <a href={lead.site} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 truncate text-indigo-600 dark:text-indigo-400">
+                  <a href={lead.site} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 truncate text-brand-600 dark:text-brand-400">
                     <Globe className="h-3.5 w-3.5" /> {lead.site}
                   </a>
                 ) : (
@@ -240,7 +240,7 @@ export function CRMLeadDrawer({
               </InfoRow>
               <InfoRow label="Google Maps">
                 {lead.googleMapsUrl ? (
-                  <a href={lead.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400">
+                  <a href={lead.googleMapsUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400">
                     <MapPin className="h-3.5 w-3.5" /> Abrir no Google Maps
                   </a>
                 ) : (
@@ -290,7 +290,7 @@ export function CRMLeadDrawer({
               </Button>
             </div>
             {detail.nextFollowUpAt && (
-              <p className="inline-flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400">
+              <p className="inline-flex items-center gap-1 text-xs text-brand-600 dark:text-brand-400">
                 <CalendarClock className="h-3.5 w-3.5" /> {formatCrmDate(detail.nextFollowUpAt)}
               </p>
             )}
@@ -375,7 +375,7 @@ function RatingLabel({ nota, avaliacoes }: { nota: number | null; avaliacoes: nu
 function Spinner() {
   return (
     <div className="flex h-full items-center justify-center">
-      <svg className="h-6 w-6 animate-spin text-indigo-500" viewBox="0 0 24 24" fill="none">
+      <svg className="h-6 w-6 animate-spin text-brand-500" viewBox="0 0 24 24" fill="none">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
       </svg>

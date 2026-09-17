@@ -11,7 +11,7 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
 
 export function PageLoader() {
   return (
-    <div className="flex items-center justify-center py-20 text-indigo-500">
+    <div className="flex items-center justify-center py-20 text-brand-500">
       <Spinner className="h-8 w-8" />
     </div>
   );
@@ -29,8 +29,8 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center dark:border-slate-700">
-      {icon && <div className="mb-4 text-slate-300 dark:text-slate-600">{icon}</div>}
+    <div className="empty-state flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 px-6 py-16 text-center dark:border-slate-700">
+      {icon && <div className="empty-state-icon mb-4 text-slate-300 dark:text-slate-600">{icon}</div>}
       <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200">{title}</h3>
       {description && <p className="mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">{description}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -93,7 +93,7 @@ export function Pagination({
             onClick={() => onPageChange(p)}
             className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
               p === page
-                ? 'bg-indigo-600 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800'
             }`}
           >
