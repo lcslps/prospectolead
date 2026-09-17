@@ -1,3 +1,4 @@
+import { Button } from '../components/ui/Button';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FolderOpen, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -155,7 +156,7 @@ export function CampaignsPage() {
                   <div className="text-lg font-bold text-slate-500">{campaign.quantidadeSolicitada}</div>
                   <div className="text-[11px] text-slate-400">solicitados</div>
                 </div>
-                <button
+                <Button variant="unstyled"
                   className="btn-secondary !px-3 !py-1.5 text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -165,8 +166,8 @@ export function CampaignsPage() {
                   title="Repetir prospecção"
                 >
                   {reprospectando === campaign.id ? 'Prospectando...' : 'Reprospeçar'}
-                </button>
-                <button
+                </Button>
+                <Button variant="unstyled"
                   className="rounded-lg p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -175,7 +176,7 @@ export function CampaignsPage() {
                   title="Excluir campanha"
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
+                </Button>
                 {openId === campaign.id ? (
                   <ChevronUp className="h-5 w-5 text-slate-400" />
                 ) : (

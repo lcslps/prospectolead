@@ -44,6 +44,8 @@ export class DashboardService {
             crmLead: { select: { stage: true, createdAt: true } },
             id: true,
             nome: true,
+            categoria: true,
+            nicho: true,
             cidade: true,
             estado: true,
             status: true,
@@ -71,7 +73,15 @@ export class DashboardService {
       byCrmStage['NEGOTIATION'] +
       byCrmStage['CLIENT'];
 
+    const [semSiteGerado, followUpsAtrasados, sitesPublicados, empresasEncontradas] = await Promise.all([
+      prisma.crmLead.count({ where: { OR: [{ website: null }, { website: { generationStatus: { not: 'completed' } } }] } }),
+      prisma.crmLead.count({ where: { nextFollowUpAt: { lt: startOfDay }, stage: { notIn: ['CLIENT', 'LOST'] } } }),
+      prisma.website.count({ where: { publishedAt: { not: null } } }),
+      prisma.lead.count(),
+    ]);
+
     return {
+      activity: { semSiteGerado, followUpsAtrasados, sitesPublicados, empresasEncontradas, mensagensEnviadas: crmMensagensEnviadas },
       stats: {
         totalLeads,
         novos,

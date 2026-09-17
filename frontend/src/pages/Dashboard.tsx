@@ -1,198 +1,75 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { Button } from '../components/ui/Button';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Phone,
-  Star,
-  Users,
-  Target,
-  MessageCircle,
-  Handshake,
-  Crown,
-  Globe,
-  FolderOpen,
-  Flame,
-  XCircle,
-} from 'lucide-react';
+import { ArrowUpRight, RefreshCw } from 'lucide-react';
 import { getData } from '../services/api';
-import type { CrmStage, DashboardData } from '../types';
-import { CRM_STAGE_LABELS, CRM_STAGE_ORDER, CRM_STAGE_STYLES } from '../lib/utils';
-import { PageLoader, EmptyState } from '../components/UI';
-import { ScoreBadge } from '../components/Badges';
-import { useToast } from '../components/Toast';
+import type { DashboardData, CrmStage } from '../types';
+import { CRM_PIPELINE_STAGES, CRM_STAGE_LABELS, pipelineStage } from '../lib/utils';
+import { PageLoader } from '../components/UI';
+import './dashboard.css';
 
-function StatCard({
-  label,
-  value,
-  icon,
-}: {
-  label: string;
-  value: number;
-  icon: ReactNode;
-  color: string;
-}) {
-  return (
-    <div className="card dashboard-metric">
-      <div className="dashboard-metric-heading"><span>{label}</span>{icon}</div>
-      <div className="dashboard-metric-value">{value.toLocaleString('pt-BR')}</div>
-    </div>
-  );
-}
-
-function BarList<T extends { label: string; value: number }>({ items, empty }: { items: T[]; empty: string }) {
-  if (items.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-10 text-slate-400">
-        <Target className="h-8 w-8" />
-        <span className="text-sm">{empty}</span>
-      </div>
-    );
-  }
-  const max = Math.max(...items.map((i) => i.value), 1);
-  return (
-    <ul className="space-y-3">
-      {items.map((item, idx) => (
-        <li key={idx}>
-          <div className="mb-1 flex items-center justify-between text-sm">
-            <span className="font-medium text-slate-700 dark:text-slate-200">{item.label}</span>
-            <span className="font-semibold text-slate-500 dark:text-slate-400">{item.value}</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-            <div
-              className="dashboard-bar"
-              style={{ width: `${Math.max((item.value / max) * 100, 4)}%` }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
+const number = (value: number) => value.toLocaleString('pt-BR');
+const rate = (value: number, total: number) => total ? value / total * 100 : 0;
+const percent = (value: number) => `${value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
-
+  const [error, setError] = useState('');
+  const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     let active = true;
-    getData<DashboardData>('/dashboard')
-      .then((d) => {
-        if (active) setData(d);
-      })
-      .catch((e: Error) => {
-        toast.error(e.message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [toast]);
-
+    setLoading(true);
+    getData<DashboardData>('/dashboard').then(result => { if (active) { setData(result); setError(''); } })
+      .catch((e: Error) => { if (active) setError(e.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [refresh]);
   if (loading) return <PageLoader />;
-  if (!data) return <EmptyState title="Não foi possível carregar o dashboard" />;
-
-  const s = data.stats;
-  const crm = data.crmStats;
-  const stageCount = (stage: CrmStage) => crm?.porStage?.[stage] ?? 0;
-
-  return (
-    <div className="space-y-6">
-      <div className="workspace-heading"><div><p className="workspace-eyebrow">Seu negócio, em perspectiva</p><h2>Visão geral</h2><p>Acompanhe suas oportunidades e os próximos passos.</p></div><span className="workspace-heading-date">{new Date().toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
-      <div className="dashboard-metrics">
-        <StatCard label="Total de leads" value={crm?.leadsNoCrm ?? 0} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Users className="h-5 w-5" />} />
-        <StatCard label="Leads novos" value={stageCount('NEW')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Flame className="h-5 w-5" />} />
-        <StatCard label="Contatados" value={stageCount('MESSAGE_SENT')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<Phone className="h-5 w-5" />} />
-        <StatCard label="Responderam" value={stageCount('REPLIED')} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<MessageCircle className="h-5 w-5" />} />
-        <StatCard label="Interessados" value={stageCount('INTERESTED')} color="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" icon={<Star className="h-5 w-5" />} />
-        <StatCard label="Negociação" value={stageCount('NEGOTIATION')} color="bg-amber-500/10 text-amber-600 dark:text-amber-400" icon={<Handshake className="h-5 w-5" />} />
-        <StatCard label="Clientes" value={stageCount('CLIENT')} color="bg-green-600/10 text-green-700 dark:text-green-400" icon={<Crown className="h-5 w-5" />} />
-        <StatCard label="Perdidos" value={stageCount('LOST')} color="bg-red-500/10 text-red-600 dark:text-red-400" icon={<XCircle className="h-5 w-5" />} />
-        <StatCard label="Campanhas realizadas" value={s.campanhas} color="bg-brand-500/10 text-brand-600 dark:text-brand-400" icon={<FolderOpen className="h-5 w-5" />} />
-        <StatCard label="Sites gerados" value={s.sitesGerados} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" icon={<Globe className="h-5 w-5" />} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <section className="card p-5 lg:col-span-1">
-          <h2 className="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">CRM — leads por etapa</h2>
-          <BarList
-            empty="Nenhum lead no CRM ainda"
-            items={CRM_STAGE_ORDER.map((stage) => ({
-              label: CRM_STAGE_LABELS[stage],
-              value: stageCount(stage),
-            })).filter((item) => item.value > 0)}
-          />
-        </section>
-
-        <section className="card p-5 lg:col-span-1">
-          <h2 className="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">Top cidades</h2>
-          <BarList
-            empty="Sem leads com cidade ainda"
-            items={data.porCidade.map((item) => ({ label: item.cidade, value: item._count._all }))}
-          />
-        </section>
-
-        <section className="card p-5 lg:col-span-1">
-          <h2 className="mb-4 text-sm font-bold text-slate-800 dark:text-slate-100">Top nichos</h2>
-          <BarList
-            empty="Sem nichos registrados ainda"
-            items={data.topNichos.map((item) => ({ label: item.nicho, value: item._count._all }))}
-          />
-        </section>
-      </div>
-
-      <section className="card overflow-hidden">
-        <div className="flex items-center justify-between px-5 pt-5">
-          <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Últimos leads</h2>
-          <Link to="/crm" className="text-sm font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400">
-            Ver todos
-          </Link>
-        </div>
-        <div className="mt-4 overflow-x-auto">
-          {data.ultimosLeads.length === 0 ? (
-            <div className="px-5 pb-6">
-              <EmptyState
-                icon={<Users className="h-10 w-10" />}
-                title="Nenhum lead ainda"
-                description="Comece uma prospecção para encontrar empresas na sua região."
-                action={
-                  <Link to="/prospeccao" className="btn-primary">
-                    Prospectar leads
-                  </Link>
-                }
-              />
-            </div>
-          ) : (
-            <table className="w-full min-w-[640px]">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800">
-                  <th className="table-th">Empresa</th>
-                  <th className="table-th">Cidade</th>
-                  <th className="table-th">Nota</th>
-                  <th className="table-th">Score</th>
-                  <th className="table-th">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.ultimosLeads.map((lead) => (
-                  <tr key={lead.id} className="border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40">
-                    <td className="table-td">
-                      <Link to={`/leads/${lead.id}`} className="font-medium text-brand-600 hover:underline dark:text-brand-400">
-                        {lead.nome}
-                      </Link>
-                    </td>
-                    <td className="table-td">{lead.cidade ?? '—'}</td>
-                    <td className="table-td">{lead.nota ? `${lead.nota.toFixed(1).replace('.', ',')} ★` : '—'}</td>
-                    <td className="table-td"><ScoreBadge score={lead.leadScore} /></td>
-                    <td className="table-td"><span className={`badge ring-1 ${CRM_STAGE_STYLES[lead.crmStage]}`}>{CRM_STAGE_LABELS[lead.crmStage]}</span></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
+  if (error || !data) return <div className="card p-6" role="alert"><p>{error || 'Não foi possível carregar o dashboard.'}</p><Button variant="unstyled" className="btn-primary mt-4" onClick={() => setRefresh(v => v + 1)}>Tentar novamente</Button></div>;
+  const counts: Record<string, number> = Object.fromEntries(CRM_PIPELINE_STAGES.map(stage => [stage, 0]));
+  for (const [stage, count] of Object.entries(data.crmStats?.porStage ?? {})) {
+    const key = pipelineStage(stage as CrmStage);
+    counts[key] = (counts[key] ?? 0) + count;
+  }
+  const total = data.stats.totalLeads;
+  const approached = total - counts.NEW;
+  const scheduled = counts.SCHEDULED + counts.CLIENT;
+  const conversion = rate(counts.CLIENT, total);
+  const steps = [
+    { label: 'Total', value: total, detail: 'Leads no CRM' },
+    { label: 'Abordados', value: approached, detail: `${percent(rate(approached, total))} do total` },
+    { label: 'Agendados', value: scheduled, detail: `${percent(rate(scheduled, approached))} dos abordados` },
+    { label: 'Follow Up', value: counts.FOLLOW_UP, detail: `${percent(rate(counts.FOLLOW_UP, approached))} dos abordados` },
+    { label: 'Perdidos', value: counts.LOST, detail: `${percent(rate(counts.LOST, approached))} dos abordados` },
+    { label: 'Convertidos', value: counts.CLIENT, detail: `${percent(rate(counts.CLIENT, scheduled))} dos agendados` },
+  ];
+  const metrics = [
+    ['Taxa de conversão', conversion, 'Convertidos / Total', 'Quanto da sua base se tornou cliente.'],
+    ['Taxa de abordagem', rate(approached, total), 'Abordados / Total', 'Quanto da base está sendo trabalhado.'],
+    ['Taxa de agendamento', rate(scheduled, approached), 'Agendados / Abordados', 'Proporção encaminhada para reunião.'],
+    ['Taxa de follow up', rate(counts.FOLLOW_UP, approached), 'Follow Up / Abordados', 'Acompanhe para evitar oportunidades paradas.'],
+    ['Taxa de perdidos', rate(counts.LOST, approached), 'Perdidos / Abordados', 'Revise a abordagem e o perfil dos leads.'],
+  ] as const;
+  const recommendations = [
+    ...(data.activity.followUpsAtrasados ? [{ title: `${number(data.activity.followUpsAtrasados)} follow-ups atrasados`, text: 'Retome os contatos que passaram da data prevista.', to: '/crm' }] : []),
+    ...(approached > 0 && conversion < 10 ? [{ title: 'Conversão abaixo de 10%', text: 'Revise a proposta e prepare uma demonstração antes do próximo contato.', to: '/crm' }] : []),
+    ...(counts.NEW ? [{ title: `${number(counts.NEW)} leads aguardando abordagem`, text: 'Priorize as próximas conversas e registre o retorno no CRM.', to: '/crm' }] : []),
+    ...(data.activity.semSiteGerado ? [{ title: `${number(data.activity.semSiteGerado)} leads sem site gerado`, text: 'Crie uma proposta visual para apresentar ao negócio.', to: '/sites' }] : []),
+  ];
+  return <div className="analytics-page">
+    <div className="workspace-heading"><div><p className="workspace-eyebrow">Sua operação em números</p><h2>Dashboard</h2><p>Visão geral da sua operação comercial.</p></div><Button variant="unstyled" className="btn-secondary" onClick={() => setRefresh(v => v + 1)}><RefreshCw size={15} />Atualizar</Button></div>
+    <section className="analytics-panel" aria-labelledby="conversion-title">
+      <div className="analytics-panel-heading"><h3 id="conversion-title">Funil de conversão</h3><span>Base do CRM · posição atual</span></div>
+      <div className="conversion-chart" role="list" aria-label="Funil de conversão">{steps.map((step, index) => <div className="conversion-step" role="listitem" key={step.label}><div className="conversion-plot"><div className={`conversion-shape conversion-tone-${index}`} style={{ height: `${total ? 28 + step.value / total * 72 : 28}%` }} /><strong>{number(step.value)}</strong></div><b>{step.label}</b><small>{step.detail}</small></div>)}</div>
+      <div className="conversion-summary"><dl className="conversion-rates">{metrics.map(([label, value, formula, description]) => <div key={label}><dt>{label}<small>{formula}</small></dt><dd><strong>{percent(value)}</strong><span>{description}</span></dd></div>)}</dl><div className="conversion-ring-block"><span>Total de leads no CRM</span><div className="conversion-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="50" /><circle cx="60" cy="60" r="50" pathLength="100" strokeDasharray={`${conversion} 100`} /></svg><strong>{number(total)}</strong></div><small>{percent(conversion)} convertidos</small></div></div>
+      <p className="analytics-note">Indicadores estimados pela etapa atual: abordados incluem todas as etapas após Base; agendados incluem Agendado e Convertido. Não representam um histórico de reuniões.</p>
+    </section>
+    <div className="analytics-grid">
+      <section className="analytics-panel"><div className="analytics-panel-heading"><h3>Funil de leads</h3><span>{number(total)} no CRM</span></div><div className="pipeline-bars">{CRM_PIPELINE_STAGES.map(stage => <div className="pipeline-bar-row" key={stage}><span>{CRM_STAGE_LABELS[stage]}</span><div role="meter" aria-label={CRM_STAGE_LABELS[stage]} aria-valuenow={counts[stage]} aria-valuemin={0} aria-valuemax={Math.max(total, 1)}><i style={{ width: `${rate(counts[stage], total)}%` }} /></div><b>{number(counts[stage])}</b></div>)}</div><Link className="analytics-link" to="/crm">Ver CRM <ArrowUpRight size={14} /></Link></section>
+      <section className="analytics-panel"><div className="analytics-panel-heading"><h3>Recomendações</h3><span>Próximos passos</span></div><div className="analytics-recommendations">{recommendations.length ? recommendations.slice(0, 3).map(item => <Link to={item.to} key={item.title}><span className="recommendation-dot" /><div><b>{item.title}</b><p>{item.text}</p></div><ArrowUpRight size={16} /></Link>) : <div className="analytics-empty">{total ? 'Nenhuma pendência identificada. Continue acompanhando seus contatos.' : 'Adicione leads ao CRM para receber recomendações.'}<Link className="analytics-link" to="/prospeccao">Encontrar empresas <ArrowUpRight size={14} /></Link></div>}</div></section>
+      <section className="analytics-panel"><div className="analytics-panel-heading"><h3>Uso e atividade</h3><span>Acumulado</span></div><div className="activity-grid">{[['Empresas encontradas', data.activity.empresasEncontradas], ['Leads no CRM', total], ['Sites gerados', data.stats.sitesGerados], ['Sites publicados', data.activity.sitesPublicados], ['Mensagens enviadas', data.activity.mensagensEnviadas], ['Campanhas', data.stats.campanhas]].map(([label, value]) => <div key={label}><span>{label}</span><strong>{number(Number(value))}</strong></div>)}</div><div className="unavailable-usage"><span>Mensagens WA geradas · Scripts de ligação · Edições de site</span><small>Contagem de uso ainda não disponível.</small></div><p className="analytics-note">Limites de plano e renovação ainda não configurados.</p><Link className="analytics-link" to="/sites">Ver meus projetos <ArrowUpRight size={14} /></Link></section>
+      <section className="analytics-panel"><div className="analytics-panel-heading"><h3>Leads recentes</h3><span>Últimos adicionados ao CRM</span></div><div className="analytics-recent">{data.ultimosLeads.length ? data.ultimosLeads.map(lead => <Link to={`/leads/${lead.id}`} key={lead.id}><div><b>{lead.nome}</b><small>{[lead.categoria || lead.nicho, lead.cidade].filter(Boolean).join(' · ') || 'Localização não informada'}</small></div><span>{CRM_STAGE_LABELS[pipelineStage(lead.crmStage)]}</span></Link>) : <p className="analytics-empty">Seus próximos contatos aparecerão aqui ao entrar no CRM.</p>}</div><Link className="analytics-link" to="/crm">Ver CRM <ArrowUpRight size={14} /></Link></section>
     </div>
-  );
+  </div>;
 }

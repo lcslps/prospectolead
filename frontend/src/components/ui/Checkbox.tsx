@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Input } from './Input';
 import type { ReactNode } from 'react';
 
 export function Checkbox({
@@ -18,18 +18,8 @@ export function Checkbox({
         disabled ? 'cursor-not-allowed opacity-50' : ''
       }`}
     >
-      <span
-        className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md border transition ${
-          checked
-            ? 'border-brand-600 bg-brand-600 text-white'
-            : 'border-slate-300 bg-white text-transparent group-hover:border-brand-400 dark:border-slate-600 dark:bg-slate-800'
-        }`}
-      >
-        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-      </span>
-      <input
+      <Input
         type="checkbox"
-        className="sr-only"
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}

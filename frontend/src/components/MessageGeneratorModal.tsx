@@ -1,3 +1,5 @@
+import { Button } from './ui/Button';
+import { Select } from './ui/Select';
 import { useEffect, useState } from 'react';
 import { Copy, Check, MessageSquareText, PhoneCall } from 'lucide-react';
 import { getData, postData } from '../services/api';
@@ -103,7 +105,7 @@ export function MessageGeneratorModal({
           ) : templates.length === 0 ? (
             <p className="text-sm text-amber-600">Nenhum template. Crie em Templates.</p>
           ) : (
-            <select
+            <Select
               className="input"
               value={selected}
               onChange={(e) => setSelected(e.target.value)}
@@ -114,7 +116,7 @@ export function MessageGeneratorModal({
                   {t.nome}
                 </option>
               ))}
-            </select>
+            </Select>
           )}
         </div>
 
@@ -124,10 +126,10 @@ export function MessageGeneratorModal({
           </p>
         )}
 
-        <button className="btn-primary w-full" onClick={generate} disabled={generating || !selected}>
+        <Button variant="unstyled" className="btn-primary w-full" onClick={generate} disabled={generating || !selected}>
           {generating ? <Spinner className="h-4 w-4" /> : <MessageSquareText className="h-4 w-4" />}
           {generating ? 'Gerando...' : 'Gerar mensagem'}
-        </button>
+        </Button>
 
         {message && (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
@@ -145,10 +147,10 @@ export function MessageGeneratorModal({
                     Abrir WhatsApp
                   </a>
                 )}
-                <button className="btn-secondary !px-3 !py-1.5 text-xs" onClick={copyMessage}>
+                <Button variant="unstyled" className="btn-secondary !px-3 !py-1.5 text-xs" onClick={copyMessage}>
                   {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                   {copied ? 'Copiado!' : 'COPIAR MENSAGEM'}
-                </button>
+                </Button>
               </div>
             </div>
             <pre className="whitespace-pre-wrap rounded-lg bg-white p-3 font-sans text-sm text-slate-800 shadow-sm dark:bg-slate-900 dark:text-slate-100">

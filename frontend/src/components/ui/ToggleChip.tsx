@@ -1,3 +1,4 @@
+import { Button } from './Button';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -11,7 +12,7 @@ export function ToggleChip({
   children: ReactNode;
 }) {
   return (
-    <button
+    <Button variant="unstyled"
       type="button"
       onClick={onClick}
       aria-pressed={active}
@@ -23,6 +24,6 @@ export function ToggleChip({
     >
       {active && <Check className="h-3 w-3" strokeWidth={3} />}
       {children}
-    </button>
+    </Button>
   );
 }

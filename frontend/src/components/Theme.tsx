@@ -1,3 +1,4 @@
+import { Button } from './ui/Button';
 import { useEffect, useState, type ReactNode } from 'react';
 
 export function initializeTheme() {
@@ -18,7 +19,7 @@ export function ThemeToggle() {
   }, [dark]);
 
   return (
-    <button
+    <Button variant="unstyled"
       onClick={() => setDark((v) => !v)}
       className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 transition hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
       aria-label="Alternar tema"
@@ -35,7 +36,7 @@ export function ThemeToggle() {
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
         </svg>
       )}
-    </button>
+    </Button>
   );
 }
 

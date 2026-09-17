@@ -134,13 +134,13 @@ export function CRMBoard({
 
   return (
     <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveItem(null)}>
-      <div className="flex h-full items-start gap-3 overflow-x-auto pb-4">
+      <div className="crm-board-grid">
         {CRM_STAGE_ORDER.map((stage) => (
           <CRMColumn
             key={stage}
             stage={stage}
             items={groups[stage]}
-            isOver={activeItem !== null}
+            isOver={false}
             onOpenCard={onOpenCard}
           />
         ))}

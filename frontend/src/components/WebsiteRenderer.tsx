@@ -1,3 +1,6 @@
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Textarea } from './ui/Textarea';
 import { useState, type CSSProperties, type MouseEvent } from 'react';
 import type { SiteButton, SiteDocument, SiteSection } from '../types/website';
 import './website.css';
@@ -11,9 +14,9 @@ function CTA({ button, secondary = false }: { button: SiteButton; secondary?: bo
 function ContactForm({ whatsapp }: { whatsapp: string }) {
   const [name, setName] = useState(''); const [message, setMessage] = useState('');
   return <form className="ws-form" onSubmit={e => { e.preventDefault(); if (/^https:\/\/wa.me\//.test(whatsapp)) window.open(`${whatsapp.split('?')[0]}?text=${encodeURIComponent(`Olá, sou ${name}. ${message}`)}`, '_blank', 'noopener,noreferrer'); }}>
-    <label>Seu nome<input required value={name} onChange={e => setName(e.target.value)} maxLength={120} /></label>
-    <label>Como podemos ajudar?<textarea required value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} /></label>
-    <button className="ws-button" disabled={!/^https:\/\/wa.me\//.test(whatsapp)}>Enviar pelo WhatsApp ↗</button>
+    <label>Seu nome<Input unstyled required value={name} onChange={e => setName(e.target.value)} maxLength={120} /></label>
+    <label>Como podemos ajudar?<Textarea unstyled required value={message} onChange={e => setMessage(e.target.value)} maxLength={2000} /></label>
+    <Button variant="unstyled" className="ws-button" disabled={!/^https:\/\/wa.me\//.test(whatsapp)}>Enviar pelo WhatsApp ↗</Button>
     <small>A mensagem será aberta no WhatsApp para você enviar.</small>
   </form>;
 }

@@ -1,3 +1,4 @@
+import { Button } from './ui/Button';
 import type { ReactNode } from 'react';
 
 export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
@@ -80,15 +81,15 @@ export function Pagination({
         Página {page} de {totalPages}
       </span>
       <div className="flex items-center gap-1">
-        <button
+        <Button variant="unstyled"
           className="btn-secondary !px-2.5 !py-1.5 text-xs"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
         >
           Anterior
-        </button>
+        </Button>
         {pages.map((p) => (
-          <button
+          <Button variant="unstyled"
             key={p}
             onClick={() => onPageChange(p)}
             className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
@@ -98,15 +99,15 @@ export function Pagination({
             }`}
           >
             {p}
-          </button>
+          </Button>
         ))}
-        <button
+        <Button variant="unstyled"
           className="btn-secondary !px-2.5 !py-1.5 text-xs"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
         >
           Próxima
-        </button>
+        </Button>
       </div>
     </div>
   );

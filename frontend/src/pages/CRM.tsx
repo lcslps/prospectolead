@@ -1,5 +1,6 @@
+import { Button } from '../components/ui/Button';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Filter, Loader2 } from 'lucide-react';
+import { BarChart3, Loader2 } from 'lucide-react';
 import { getData, postData, patchData, deleteData } from '../services/api';
 import type { CrmLeadFull, CrmStage, CrmStats } from '../types';
 import { CRM_PIPELINE_STAGES as CRM_STAGE_ORDER, CRM_STAGE_LABELS, pipelineStage } from '../lib/utils';
@@ -16,9 +17,9 @@ function emptyGroups(): Record<CrmStage, CrmLeadFull[]> {
 }
 
 function computeStats(groups: Record<CrmStage, CrmLeadFull[]>): CrmStats {
-  const count = (s: CrmStage) => groups[s]?.length ?? 0;
+  const count = (s: CrmStage) => Object.values(groups).flat().filter(item => item.stage === s).length;
   const total =
-    CRM_STAGE_ORDER.reduce((acc, s) => acc + count(s), 0);
+    Object.values(groups).reduce((acc, items) => acc + items.length, 0);
   const mensagensEnviadas =
     count('MESSAGE_SENT') + count('REPLIED') + count('INTERESTED') + count('NEGOTIATION') + count('CLIENT');
   const responderam = count('REPLIED') + count('INTERESTED') + count('NEGOTIATION') + count('CLIENT');
@@ -39,6 +40,7 @@ function computeStats(groups: Record<CrmStage, CrmLeadFull[]>): CrmStats {
 }
 
 export function CRMPage() {
+  const [showStats, setShowStats] = useState(false);
   const [groups, setGroups] = useState<Record<CrmStage, CrmLeadFull[]>>(emptyGroups());
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<CrmCourierFilters>(EMPTY_CRM_FILTERS);
@@ -68,8 +70,7 @@ export function CRMPage() {
       const data = await getData<{ leads: CrmLeadFull[] }>('/crm', params);
       const next = emptyGroups();
       for (const lead of data.leads) {
-        if (!next[lead.stage]) next[lead.stage] = [];
-        next[lead.stage].push(lead);
+        next[pipelineStage(lead.stage)].push(lead);
       }
       setGroups(next);
     } catch (e) {
@@ -91,16 +92,17 @@ export function CRMPage() {
       for (const stage of CRM_STAGE_ORDER) {
         next[stage] = next[stage].filter((i) => i.id !== detail.id);
       }
-      const target = [...(next[detail.stage] ?? [])];
+      const stage = pipelineStage(detail.stage);
+      const target = [...next[stage]];
       target.push(detail);
-      next[detail.stage] = target.map((item, index) => ({ ...item, position: index * 10 }));
+      next[stage] = target.map((item, index) => ({ ...item, position: index * 10 }));
       return next;
     });
   };
 
-  const persistColumn = (stage: CrmStage, items: CrmLeadFull[]) => {
+  const persistColumn = (items: CrmLeadFull[]) => {
     return Promise.all(
-      items.map((item) => patchData(`/crm/leads/${item.id}/stage`, { stage, position: item.position })),
+      items.map((item) => patchData(`/crm/leads/${item.id}/stage`, { stage: item.stage, position: item.position })),
     );
   };
 
@@ -128,13 +130,13 @@ export function CRMPage() {
 
     const target = [...(next[targetStage] ?? [])];
     const idx = Math.min(Math.max(overIndex, 0), target.length);
-    target.splice(idx, 0, { ...activeItem, stage: targetStage });
+    target.splice(idx, 0, { ...activeItem, stage: sourceStage === targetStage ? activeItem.stage : targetStage });
 
     const withPositions = target.map((item, index) => ({ ...item, position: index * 10 }));
     next[targetStage] = withPositions;
     setGroups(next);
 
-    persistColumn(targetStage, withPositions)
+    persistColumn(withPositions)
       .then(() => toast.success('Lead movido'))
       .catch((e) => {
         toast.error(e instanceof Error ? `Erro ao mover: ${e.message}` : 'Erro ao mover lead');
@@ -145,7 +147,7 @@ export function CRMPage() {
   const fetchDetail = useCallback((id: string) => getData<CrmLeadFull>(`/crm/leads/${id}`), []);
 
   const handleStageChange = async (id: string, stage: CrmStage) => {
-    const position = (groups[stage]?.length ?? 0) * 10;
+    const position = (groups[pipelineStage(stage)]?.length ?? 0) * 10;
     await patchData(`/crm/leads/${id}/stage`, { stage, position });
     const detail = await fetchDetail(id);
     applyDetail(detail);
@@ -193,22 +195,18 @@ export function CRMPage() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <Filter className="h-4 w-4 text-brand-500" />
-          Apenas leads enviados manualmente para o CRM aparecem aqui.
-        </div>
+    <div className="crm-page space-y-4">
+      <div className="workspace-heading"><div><p className="workspace-eyebrow">Comercial / Relacionamento</p><h2>CRM</h2><p>Filtre, priorize e acompanhe cada oportunidade.</p></div><Button variant="unstyled" className="btn-secondary" aria-expanded={showStats} onClick={() => setShowStats(!showStats)}><BarChart3 size={15} />Indicadores</Button></div>
+      {showStats && <CRMStats stats={loading ? null : stats} />}
+      <CRMFilters filters={filters} onChange={setFilters} />
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+        <span>{stats.leadsNoCrm} {stats.leadsNoCrm === 1 ? 'lead no quadro' : 'leads no quadro'}</span>
         {hasActiveCrmFilter(debounced) && (
           <span className="text-xs text-slate-400">Filtros aplicados</span>
         )}
       </div>
 
-      <CRMStats stats={loading ? null : stats} />
-
-      <CRMFilters filters={filters} onChange={setFilters} />
-
-      <div className="h-[calc(100vh-18rem)] min-h-[480px] overflow-hidden">
+      <div className="crm-board-container">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-brand-500" />

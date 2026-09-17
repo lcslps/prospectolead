@@ -1,3 +1,4 @@
+import { Button } from './ui/Button';
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -57,13 +58,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className={`pointer-events-auto flex w-full max-w-md items-center justify-between gap-3 rounded-lg border px-4 py-3 text-sm font-medium shadow-lg ${KIND_STYLES[t.kind]}`}
           >
             <span>{t.message}</span>
-            <button
+            <Button variant="unstyled"
               onClick={() => remove(t.id)}
               className="shrink-0 rounded p-0.5 opacity-60 hover:opacity-100"
               aria-label="Fechar"
             >
               ✕
-            </button>
+            </Button>
           </div>
         ))}
       </div>

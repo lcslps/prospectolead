@@ -108,6 +108,15 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
       assert.equal((await prisma.crmLead.findUniqueOrThrow({ where: { id: crm.id } })).stage, 'REPLIED');
       assert.equal((await request('/dashboard')).body.data.stats.responderam, baseline.stats.responderam + 1);
     });
+    await t.test('As seis etapas do quadro persistem após recarregar', async () => {
+      for (const stage of ['NEW', 'MESSAGE_SENT', 'SCHEDULED', 'FOLLOW_UP', 'CLIENT', 'LOST']) {
+        const changed = await request(`/crm/leads/${crmIds[3]}/stage`, { stage, position: 20 }, 'PATCH');
+        assert.equal(changed.status, 200);
+        const detail = await request(`/crm/leads/${crmIds[3]}`);
+        assert.equal(detail.body.data.stage, stage);
+        assert.equal(detail.body.data.position, 20);
+      }
+    });
   } finally {
     globalThis.fetch = originalFetch; googlePlacesService.searchText = originalSearch; env.GEMINI_API_KEY = originalKey; env.GEMINI_MODEL = originalModel;
     await prisma.campaign.deleteMany({ where: { id: { in: campaigns } } });

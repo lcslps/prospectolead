@@ -51,20 +51,20 @@ function TemplateCard({
           </p>
         </div>
         <div className="flex gap-1">
-          <button
+          <Button variant="unstyled"
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             onClick={() => onEdit(template)}
             title="Editar"
           >
             <Pencil className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button variant="unstyled"
             className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
             onClick={() => onDelete(template)}
             title="Excluir"
           >
             <Trash2 className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -86,7 +86,7 @@ function TemplateCard({
               <Eye className="h-3 w-3" /> prévia
             </span>
           )}
-          <button
+          <Button variant="unstyled"
             type="button"
             onClick={() => setShowPreview((p) => !p)}
             className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 font-semibold transition ${
@@ -104,7 +104,7 @@ function TemplateCard({
                 <Eye className="h-3 w-3" /> Ver prévia
               </>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -255,14 +255,14 @@ export function TemplatesPage() {
             <div className="mb-2 flex flex-wrap items-center gap-1.5">
               <span className="text-xs text-slate-500">Inserir variável:</span>
               {VARIABLES.map((v) => (
-                <button
+                <Button variant="unstyled"
                   key={v}
                   type="button"
                   onClick={() => insertVariable(v)}
                   className="rounded-md border border-brand-200 bg-brand-50 px-2 py-0.5 font-mono text-xs text-brand-600 hover:bg-brand-100 dark:border-brand-500/30 dark:bg-brand-500/10 dark:text-brand-300"
                 >
                   {v}
-                </button>
+                </Button>
               ))}
             </div>
             <Textarea

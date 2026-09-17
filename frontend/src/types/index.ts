@@ -200,6 +200,7 @@ export type ScoreWeights = {
 };
 
 export interface DashboardData {
+  activity: { semSiteGerado: number; followUpsAtrasados: number; sitesPublicados: number; empresasEncontradas: number; mensagensEnviadas: number };
   stats: {
     totalLeads: number;
     novos: number;
@@ -227,6 +228,8 @@ export interface DashboardData {
   porCidade: Array<{ cidade: string; _count: { _all: number } }>;
   topNichos: Array<{ nicho: string; _count: { _all: number } }>;
   ultimosLeads: Array<{
+    categoria: string | null;
+    nicho: string | null;
     crmStage: CrmStage;
     id: string;
     nome: string;

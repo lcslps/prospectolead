@@ -1,3 +1,4 @@
+import { Button } from './ui/Button';
 import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 
@@ -33,13 +34,13 @@ export function Modal({
       <div className={`relative z-10 my-8 w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 ${sizes[size]}`}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
-          <button
+          <Button variant="unstyled"
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
         {children}
       </div>
@@ -68,10 +69,10 @@ export function ConfirmDialog({
     <Modal open={open} onClose={onClose} title={title} size="sm">
       {description && <p className="text-sm text-slate-600 dark:text-slate-300">{description}</p>}
       <div className="mt-6 flex justify-end gap-2">
-        <button className="btn-secondary" onClick={onClose}>
+        <Button variant="unstyled" className="btn-secondary" onClick={onClose}>
           Cancelar
-        </button>
-        <button
+        </Button>
+        <Button variant="unstyled"
           className={danger ? 'btn-danger' : 'btn-primary'}
           onClick={() => {
             onConfirm();
@@ -79,7 +80,7 @@ export function ConfirmDialog({
           }}
         >
           {confirmLabel}
-        </button>
+        </Button>
       </div>
     </Modal>
   );

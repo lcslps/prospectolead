@@ -493,7 +493,7 @@ export function LeadsPage() {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50/70 dark:border-slate-800 dark:bg-slate-800/40">
                   <th className="table-th w-8">
-                    <input
+                    <Input unstyled
                       type="checkbox"
                       className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                       checked={allSelected}
@@ -524,7 +524,7 @@ export function LeadsPage() {
                       className="border-b border-slate-100 transition hover:bg-slate-50 dark:border-slate-800/60 dark:hover:bg-slate-800/40"
                     >
                       <td className="table-td">
-                        <input
+                        <Input unstyled
                           type="checkbox"
                           className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
                           checked={selected.has(lead.id)}
@@ -596,7 +596,7 @@ export function LeadsPage() {
                               <Phone className="h-4 w-4" />
                             </a>
                           )}
-                          <button
+                          <Button variant="unstyled"
                             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                             title="Gerar mensagem"
                             onClick={() => {
@@ -605,8 +605,8 @@ export function LeadsPage() {
                             }}
                           >
                             <MessageSquareText className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="unstyled"
                             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
                             title="Enriquecer líder"
                             disabled={isEnriching}
@@ -617,14 +617,14 @@ export function LeadsPage() {
                             ) : (
                               <RefreshCw className="h-4 w-4" />
                             )}
-                          </button>
-                          <button
+                          </Button>
+                          <Button variant="unstyled"
                             className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950"
                             title="Excluir"
                             onClick={() => setConfirmDelete({ ids: [lead.id], single: lead })}
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
+                          </Button>
                           {inCrm ? (
                             <span
                               className="rounded-lg p-1.5 text-emerald-600 dark:text-emerald-400"
@@ -633,7 +633,7 @@ export function LeadsPage() {
                               <Check className="h-4 w-4" />
                             </span>
                           ) : (
-                            <button
+                            <Button variant="unstyled"
                               className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-brand-600 dark:hover:bg-slate-800 disabled:opacity-40"
                               title={isAddingCrm ? 'Enviando...' : 'Enviar para o CRM'}
                               disabled={isAddingCrm}
@@ -644,7 +644,7 @@ export function LeadsPage() {
                               ) : (
                                 <Send className="h-4 w-4" />
                               )}
-                            </button>
+                            </Button>
                           )}
                         </div>
                       </td>

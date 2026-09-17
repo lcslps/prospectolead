@@ -16,7 +16,7 @@ import {
   Clock,
 } from 'lucide-react';
 import type { CrmLeadFull, CrmStage } from '../../types';
-import { CRM_STAGE_LABELS, CRM_PIPELINE_STAGES as CRM_STAGE_ORDER, CRM_STAGE_STYLES, toDatetimeLocalValue, formatCrmDate, whatsAppLink } from '../../lib/utils';
+import { CRM_STAGE_LABELS, CRM_PIPELINE_STAGES as CRM_STAGE_ORDER, CRM_STAGE_STYLES, toDatetimeLocalValue, formatCrmDate, whatsAppLink, pipelineStage } from '../../lib/utils';
 import { getData } from '../../services/api';
 import { Button } from '../ui/Button';
 import { Textarea } from '../ui/Textarea';
@@ -173,13 +173,13 @@ export function CRMLeadDrawer({
               {lead.cidade && <span>{lead.cidade}{lead.estado ? `/${lead.estado}` : ''}</span>}
             </div>
           </div>
-          <button
+          <Button variant="unstyled"
             onClick={onClose}
             className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label="Fechar"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
@@ -196,18 +196,18 @@ export function CRMLeadDrawer({
             <div className="mb-1 text-xs font-bold uppercase tracking-wide text-slate-500">Mover para etapa</div>
             <div className="flex flex-wrap gap-1.5">
               {CRM_STAGE_ORDER.map((stage) => (
-                <button
+                <Button variant="unstyled"
                   key={stage}
                   onClick={() => handleStageClick(stage)}
                   disabled={busy}
                   className={`rounded-lg border px-2 py-1 text-[11px] font-semibold transition ${
-                    detail.stage === stage
+                    pipelineStage(detail.stage) === stage
                       ? 'border-brand-600 bg-brand-600 text-white'
                       : 'border-slate-300 bg-white text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'
                   }`}
                 >
                   {CRM_STAGE_LABELS[stage]}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
