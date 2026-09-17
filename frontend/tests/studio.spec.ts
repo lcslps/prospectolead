@@ -21,7 +21,11 @@ test.afterAll(async () => { if (leadId) await prisma.lead.delete({ where: { id: 
 
 test('Editor visual, autosave, histórico, responsividade e publicação real', async ({ page, request }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
-  await page.goto(`/studio/${siteId}`);
+  await page.goto('/dashboard');
+  await page.getByRole('link', { name: 'Sites / Meus projetos', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Meus projetos', exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Buscar projetos' }).fill('Espetaria · teste do editor');
+  await page.locator(`a[href="/studio/${siteId}"]`).click();
   const frame = page.frameLocator('iframe[title="Prévia do site"]');
   await expect(frame.getByRole('heading', { level: 1 })).toHaveText('Encontros à mesa, bons momentos');
   await frame.getByRole('heading', { level: 1 }).click();

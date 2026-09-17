@@ -11,6 +11,17 @@ const generatedSchema = z.object({ primary: z.string().regex(/^#[0-9a-f]{6}$/i),
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
 
 export class WebsiteService {
+  async list() {
+    return prisma.website.findMany({
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true, name: true, status: true, generationStatus: true,
+        generationError: true, updatedAt: true, publishedAt: true,
+        crmLead: { select: { id: true, lead: { select: { id: true, nome: true, categoria: true, cidade: true, estado: true } } } },
+        _count: { select: { sections: true } },
+      },
+    });
+  }
   async get(id: string) {
     const site = await prisma.website.findUnique({ where: { id }, include });
     if (!site) throw notFound('Site não encontrado');

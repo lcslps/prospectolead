@@ -9,6 +9,7 @@ import { CRMPage } from './pages/CRM';
 import { CampaignsPage } from './pages/Campaigns';
 import { TemplatesPage } from './pages/Templates';
 import { SettingsPage } from './pages/Settings';
+import { WebsitesPage } from './pages/Websites';
 const WebsiteStudioPage = lazy(() => import('./pages/WebsiteStudio').then(m => ({ default: m.WebsiteStudioPage }))); 
 const PublicWebsitePage = lazy(() => import('./pages/PublicWebsite').then(m => ({ default: m.PublicWebsitePage }))); 
 
@@ -25,6 +26,8 @@ export default function App() {
         <Route path="/leads" element={<LeadsPage />} />
         <Route path="/leads/:id" element={<LeadDetailPage />} />
         <Route path="/crm" element={<CRMPage />} />
+        <Route path="/sites" element={<WebsitesPage />} />
+        <Route path="/projetos" element={<Navigate to="/sites" replace />} />
         <Route path="/campanhas" element={<CampaignsPage />} />
         <Route path="/templates" element={<TemplatesPage />} />
         <Route path="/configuracoes" element={<SettingsPage />} />

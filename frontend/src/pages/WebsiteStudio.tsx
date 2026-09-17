@@ -57,7 +57,7 @@ export function WebsiteStudioPage() {
   const section = doc.sections.find(s => s.id === selected);
   return <div className={`studio ${preview ? 'studio-preview' : ''}`}>
     <header className="studio-toolbar">
-      <button title="Voltar ao CRM" onClick={async () => { try { await persist(); navigate('/crm'); } catch { /* preserve unsaved edits */ } }}><ArrowLeft size={17} /></button>
+      <button title="Voltar aos meus projetos" onClick={async () => { try { await persist(); navigate('/sites'); } catch { /* preserve unsaved edits */ } }}><ArrowLeft size={17} /></button>
       <input aria-label="Nome do projeto" className="studio-project-name" value={doc.name} onChange={e => change({ ...doc, name: e.target.value })} />
       <button title="Desfazer" disabled={!history.length} onClick={undo}><Undo2 size={16} /></button><button title="Refazer" disabled={!future.length} onClick={redo}><Redo2 size={16} /></button>
       <span className="studio-save-state" role="status">{saveState === 'Salvo' ? <Check size={13} /> : saveState.includes('...') ? <Loader2 size={13} className="animate-spin" /> : null}{saveState}</span>

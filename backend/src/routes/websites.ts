@@ -7,6 +7,7 @@ import { websiteService } from '../services/WebsiteService';
 import { documentSchema } from '../services/websiteSchema';
 
 export const websitesRouter = Router();
+websitesRouter.get('/', asyncHandler(async (_req, res) => { ok(res, await websiteService.list()); }));
 const aiLimit = rateLimit({ windowMs: 60000, max: 10, message: { success: false, message: 'Aguarde um minuto antes de solicitar mais gerações.' } });
 const saveSchema = z.object({ revision: z.number().int().nonnegative(), document: documentSchema });
 websitesRouter.get('/public/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.publicSite(String(req.params.id))); }));
