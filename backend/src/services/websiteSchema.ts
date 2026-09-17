@@ -16,7 +16,8 @@ export const settingsSchema = z.object({ background: color.default('#ffffff'), c
 export const sectionSchema = z.object({ id: z.string().min(1).max(100), type: z.enum(sectionTypes), visible: z.boolean().default(true), content: contentSchema, settings: settingsSchema.default({}) });
 export const businessSchema = z.object({ name: text, category: text, city: text, address: text, phone: text, whatsapp: link, hours: text, rating: text, reviewCount: text, mapUrl: link });
 export const themeSchema = z.object({ primary: color.default('#0f766e'), accent: color.default('#0891b2'), background: color.default('#ffffff'), text: color.default('#172033'), font: z.enum(['sans', 'serif']).default('sans'), radius: z.number().min(0).max(60).default(24) });
-export const documentSchema = z.object({ name: z.string().min(1).max(200), business: businessSchema, theme: themeSchema, sections: z.array(sectionSchema).min(1).max(60) }).superRefine((d, ctx) => {
+export const seoSchema = z.object({ title: text, description: text, keywords: text });
+export const documentSchema = z.object({ name: z.string().min(1).max(200), business: businessSchema, theme: themeSchema, seo: seoSchema.default({ title: '', description: '', keywords: '' }), sections: z.array(sectionSchema).min(1).max(60) }).superRefine((d, ctx) => {
   if (new Set(d.sections.map(s => s.id)).size !== d.sections.length) ctx.addIssue({ code: 'custom', message: 'Seções com identificadores repetidos' });
 });
 export type WebsiteDocument = z.infer<typeof documentSchema>;

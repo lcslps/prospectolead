@@ -11,7 +11,7 @@ import { SectionFields, SiteFields, TextField } from '../components/WebsiteField
 import './studio.css';
 import { ThemeToggle } from '../components/Theme';
 
-const toDocument = (s: SiteDocument): SiteDocument => ({ name: s.name, business: s.business, theme: s.theme, sections: s.sections });
+const toDocument = (s: SiteDocument): SiteDocument => ({ name: s.name, business: s.business, theme: s.theme, seo: s.seo ?? { title: '', description: '', keywords: '' }, sections: s.sections });
 export function WebsiteStudioPage() {
   const { id } = useParams(); const navigate = useNavigate();
   const [doc, setDoc] = useState<SiteDocument | null>(null); const [site, setSite] = useState<Website | null>(null);

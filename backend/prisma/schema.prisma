@@ -138,6 +138,7 @@ model Website {
   name             String
   business         Json
   theme            Json
+  seo              Json?
   sections         WebsiteSection[]
   status           String @default("DRAFT")
   generationStatus String @default("pending")

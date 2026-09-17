@@ -42,12 +42,14 @@ campaignsRouter.get(
                 cidade: true,
                 estado: true,
                 telefone: true,
+                telefoneInternacional: true,
                 site: true,
                 nota: true,
                 quantidadeAvaliacoes: true,
                 status: true,
                 leadScore: true,
                 createdAt: true,
+                crmLead: { select: { id: true, stage: true } },
               },
             },
           },
@@ -58,7 +60,13 @@ campaignsRouter.get(
 
     if (!campaign) throw notFound('Campanha não encontrada');
 
-    ok(res, campaign);
+    ok(res, {
+      ...campaign,
+      leads: campaign.leads.map(({ lead }) => {
+        const { crmLead, ...rest } = lead as typeof lead & { crmLead: { id: string; stage: string } | null };
+        return { lead: { ...rest, crmStage: crmLead?.stage ?? null, crmLeadId: crmLead?.id ?? null } };
+      }),
+    });
   }),
 );
 

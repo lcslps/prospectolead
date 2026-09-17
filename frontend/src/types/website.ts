@@ -4,10 +4,12 @@ export interface SiteButton { label: string; href: string; newTab: boolean }
 export interface SiteItem { title: string; text: string; price: string; image: string; imageAlt: string; href: string }
 export interface SiteContent { eyebrow: string; title: string; subtitle: string; text: string; image: string; imageAlt: string; primaryButton: SiteButton; secondaryButton: SiteButton; items: SiteItem[] }
 export interface SiteSection { id: string; type: SectionType; visible: boolean; content: SiteContent; settings: { background: string; color: string; align: 'left' | 'center' | 'right'; padding: number; radius: number; overlay: number } }
+export interface SiteSeo { title: string; description: string; keywords: string }
 export interface SiteDocument {
   name: string;
   business: { name: string; category: string; city: string; address: string; phone: string; whatsapp: string; hours: string; rating: string; reviewCount: string; mapUrl: string };
   theme: { primary: string; accent: string; background: string; text: string; font: 'sans' | 'serif'; radius: number };
+  seo: SiteSeo;
   sections: SiteSection[];
 }
 export interface Website extends SiteDocument { id: string; crmLeadId: string; revision: number; status: 'DRAFT' | 'PUBLISHED'; generationStatus: string; generationError: string | null; publishedAt: string | null }

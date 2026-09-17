@@ -17,7 +17,10 @@ No `backend/.env`, preencha:
 ```dotenv
 GEMINI_API_KEY=
 GEMINI_MODEL=
+GEMINI_THINKING_LEVEL=low
 ```
+
+`GEMINI_THINKING_LEVEL` aceita `low`, `medium` ou `high` e controla o nível de raciocínio do modelo.
 
 Use um modelo disponível na sua conta com suporte a saída estruturada. Reinicie o backend após alterar o `.env`. Nenhuma dessas variáveis deve receber prefixo `VITE_` ou ser copiada para o frontend. A integração usa `generateContent` com JSON Schema e validação adicional no backend, conforme a [documentação oficial do Gemini](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
 
