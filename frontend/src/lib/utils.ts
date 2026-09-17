@@ -144,7 +144,7 @@ export const CRM_STAGE_STYLES: Record<CrmStage, string> = {
 };
 
 export const CRM_DOT_COLORS: Record<CrmStage, string> = {
-  SITE_GENERATED: 'Site gerado',
+  SITE_GENERATED: 'bg-cyan-500',
   NEW: 'bg-slate-400',
   MESSAGE_SENT: 'bg-sky-500',
   REPLIED: 'bg-violet-500',

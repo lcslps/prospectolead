@@ -322,7 +322,10 @@ export class ProspectService {
       savedIds = createdRows.map((r) => r.id);
     }
 
-    return { novos: newIds.length, existentes: existingIds.length, savedIds };
+    if (mode === 'merge') {
+      savedIds.push(...existingIds.map(id => existingById.get(id)!.id));
+    }
+    return { novos: new Set(newIds).size, existentes: new Set(existingIds).size, savedIds: [...new Set(savedIds)] };
   }
 }
 

@@ -64,6 +64,10 @@ export function CRMCard({
         </div>
       </div>
 
+      <div className="mb-2 text-[11px] text-slate-500">
+        <p>{lead.telefone || lead.telefoneInternacional || 'Sem telefone'}</p>
+        <p>{lead.site ? 'Possui site' : 'Sem site'} · {crmLead.website?.generationStatus === 'completed' ? 'Site gerado ✓' : crmLead.website?.generationStatus === 'generating' ? 'Gerando site...' : 'Site ainda não gerado'}</p>
+      </div>
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         {lead.quantidadeAvaliacoes !== null && lead.quantidadeAvaliacoes > 0 && (
           <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">

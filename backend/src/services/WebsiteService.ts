@@ -7,7 +7,7 @@ import { generateJson, generationSchema, requireGemini } from './GeminiService';
 import { businessSchema, contentSchema, documentSchema, sectionTypes, settingsSchema, themeSchema, type WebsiteDocument } from './websiteSchema';
 
 const include = { sections: { orderBy: { order: 'asc' as const } } };
-const generatedSchema = z.object({ primary: z.string().regex(/^#[0-9a-f]{6}$/i), accent: z.string().regex(/^#[0-9a-f]{6}$/i), sections: z.array(z.object({ type: z.enum(sectionTypes), title: z.string(), subtitle: z.string(), eyebrow: z.string(), text: z.string(), primaryLabel: z.string(), secondaryLabel: z.string() })).min(3).max(16) });
+const generatedSchema = z.object({ primary: z.string().regex(/^#[0-9a-f]{6}$/i), accent: z.string().regex(/^#[0-9a-f]{6}$/i), sections: z.array(z.object({ type: z.enum(sectionTypes), title: z.string(), subtitle: z.string(), eyebrow: z.string(), text: z.string(), primaryLabel: z.string(), secondaryLabel: z.string(), items: z.array(z.object({ title: z.string(), text: z.string(), price: z.string() })).max(20).default([]) })).min(3).max(16) });
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
 
 export class WebsiteService {
@@ -48,8 +48,9 @@ export class WebsiteService {
     }
   }
   async generateDocument(business: WebsiteDocument['business'], facts: unknown): Promise<WebsiteDocument> {
-    const result = generatedSchema.parse(await generateJson(`Crie uma estrutura de site profissional específica para o nicho deste negócio. Escolha seções adequadas: restaurante pode ter cardápio; barbearia serviços e equipe; oficina especialidades; dentista tratamentos. Inclua header, hero e footer. Varie estrutura, textos e cores de acordo com o nicho. Se não conhecer os serviços/preços/pessoas, mantenha as seções sem afirmações factuais; o usuário preencherá depois. Use títulos comerciais curtos e claros. Não repita dados de contato nos textos; eles serão renderizados dos dados verificados. Não escreva depoimentos inventados. Dados: ${JSON.stringify(facts)}`, generationSchema));
-    return documentSchema.parse({ name: business.name, business, theme: themeSchema.parse({ primary: result.primary, accent: result.accent }), sections: result.sections.map(s => ({ id: randomUUID(), type: s.type, visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, primaryButton: { label: s.primaryLabel, href: business.whatsapp }, secondaryButton: { label: s.secondaryLabel, href: '#contato' } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: result.primary, color: '#ffffff', padding: 100 } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) })) });
+    const factStrings = JSON.stringify(facts);
+    const result = generatedSchema.parse(await generateJson(`Crie uma estrutura de site profissional específica para o nicho deste negócio. Escolha seções adequadas: restaurante pode ter cardápio; barbearia serviços e equipe; oficina especialidades; dentista tratamentos. Inclua header, hero e footer. Varie estrutura, textos e cores de acordo com o nicho. Se não conhecer os serviços/preços/pessoas, mantenha as seções sem afirmações factuais; o usuário preencherá depois. Use títulos comerciais curtos e claros. Não repita dados de contato nos textos; eles serão renderizados dos dados verificados. Não escreva depoimentos inventados. Em items, extraia somente títulos, descrições e preços copiados literalmente dos dados conhecidos. Se não existem itens conhecidos, retorne items vazio. Dados: ${JSON.stringify(facts)}`, generationSchema));
+    return documentSchema.parse({ name: business.name, business, theme: themeSchema.parse({ primary: result.primary, accent: result.accent }), sections: result.sections.map(s => ({ id: randomUUID(), type: s.type, visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel, href: business.whatsapp }, secondaryButton: { label: s.secondaryLabel, href: '#contato' } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: result.primary, color: '#ffffff', padding: 100 } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) })) });
   }
   async save(id: string, revision: number, document: WebsiteDocument, publish = false) {
     await prisma.$transaction(async tx => {
@@ -72,8 +73,9 @@ export class WebsiteService {
     const section = document.sections.find(s => s.id === sectionId);
     if (!section) throw notFound('Seção não encontrada');
     const keys = field === 'section' ? ['eyebrow', 'title', 'subtitle', 'text'] : [field];
+    const currentText = Object.fromEntries(['eyebrow', 'title', 'subtitle', 'text'].map(key => [key, section.content[key as keyof typeof section.content]]));
     const schema = { type: 'object', required: keys, properties: Object.fromEntries(keys.map(k => [k, { type: 'string' }])) };
-    const raw = await generateJson(`Reescreva apenas os campos solicitados desta seção, sem alterar fatos. Pedido: ${instruction}. Dados verificados: ${JSON.stringify(site.crmLead.lead)}. Seção atual: ${JSON.stringify(section.content)}. Campos: ${keys.join(', ')}.`, schema);
+    const raw = await generateJson(`Reescreva apenas os campos solicitados desta seção, sem alterar fatos. Pedido: ${instruction}. Dados verificados: ${JSON.stringify(site.crmLead.lead)}. Seção atual: ${JSON.stringify(currentText)}. Campos: ${keys.join(', ')}.`, schema);
     const parsed = z.object(Object.fromEntries(keys.map(k => [k, z.string().max(12000)]))).parse(raw);
     return { patch: parsed };
   }

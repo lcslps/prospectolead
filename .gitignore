@@ -30,3 +30,7 @@ prisma/migrations/.template*
 
 # Vite / cache
 .vite/
+
+# Playwright
+test-results/
+playwright-report/

@@ -223,6 +223,7 @@ export interface DashboardData {
   porCidade: Array<{ cidade: string; _count: { _all: number } }>;
   topNichos: Array<{ nicho: string; _count: { _all: number } }>;
   ultimosLeads: Array<{
+    crmStage: CrmStage;
     id: string;
     nome: string;
     cidade: string | null;

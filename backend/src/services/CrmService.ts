@@ -1,6 +1,7 @@
 import { Prisma, CrmActivityType, CrmStage } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { notFound } from '../utils/apiError';
+import { stageToStatus } from './crmStatus';
 
 const STAGE_ORDER: CrmStage[] = [
   'NEW',
@@ -180,6 +181,7 @@ export class CrmService {
           position: (max._max.position ?? 0) + 10,
         },
       });
+      await tx.lead.update({ where: { id: leadId }, data: { status: 'NOVO' } });
       await tx.crmActivity.create({
         data: {
           crmLeadId: created.id,
@@ -243,6 +245,7 @@ export class CrmService {
         where: { id },
         data: { stage, position: nextPosition },
       });
+      await tx.lead.update({ where: { id: existing.leadId }, data: { status: stageToStatus[stage] } });
 
       if (stage !== existing.stage) {
         await tx.crmActivity.create({

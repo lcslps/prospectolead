@@ -21,6 +21,14 @@ function ImageField({ value, onChange }: { value: string; onChange: (value: stri
   </div>;
 }
 export function SiteFields({ document: doc, onChange }: { document: SiteDocument; onChange: (doc: SiteDocument) => void }) {
+  const updateBusiness = (key: string, value: string) => {
+    const previousName = doc.business.name, previousWhatsapp = doc.business.whatsapp;
+    onChange({ ...doc, name: key === 'name' && doc.name === previousName ? value : doc.name, business: { ...doc.business, [key]: value }, sections: doc.sections.map(s => ({ ...s, content: { ...s.content,
+      title: key === 'name' && s.content.title === previousName ? value : s.content.title,
+      primaryButton: key === 'whatsapp' && s.content.primaryButton.href === previousWhatsapp ? { ...s.content.primaryButton, href: value } : s.content.primaryButton,
+      secondaryButton: key === 'whatsapp' && previousWhatsapp && s.content.secondaryButton.href === previousWhatsapp ? { ...s.content.secondaryButton, href: value } : s.content.secondaryButton,
+    } })) });
+  };
   const businessLabels: Record<keyof SiteDocument['business'], string> = { name: 'Nome da empresa', category: 'Categoria', city: 'Cidade / estado', address: 'Endereço', phone: 'Telefone', whatsapp: 'Link do WhatsApp', hours: 'Horários', rating: 'Nota Google', reviewCount: 'Quantidade de avaliações', mapUrl: 'Link do Google Maps' };
   return <>
     <div className="studio-panel-block"><h3>Clima do site</h3><label className="studio-field"><span>Kit da marca</span><select onChange={e => {
@@ -31,7 +39,7 @@ export function SiteFields({ document: doc, onChange }: { document: SiteDocument
       <label className="studio-field"><span>Tipografia</span><select value={doc.theme.font} onChange={e => onChange({ ...doc, theme: { ...doc.theme, font: e.target.value as 'sans' | 'serif' } })}><option value="sans">Moderna</option><option value="serif">Clássica</option></select></label>
       <label className="studio-field"><span>Arredondamento dos botões · {doc.theme.radius}px</span><input type="range" min="0" max="60" value={doc.theme.radius} onChange={e => onChange({ ...doc, theme: { ...doc.theme, radius: Number(e.target.value) } })} /></label>
     </div>
-    <div className="studio-panel-block"><h3>Ficha do estabelecimento</h3>{Object.entries(businessLabels).map(([key, label]) => <TextField key={key} label={label} value={doc.business[key as keyof typeof doc.business]} multiline={key === 'hours'} onChange={value => onChange({ ...doc, business: { ...doc.business, [key]: value } })} />)}</div>
+    <div className="studio-panel-block"><h3>Ficha do estabelecimento</h3>{Object.entries(businessLabels).map(([key, label]) => <TextField key={key} label={label} value={doc.business[key as keyof typeof doc.business]} multiline={key === 'hours'} onChange={value => updateBusiness(key, value)} />)}</div>
   </>;
 }
 export function SectionFields({ section: s, onChange }: { section: SiteSection; onChange: (s: SiteSection) => void }) {

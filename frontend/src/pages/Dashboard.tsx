@@ -8,16 +8,16 @@ import {
   MessageCircle,
   Handshake,
   Crown,
-  CalendarDays,
+  Globe,
   FolderOpen,
   Flame,
   XCircle,
 } from 'lucide-react';
 import { getData } from '../services/api';
 import type { CrmStage, DashboardData } from '../types';
-import { CRM_STAGE_LABELS, CRM_STAGE_ORDER } from '../lib/utils';
+import { CRM_STAGE_LABELS, CRM_STAGE_ORDER, CRM_STAGE_STYLES } from '../lib/utils';
 import { PageLoader, EmptyState } from '../components/UI';
-import { ScoreBadge, StatusBadge } from '../components/Badges';
+import { ScoreBadge } from '../components/Badges';
 import { useToast } from '../components/Toast';
 
 function StatCard({
@@ -113,7 +113,7 @@ export function DashboardPage() {
         <StatCard label="Clientes" value={stageCount('CLIENT')} color="bg-green-600/10 text-green-700 dark:text-green-400" icon={<Crown className="h-5 w-5" />} />
         <StatCard label="Perdidos" value={stageCount('LOST')} color="bg-red-500/10 text-red-600 dark:text-red-400" icon={<XCircle className="h-5 w-5" />} />
         <StatCard label="Campanhas realizadas" value={s.campanhas} color="bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400" icon={<FolderOpen className="h-5 w-5" />} />
-        <StatCard label="Leads encontrados hoje" value={s.leadsHoje} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" icon={<CalendarDays className="h-5 w-5" />} />
+        <StatCard label="Sites gerados" value={s.sitesGerados} color="bg-rose-500/10 text-rose-600 dark:text-rose-400" icon={<Globe className="h-5 w-5" />} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -148,7 +148,7 @@ export function DashboardPage() {
       <section className="card overflow-hidden">
         <div className="flex items-center justify-between px-5 pt-5">
           <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100">Últimos leads</h2>
-          <Link to="/leads" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
+          <Link to="/crm" className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 dark:text-indigo-400">
             Ver todos
           </Link>
         </div>
@@ -188,7 +188,7 @@ export function DashboardPage() {
                     <td className="table-td">{lead.cidade ?? '—'}</td>
                     <td className="table-td">{lead.nota ? `${lead.nota.toFixed(1).replace('.', ',')} ★` : '—'}</td>
                     <td className="table-td"><ScoreBadge score={lead.leadScore} /></td>
-                    <td className="table-td"><StatusBadge status={lead.status} /></td>
+                    <td className="table-td"><span className={`badge ring-1 ${CRM_STAGE_STYLES[lead.crmStage]}`}>{CRM_STAGE_LABELS[lead.crmStage]}</span></td>
                   </tr>
                 ))}
               </tbody>

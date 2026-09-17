@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getData, patchData, deleteData, postData } from '../services/api';
 import { LEAD_STATUSES, type LeadDetail, type LeadStatus } from '../types';
+import { LeadWebsite } from '../components/LeadWebsite';
 import { STATUS_LABELS, whatsAppLink, formatDate } from '../lib/utils';
 import { PageLoader, EmptyState } from '../components/UI';
 import { RatingBadge, ScoreBadge, StatusBadge } from '../components/Badges';
@@ -153,6 +154,7 @@ export function LeadDetailPage() {
         </div>
       </div>
 
+      <LeadWebsite key={lead.id} crmLeadId={lead.crmLeadId} leadId={lead.id} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card p-5 lg:col-span-2">
           <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">

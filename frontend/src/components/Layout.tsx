@@ -17,7 +17,7 @@ import { ThemeToggle } from './Theme';
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/prospeccao', label: 'Prospecção', icon: Crosshair },
-  { to: '/leads', label: 'Leads', icon: Database },
+  { to: '/leads', label: 'Resultados da prospecção', icon: Database },
   { to: '/crm', label: 'CRM', icon: Filter },
   { to: '/campanhas', label: 'Campanhas', icon: FolderOpen },
   { to: '/templates', label: 'Templates', icon: MessageSquareText },
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
 const PAGE_TITLES: Array<{ prefix: string; title: string }> = [
   { prefix: '/dashboard', title: 'Dashboard' },
   { prefix: '/prospeccao', title: 'Prospecção' },
-  { prefix: '/leads', title: 'Leads' },
+  { prefix: '/leads', title: 'Resultados da prospecção' },
   { prefix: '/crm', title: 'CRM' },
   { prefix: '/campanhas', title: 'Campanhas' },
   { prefix: '/templates', title: 'Templates' },

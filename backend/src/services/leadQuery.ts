@@ -1,6 +1,7 @@
 import { Prisma, Status } from '@prisma/client';
 
 export interface LeadListFilters {
+  campaignId?: string;
   search?: string;
   cidade?: string;
   estado?: string;
@@ -19,6 +20,7 @@ export interface LeadListFilters {
 
 export function buildWhere(filters: LeadListFilters): Prisma.LeadWhereInput {
   const and: Prisma.LeadWhereInput[] = [];
+  if (filters.campaignId) and.push({ campaigns: { some: { campaignId: filters.campaignId } } });
 
   if (filters.search) {
     and.push({

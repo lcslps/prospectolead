@@ -32,6 +32,7 @@ export const generatedSectionSchema = {
   properties: {
     type: { type: 'string', enum: ['header', 'hero', 'services', 'about', 'gallery', 'testimonials', 'faq', 'contact', 'map', 'prices', 'menu', 'team', 'cta', 'hours', 'features', 'footer'] },
     title: str, subtitle: str, eyebrow: str, text: str, primaryLabel: str, secondaryLabel: str,
+    items: { type: 'array', maxItems: 20, items: { type: 'object', required: ['title', 'text', 'price'], properties: { title: str, text: str, price: str } } },
   },
 };
 export const generationSchema = { type: 'object', required: ['primary', 'accent', 'sections'], properties: {

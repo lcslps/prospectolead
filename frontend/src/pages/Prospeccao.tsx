@@ -103,7 +103,7 @@ export function ProspeccaoPage() {
             <Crosshair className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Prospectar leads</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pesquisar empresas</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Encontre empresas na Google Places API (New) pelo nicho, país, estado e cidade.
             </p>
@@ -257,7 +257,7 @@ export function ProspeccaoPage() {
             </div>
             <div>
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{result.novos}</div>
-              <div className="text-xs font-medium text-slate-500">leads novos</div>
+              <div className="text-xs font-medium text-slate-500">novos resultados</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{result.existentes}</div>
@@ -269,8 +269,9 @@ export function ProspeccaoPage() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2 border-t border-slate-200 px-5 py-4 dark:border-slate-800">
-            <Link to="/leads" className="btn-primary !py-2 text-xs">
-              Ver leads
+            <p className="w-full text-xs text-slate-500">Os resultados só entram nas métricas após adicionar ao CRM.</p>
+            <Link to={`/leads?campaignId=${result.campaignId}`} className="btn-primary !py-2 text-xs">
+              Ver resultados
             </Link>
             <Link to="/campanhas" className="btn-secondary !py-2 text-xs">
               Ver campanhas
@@ -283,7 +284,7 @@ export function ProspeccaoPage() {
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <p>
-            Cada prospecção consome chamadas da Google Places API. Leads já salvos são reaproveitados e
+            Cada prospecção consome chamadas da Google Places API. Resultados já salvos são reaproveitados e
             não geram chamadas extras ao abrir as telas.
           </p>
         </div>

@@ -150,6 +150,7 @@ const prospeccaoSchema = z.object({
 
 const leadFiltersSchema = z.object({
   query: z.object({
+    campaignId: z.string().min(1).max(100).optional(),
     search: z.string().trim().max(120).optional(),
     cidade: z.string().trim().max(80).optional(),
     estado: z.string().trim().max(2).optional(),

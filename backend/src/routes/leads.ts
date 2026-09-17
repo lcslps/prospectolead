@@ -24,10 +24,12 @@ import { mapPlaceToLeadData, type LeadDataInput } from '../services/placeMapper'
 import { leadScoreService } from '../services/LeadScoreService';
 import { leadsToCsv, toCsvFileName } from '../services/CsvService';
 import { hasGoogleKey } from '../config/env';
+import { statusToStage } from '../services/crmStatus';
 
 export const leadsRouter = Router();
 
 type LeadQuery = {
+  campaignId?: string;
   search?: string;
   cidade?: string;
   estado?: string;
@@ -47,6 +49,7 @@ type LeadQuery = {
 
 function toFilters(q: LeadQuery): LeadListFilters {
   return {
+    campaignId: q.campaignId,
     search: q.search,
     cidade: q.cidade,
     estado: q.estado,
@@ -167,6 +170,7 @@ leadsRouter.get(
     const lead = await prisma.lead.findUnique({
       where: { id },
       include: {
+        crmLead: { select: { id: true, stage: true } },
         campaigns: {
           include: {
             campaign: {
@@ -188,7 +192,7 @@ leadsRouter.get(
 
     if (!lead) throw notFound('Lead não encontrado');
 
-    ok(res, lead);
+    ok(res, { ...lead, crmLeadId: lead.crmLead?.id ?? null, crmStage: lead.crmLead?.stage ?? null });
   }),
 );
 
@@ -204,7 +208,7 @@ leadsRouter.patch(
       nicho?: string | null;
     }>(req);
 
-    const existing = await prisma.lead.findUnique({ where: { id } });
+    const existing = await prisma.lead.findUnique({ where: { id }, include: { crmLead: true } });
     if (!existing) throw notFound('Lead não encontrado');
 
     const lead = await prisma.lead.update({
@@ -214,6 +218,9 @@ leadsRouter.patch(
         observacoes: body.observacoes !== undefined ? body.observacoes : undefined,
         categoria: body.categoria !== undefined ? body.categoria : undefined,
         nicho: body.nicho !== undefined ? body.nicho : undefined,
+        ...(body.status && existing.crmLead && statusToStage[body.status] !== existing.crmLead.stage ? {
+          crmLead: { update: { stage: statusToStage[body.status], activities: { create: { type: 'STAGE_CHANGED', description: `Status alterado nos detalhes para ${body.status}` } } } },
+        } : {}),
       },
     });
 
@@ -383,9 +390,12 @@ leadsRouter.post(
   validate(bulkStatusSchema),
   asyncHandler(async (req, res) => {
     const { ids, status } = validatedBody<{ ids: string[]; status: Status }>(req);
-    const result = await prisma.lead.updateMany({
-      where: { id: { in: ids } },
-      data: { status },
+    const result = await prisma.$transaction(async tx => {
+      const updated = await tx.lead.updateMany({ where: { id: { in: ids } }, data: { status } });
+      const crm = await tx.crmLead.findMany({ where: { leadId: { in: ids }, stage: { not: statusToStage[status] } }, select: { id: true } });
+      await tx.crmLead.updateMany({ where: { id: { in: crm.map(c => c.id) } }, data: { stage: statusToStage[status] } });
+      await tx.crmActivity.createMany({ data: crm.map(c => ({ crmLeadId: c.id, type: 'STAGE_CHANGED' as const, description: `Status alterado em lote para ${status}` })) });
+      return updated;
     });
     ok(res, { updated: result.count });
   }),

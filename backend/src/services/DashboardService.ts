@@ -17,11 +17,10 @@ export class DashboardService {
         prisma.crmLead.count({ where: { stage: 'LOST' } }),
         prisma.campaign.count(),
         prisma.crmLead.count({ where: { createdAt: { gte: startOfDay } } }),
-        prisma.lead.groupBy({
-          by: ['status'],
-          where: { crmLead: { isNot: null } },
+        prisma.crmLead.groupBy({
+          by: ['stage'],
           _count: { _all: true },
-          orderBy: { _count: { status: 'desc' } },
+          orderBy: { _count: { stage: 'desc' } },
         }),
         prisma.lead.groupBy({
           by: ['cidade'],
@@ -39,9 +38,10 @@ export class DashboardService {
         }),
         prisma.lead.findMany({
           where: { crmLead: { isNot: null } },
-          orderBy: { createdAt: 'desc' },
+          orderBy: { crmLead: { createdAt: 'desc' } },
           take: 6,
           select: {
+            crmLead: { select: { stage: true, createdAt: true } },
             id: true,
             nome: true,
             cidade: true,
@@ -59,7 +59,7 @@ export class DashboardService {
       ]);
 
     const byCrmStage: Record<string, number> = {};
-    for (const key of ['NEW', 'MESSAGE_SENT', 'REPLIED', 'INTERESTED', 'NEGOTIATION', 'CLIENT', 'LOST']) {
+    for (const key of ['NEW', 'SITE_GENERATED', 'MESSAGE_SENT', 'REPLIED', 'INTERESTED', 'NEGOTIATION', 'CLIENT', 'LOST']) {
       byCrmStage[key] = 0;
     }
     for (const s of crmPorStage) byCrmStage[s.stage] = s._count._all;
@@ -99,12 +99,13 @@ export class DashboardService {
         atividadesMensagemEnviada: crmMensagensEnviadas,
         porStage: byCrmStage,
       },
-      porStatus,
+      porStatus: porStatus.map(s => ({ status: stageStatus[s.stage], _count: s._count })),
       porCidade: porCidade.filter((c) => c.cidade !== null),
       topNichos: topNichos.filter((n) => n.nicho !== null),
-      ultimosLeads,
+      ultimosLeads: ultimosLeads.map(l => ({ ...l, status: stageStatus[l.crmLead!.stage], crmStage: l.crmLead!.stage, createdAt: l.crmLead!.createdAt })),
     };
   }
 }
 
 export const dashboardService = new DashboardService();
+const stageStatus = { NEW: 'NOVO', SITE_GENERATED: 'NOVO', MESSAGE_SENT: 'CONTATADO', REPLIED: 'RESPONDEU', INTERESTED: 'INTERESSADO', NEGOTIATION: 'NEGOCIACAO', CLIENT: 'CLIENTE', LOST: 'IGNORADO' };

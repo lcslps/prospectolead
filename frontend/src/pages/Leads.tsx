@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Download,
@@ -60,6 +60,8 @@ const INITIAL_FILTERS: Filters = {
 };
 
 export function LeadsPage() {
+  const [searchParams] = useSearchParams();
+  const campaignId = searchParams.get('campaignId') || undefined;
   const [filters, setFilters] = useState<Filters>(INITIAL_FILTERS);
   const [debounced, setDebounced] = useState<Filters>(INITIAL_FILTERS);
   const [page, setPage] = useState(1);
@@ -97,6 +99,7 @@ export function LeadsPage() {
         const params: Record<string, string | number | boolean | undefined> = {
           page: pageToLoad,
           pageSize,
+          campaignId,
         };
         if (debounced.search.trim()) params.search = debounced.search.trim();
         if (debounced.cidade.trim()) params.cidade = debounced.cidade.trim();
@@ -121,7 +124,7 @@ export function LeadsPage() {
         setLoading(false);
       }
     },
-    [debounced, pageSize, toast],
+    [debounced, pageSize, toast, campaignId],
   );
 
   useEffect(() => {
@@ -280,7 +283,7 @@ export function LeadsPage() {
       if (selected.size > 0) {
         await getCsv('/leads/export/csv', { ids: Array.from(selected).join(',') }, 'leads_selecionados.csv');
       } else {
-        const params: Record<string, string | number | boolean | undefined> = {};
+        const params: Record<string, string | number | boolean | undefined> = { campaignId };
         if (debounced.search.trim()) params.search = debounced.search.trim();
         if (debounced.cidade.trim()) params.cidade = debounced.cidade.trim();
         if (debounced.estado) params.estado = debounced.estado;
@@ -310,6 +313,7 @@ export function LeadsPage() {
 
   return (
     <div className="space-y-4">
+      {campaignId && <div className="flex items-center justify-between text-sm text-slate-500"><span>Resultados desta pesquisa</span><Link to="/leads" className="text-indigo-600">Ver todas as pesquisas</Link></div>}
       <div className="card p-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
           <div className="col-span-2">

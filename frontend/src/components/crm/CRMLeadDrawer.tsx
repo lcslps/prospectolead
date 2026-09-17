@@ -24,6 +24,7 @@ import { Input } from '../ui/Input';
 import { useToast } from '../Toast';
 import { MessageGeneratorModal } from '../MessageGeneratorModal';
 import { CRMActivityTimeline } from './CRMActivityTimeline';
+import { LeadWebsite } from '../LeadWebsite';
 
 interface CRMLeadDrawerProps {
   open: boolean;
@@ -211,6 +212,7 @@ export function CRMLeadDrawer({
             </div>
           </div>
 
+          <LeadWebsite key={detail.id} crmLeadId={detail.id} />
           <div className="rounded-xl border border-slate-200 dark:border-slate-700">
             <div className="border-b border-slate-200 px-4 py-3 text-sm font-bold text-slate-800 dark:border-slate-700 dark:text-slate-100">
               Informações
