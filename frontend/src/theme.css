@@ -71,9 +71,10 @@ input[type=checkbox], input[type=radio] { accent-color:var(--app-accent); }
 .studio .studio-device-buttons button.active { color:var(--app-accent); }
 .studio .studio-ai-modal>.studio-error { color:#dc7d70; }
 
-.workspace-crm .workspace-content { max-width:none; padding:28px 24px; }
+.workspace-crm .workspace-content { padding:40px 40px 50px; }
 .workspace-crm .workspace-footer { display:none; }
-.crm-page .workspace-heading { margin-bottom:22px; }
+.crm-page { display:grid; gap:20px; align-content:start; }
+.crm-page .workspace-heading { margin-bottom:0; }
 .crm-board-container { height:calc(100dvh - 350px); min-height:460px; }
 .crm-board-grid { display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:12px;height:100%;overflow-x:auto;padding-bottom:12px;align-items:stretch; }
 .crm-pipeline-column { min-width:0;height:100%;max-height:100%;border-radius:7px;border-color:var(--app-border); }

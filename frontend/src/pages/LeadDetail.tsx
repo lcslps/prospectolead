@@ -132,16 +132,11 @@ export function LeadDetailPage() {
   );
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5">
-      <div className="flex items-center gap-3">
-        <Link
-          to="/leads"
-          className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-        >
-          <ArrowLeft className="h-4 w-4" /> Leads
-        </Link>
+    <div className="page">
+      <div className="workspace-heading">
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-bold text-slate-900 dark:text-white">{lead.nome}</h2>
+          <p className="workspace-eyebrow">Comercial / Empresas / Detalhe</p>
+          <h2 className="truncate">{lead.nome}</h2>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <StatusBadge status={status} />
             <ScoreBadge score={lead.leadScore} />
@@ -152,13 +147,21 @@ export function LeadDetailPage() {
             )}
           </div>
         </div>
+        <div className="page-actions">
+          <Link
+            to="/leads"
+            className="btn-secondary !py-2 text-xs"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Leads
+          </Link>
+        </div>
       </div>
 
       <LeadWebsite key={lead.id} crmLeadId={lead.crmLeadId} leadId={lead.id} />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
-          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-100">
-            <MapPin className="h-4 w-4 text-brand-500" /> Informações
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="panel lg:col-span-2">
+          <div className="panel-heading">
+            <h3 className="flex items-center gap-2"><MapPin className="h-4 w-4 text-brand-500" /> Informações</h3>
           </div>
           <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             <div>
@@ -235,9 +238,11 @@ export function LeadDetailPage() {
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="card p-5">
-            <div className="mb-3 text-sm font-bold text-slate-800 dark:text-slate-100">Status</div>
+        <div className="space-y-5">
+          <div className="panel">
+            <div className="panel-heading">
+              <h3>Status</h3>
+            </div>
             <div className="flex gap-2">
               <Select className="flex-1" value={status} onChange={(e) => setStatus(e.target.value as LeadStatus)}>
                 {LEAD_STATUSES.map((s) => (
@@ -278,8 +283,10 @@ export function LeadDetailPage() {
             </div>
           </div>
 
-          <div className="card p-5">
-            <div className="mb-2 text-sm font-bold text-slate-800 dark:text-slate-100">Observações</div>
+          <div className="panel">
+            <div className="panel-heading">
+              <h3>Observações</h3>
+            </div>
             <Textarea
               className="min-h-[120px]"
               placeholder="Anote o resultado do contato..."

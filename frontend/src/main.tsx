@@ -6,6 +6,7 @@ import { ToastProvider } from './components/Toast';
 import './index.css';
 import './theme.css';
 import './components/ui/controls.css';
+import './pages/page.css';
 import { initializeTheme } from './components/Theme';
 
 initializeTheme();

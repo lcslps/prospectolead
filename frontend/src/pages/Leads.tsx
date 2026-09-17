@@ -312,9 +312,25 @@ export function LeadsPage() {
   }, [selected, data]);
 
   return (
-    <div className="space-y-4">
-      {campaignId && <div className="flex items-center justify-between text-sm text-slate-500"><span>Resultados desta pesquisa</span><Link to="/leads" className="text-brand-600">Ver todas as pesquisas</Link></div>}
-      <div className="card p-4">
+    <div className="page">
+      <div className="workspace-heading">
+        <div>
+          <p className="workspace-eyebrow">Comercial / Empresas</p>
+          <h2>{campaignId ? 'Resultados desta pesquisa' : 'Empresas encontradas'}</h2>
+          <p>
+            Base de leads da prospecção. Envie os melhores para o CRM para iniciar o acompanhamento comercial.
+          </p>
+        </div>
+        {campaignId && (
+          <div className="page-actions">
+            <Link to="/leads" className="btn-secondary !py-2 text-xs">
+              Ver todas as pesquisas
+            </Link>
+          </div>
+        )}
+      </div>
+
+      <section className="panel">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-8">
           <div className="col-span-2">
             <Input
@@ -414,7 +430,7 @@ export function LeadsPage() {
             </Button>
           </div>
         </div>
-      </div>
+      </section>
 
       {selected.size > 0 && (
         <div className="card flex flex-wrap items-center gap-2 border-brand-500/50 bg-brand-50/50 p-3 dark:bg-brand-950/20">
@@ -469,7 +485,7 @@ export function LeadsPage() {
         </div>
       )}
 
-      <div className="card overflow-hidden">
+      <section className="panel-flush">
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-6">
@@ -660,9 +676,9 @@ export function LeadsPage() {
             <Pagination page={page} totalPages={data.totalPages} onPageChange={setPage} />
           </div>
         )}
-      </div>
+      </section>
 
-      <p className="text-xs text-slate-400">
+      <p className="page-count">
         {data ? `${data.total} lead(s) no total${debounced.orderBy !== 'createdAt' ? ' (ordenados)' : ''}` : ''}
       </p>
 

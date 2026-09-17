@@ -96,18 +96,18 @@ export function ProspeccaoPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="card p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 text-brand-600 dark:text-brand-400">
-            <Crosshair className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">Pesquisar empresas</h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              Encontre empresas na Google Places API (New) pelo nicho, país, estado e cidade.
-            </p>
-          </div>
+    <div className="page">
+      <div className="workspace-heading">
+        <div>
+          <p className="workspace-eyebrow">Comercial / Prospecção</p>
+          <h2>Prospecção</h2>
+          <p>Encontre empresas na Google Places API pelo nicho, país, estado e cidade. Os resultados só viram leads ao serem adicionados ao CRM.</p>
+        </div>
+      </div>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <h3 className="flex items-center gap-2"><Crosshair className="h-4 w-4" /> Pesquisar empresas</h3>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -214,10 +214,10 @@ export function ProspeccaoPage() {
             {loading ? 'Buscando empresas...' : 'PROSPECTAR LEADS'}
           </Button>
         </form>
-      </div>
+      </section>
 
       {loading && (
-        <div className="card p-6">
+        <section className="panel">
           <div className="flex flex-col items-center gap-3 py-6 text-center">
             <Search className="h-8 w-8 animate-pulse text-brand-500" />
             <div>
@@ -238,11 +238,11 @@ export function ProspeccaoPage() {
               </span>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {result && !loading && (
-        <div className="card overflow-hidden">
+        <section className="panel-flush">
           <div className="flex items-center gap-3 border-b border-slate-200 bg-emerald-50 px-5 py-4 dark:border-slate-800 dark:bg-emerald-950/30">
             <CheckCircle2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
             <div>
@@ -277,17 +277,15 @@ export function ProspeccaoPage() {
               Ver campanhas
             </Link>
           </div>
-        </div>
+        </section>
       )}
 
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-700 dark:text-amber-400">
-        <div className="flex items-start gap-2">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>
-            Cada prospecção consome chamadas da Google Places API. Resultados já salvos são reaproveitados e
-            não geram chamadas extras ao abrir as telas.
-          </p>
-        </div>
+      <div className="page-note page-note--warn">
+        <AlertTriangle className="mt-0.5 h-4 w-4" />
+        <p>
+          Cada prospecção consome chamadas da Google Places API. Resultados já salvos são reaproveitados e
+          não geram chamadas extras ao abrir as telas.
+        </p>
       </div>
     </div>
   );

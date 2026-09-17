@@ -113,7 +113,15 @@ export function CampaignsPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-4">
+    <div className="page">
+      <div className="workspace-heading">
+        <div>
+          <p className="workspace-eyebrow">Comercial / Campanhas</p>
+          <h2>Campanhas</h2>
+          <p>Cada prospecção realizada vira uma campanha. Acompanhe os resultados, revise os leads e repita a pesquisa quando quiser.</p>
+        </div>
+      </div>
+
       {campaigns.length === 0 ? (
         <EmptyState
           icon={<FolderOpen className="h-10 w-10" />}
@@ -123,7 +131,7 @@ export function CampaignsPage() {
         />
       ) : (
         campaigns.map((campaign) => (
-          <div key={campaign.id} className="card overflow-hidden">
+          <div key={campaign.id} className="panel-flush">
             <div
               className="flex cursor-pointer flex-col gap-2 px-5 py-4 transition hover:bg-slate-50 dark:hover:bg-slate-800/40 sm:flex-row sm:items-center"
               onClick={() => toggleDetail(campaign.id)}

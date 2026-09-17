@@ -42,7 +42,7 @@ function TemplateCard({
   const content = showPreview ? previewTemplate(template.conteudo, template.servico) : template.conteudo;
 
   return (
-    <div className="card flex flex-col p-5">
+    <div className="panel flex flex-col">
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <h3 className="font-bold text-slate-800 dark:text-slate-100">{template.nome}</h3>
@@ -202,12 +202,18 @@ export function TemplatesPage() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-500">Modelos de mensagem com variáveis para personalização automática.</p>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" /> Novo template
-        </Button>
+    <div className="page">
+      <div className="workspace-heading">
+        <div>
+          <p className="workspace-eyebrow">Criação / Modelos</p>
+          <h2>Modelos de mensagem</h2>
+          <p>Modelos com variáveis ({'{empresa}'}, {'{cidade}'}, ...) para personalizar o primeiro contato de cada prospecção.</p>
+        </div>
+        <div className="page-actions">
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Novo template
+          </Button>
+        </div>
       </div>
 
       {templates.length === 0 ? (
