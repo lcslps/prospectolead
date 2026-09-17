@@ -433,7 +433,7 @@ export function LeadsPage() {
       </section>
 
       {selected.size > 0 && (
-        <div className="card flex flex-wrap items-center gap-2 border-brand-500/50 bg-brand-50/50 p-3 dark:bg-brand-950/20">
+        <div className="panel flex flex-wrap items-center gap-2 !border-brand-500/50 !bg-brand-50/50 !p-3 dark:!bg-brand-950/20">
           <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-700 dark:text-brand-300">
             <CheckSquare className="h-4 w-4" />
             {selected.size} selecionados

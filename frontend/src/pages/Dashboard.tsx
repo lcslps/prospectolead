@@ -26,7 +26,7 @@ export function DashboardPage() {
     return () => { active = false; };
   }, [refresh]);
   if (loading) return <PageLoader />;
-  if (error || !data) return <div className="card p-6" role="alert"><p>{error || 'Não foi possível carregar o dashboard.'}</p><Button variant="unstyled" className="btn-primary mt-4" onClick={() => setRefresh(v => v + 1)}>Tentar novamente</Button></div>;
+  if (error || !data) return <div className="panel !p-6" role="alert"><p>{error || 'Não foi possível carregar o dashboard.'}</p><Button variant="unstyled" className="btn-primary mt-4" onClick={() => setRefresh(v => v + 1)}>Tentar novamente</Button></div>;
   const counts: Record<string, number> = Object.fromEntries(CRM_PIPELINE_STAGES.map(stage => [stage, 0]));
   for (const [stage, count] of Object.entries(data.crmStats?.porStage ?? {})) {
     const key = pipelineStage(stage as CrmStage);

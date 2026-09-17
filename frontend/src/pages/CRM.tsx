@@ -195,15 +195,13 @@ export function CRMPage() {
   };
 
   return (
-    <div className="crm-page space-y-4">
+    <div className="crm-page">
       <div className="workspace-heading"><div><p className="workspace-eyebrow">Comercial / Relacionamento</p><h2>CRM</h2><p>Filtre, priorize e acompanhe cada oportunidade.</p></div><Button variant="unstyled" className="btn-secondary" aria-expanded={showStats} onClick={() => setShowStats(!showStats)}><BarChart3 size={15} />Indicadores</Button></div>
       {showStats && <CRMStats stats={loading ? null : stats} />}
       <CRMFilters filters={filters} onChange={setFilters} />
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+      <div className="page-count flex flex-wrap items-center justify-between gap-2">
         <span>{stats.leadsNoCrm} {stats.leadsNoCrm === 1 ? 'lead no quadro' : 'leads no quadro'}</span>
-        {hasActiveCrmFilter(debounced) && (
-          <span className="text-xs text-slate-400">Filtros aplicados</span>
-        )}
+        {hasActiveCrmFilter(debounced) && <span>Filtros aplicados</span>}
       </div>
 
       <div className="crm-board-container">

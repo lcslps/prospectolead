@@ -14,7 +14,7 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className="card p-4">
+    <div className="panel !p-4">
       <div className="mb-3 flex items-center justify-between gap-2"><div className="text-2xl font-semibold leading-tight text-slate-900 dark:text-white">{value}</div><div className="crm-stat-icon flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">{icon}</div></div>
       <div className="text-xs font-medium leading-relaxed text-slate-600 dark:text-slate-300">{label}</div>
       {sub && <div className="mt-1 text-[10px] text-slate-500 dark:text-slate-400">{sub}</div>}

@@ -52,7 +52,7 @@ export function CRMFilters({
     onChange({ ...filters, [key]: value });
 
   return (
-    <div className="card p-3">
+    <div className="panel !p-4">
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
         <div className="col-span-2">
           <Input
