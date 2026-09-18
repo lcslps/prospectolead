@@ -44,6 +44,11 @@ export function createApp(): Express {
     standardHeaders: true,
     legacyHeaders: false,
     message: { success: false, message: 'Muitas requisições. Tente novamente mais tarde.' },
+    keyGenerator: (req) =>
+      (req.headers['x-nf-client-connection-ip'] as string) ||
+      req.ip ||
+      req.socket.remoteAddress ||
+      'unknown',
   });
   app.use('/api', limiter);
 
