@@ -4,9 +4,10 @@ import { Textarea } from './ui/Textarea';
 import { useState, type CSSProperties, type MouseEvent } from 'react';
 import type { SiteButton, SiteDocument, SiteSection } from '../types/website';
 import './website.css';
+import { resolveSiteImage } from '../services/api';
 
 export const safeLink = (v: string) => /^(https?:\/\/|tel:|mailto:|#[\w-])/i.test(v) ? v : undefined;
-export const safeImage = (v: string) => /^https:\/\//i.test(v) || /^data:image\/(png|jpeg|webp);base64,/i.test(v) ? v : undefined;
+export const safeImage = (v: string) => resolveSiteImage(v);
 function CTA({ button, secondary = false }: { button: SiteButton; secondary?: boolean }) {
   if (!button.label || !safeLink(button.href)) return null;
   return <a className={`ws-button ${secondary ? 'ws-secondary' : ''}`} href={safeLink(button.href)} target={button.newTab ? '_blank' : undefined} rel="noopener noreferrer">{button.label}<span aria-hidden="true"> ↗</span></a>;
@@ -44,11 +45,12 @@ export function WebsiteRenderer({ document: doc, selectedId, onSelect, interacti
             {s.type === 'map' && b.address && <iframe className="ws-map" style={{ pointerEvents: interactive ? 'auto' : 'none' }} title={`Localização de ${b.name}`} loading="lazy" referrerPolicy="no-referrer" src={`https://maps.google.com/maps?q=${encodeURIComponent(`${b.address} ${b.city}`)}&output=embed`} />}
             {s.type === 'faq' ? <div className="ws-faq">{c.items.map((item, i) => <details key={i}><summary>{item.title}</summary><p>{item.text}</p></details>)}</div> : <div className={`ws-items ${s.type === 'menu' || s.type === 'prices' || s.type === 'hours' ? 'ws-list' : ''}`}>{c.items.map((item, i) => <article key={i} style={{ borderRadius: s.settings.radius }}>
               {safeImage(item.image) && <img src={safeImage(item.image)} alt={item.imageAlt} loading="lazy" />}
-              <div><h3>{item.title}</h3>{item.text && <p>{item.text}</p>}{item.price && <strong>{item.price}</strong>}{safeLink(item.href) && <a href={safeLink(item.href)}>Saiba mais ↗</a>}</div>
+              <div><h3>{item.title}</h3>{item.text && <p>{item.text}</p>}{item.price && <strong>{item.price}</strong>}{item.imageCredit && <small className="ws-image-credit">Foto: <a href={safeLink(item.imageCreditUrl || '')} target="_blank" rel="noreferrer">{item.imageCredit}</a></small>}{safeLink(item.href) && <a href={safeLink(item.href)}>Saiba mais ↗</a>}</div>
             </article>)}</div>}
             {s.type === 'form' && <ContactForm whatsapp={b.whatsapp} />}
             <div className="ws-actions"><CTA button={c.primaryButton} /><CTA button={c.secondaryButton} secondary /></div>
           </>}
+          {c.imageCredit && <small className="ws-image-credit">Foto: <a href={safeLink(c.imageCreditUrl || '')} target="_blank" rel="noreferrer">{c.imageCredit}</a></small>}
         </div>
       </section>;
     })}

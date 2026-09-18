@@ -11,6 +11,7 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
   const marker = `workflow-test-${randomUUID()}`;
   const originalFetch = globalThis.fetch;
   const originalSearch = googlePlacesService.searchText;
+  const originalNodeEnv = env.NODE_ENV;
   const originalKey = env.GEMINI_API_KEY, originalModel = env.GEMINI_MODEL, originalLevel = env.GEMINI_THINKING_LEVEL;
   const campaigns: string[] = [];
   const server = createApp().listen(0, '127.0.0.1');
@@ -23,6 +24,7 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
   const baseline = (await request('/dashboard')).body.data;
   let crmIds: string[] = []; let site: any; let document: any;
   try {
+    env.NODE_ENV = 'test';
     await t.test('40 resultados não alteram métricas; 5 inclusões entram em Novo', async () => {
       googlePlacesService.searchText = async ({ pageToken }) => {
         const offset = pageToken ? 20 : 0;
@@ -118,7 +120,7 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
       }
     });
   } finally {
-    globalThis.fetch = originalFetch; googlePlacesService.searchText = originalSearch; env.GEMINI_API_KEY = originalKey; env.GEMINI_MODEL = originalModel; env.GEMINI_THINKING_LEVEL = originalLevel;
+    globalThis.fetch = originalFetch; googlePlacesService.searchText = originalSearch; env.GEMINI_API_KEY = originalKey; env.GEMINI_MODEL = originalModel; env.GEMINI_THINKING_LEVEL = originalLevel; env.NODE_ENV = originalNodeEnv;
     await prisma.campaign.deleteMany({ where: { id: { in: campaigns } } });
     await prisma.lead.deleteMany({ where: { googlePlaceId: { startsWith: marker } } });
     await new Promise<void>(resolve => server.close(() => resolve())); await prisma.$disconnect();

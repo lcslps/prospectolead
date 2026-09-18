@@ -24,6 +24,7 @@ export interface GooglePlace {
   businessStatus?: string;
   types?: string[];
   location?: { latitude?: number; longitude?: number };
+  photos?: Array<{ name: string; widthPx?: number; heightPx?: number; authorAttributions?: Array<{ displayName?: string; uri?: string }> }>;
 }
 
 export interface SearchTextResponse {

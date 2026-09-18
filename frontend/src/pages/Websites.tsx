@@ -3,10 +3,12 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search, RefreshCw, ArrowUpRight, Pencil, Eye, Loader2, X } from 'lucide-react';
-import { getData } from '../services/api';
+import { Plus, Search, RefreshCw, ArrowUpRight, Pencil, Eye, Loader2, X, Trash2 } from 'lucide-react';
+import { getData, deleteData } from '../services/api';
 import { LeadWebsite } from '../components/LeadWebsite';
 import { EmptyState, PageLoader } from '../components/UI';
+import { ConfirmDialog } from '../components/Modal';
+import { useToast } from '../components/Toast';
 import type { CrmLeadFull } from '../types';
 
 interface Project {
@@ -25,11 +27,20 @@ export function WebsitesPage() {
   const [creating, setCreating] = useState(false); const [leads, setLeads] = useState<CrmLeadFull[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false); const [selected, setSelected] = useState('');
   const [createError, setCreateError] = useState('');
+  const [confirmDelete, setConfirmDelete] = useState<Project | null>(null);
+  const toast = useToast();
   const load = useCallback(async () => {
     try { setProjects(await getData<Project[]>('/websites')); setError(''); }
     catch (e) { setError(e instanceof Error ? e.message : 'Erro ao carregar projetos'); }
     finally { setLoading(false); }
   }, []);
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    try { await deleteData<null>(`/websites/${confirmDelete.id}`); toast.success('Projeto excluído'); void load(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao excluir projeto'); }
+    finally { setConfirmDelete(null); }
+  };
+  const deleteButton = (project: Project) => <Button variant="unstyled" className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950" title="Excluir projeto" aria-label={`Excluir projeto ${project.name}`} onClick={() => setConfirmDelete(project)}><Trash2 size={15} /></Button>;
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!projects.some(p => p.generationStatus === 'generating')) return;
@@ -68,10 +79,11 @@ export function WebsitesPage() {
         <div className="project-info"><h3 title={project.name}>{project.name}</h3><Link to={`/leads/${project.crmLead.lead.id}`}>{project.crmLead.lead.nome}<ArrowUpRight size={11} /></Link><p>{[project.crmLead.lead.categoria, project.crmLead.lead.cidade].filter(Boolean).join(' · ')}</p></div>
         <span className={`project-status ${published ? 'is-published' : failed ? 'is-failed' : ''}`}>{status}</span>
         <div className="project-date">{new Date(project.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}<small>{project._count.sections} seções</small></div>
-        {ready && <div className="project-row-actions"><Link className="btn-secondary" to={`/studio/${project.id}?preview=1`} title="Visualizar"><Eye size={14} /><span className="sr-only">Visualizar</span></Link><Link className="btn-primary" to={`/studio/${project.id}`}><Pencil size={13} />Editar site</Link>{published && <a className="project-public" href={`/s/${project.id}`} target="_blank" rel="noreferrer" aria-label={`Abrir site publicado: ${project.name}`} title="Abrir publicado"><ArrowUpRight size={16} /></a>}</div>}
-        {!ready && <div className="project-generation"><LeadWebsite crmLeadId={project.crmLead.id} /></div>}
+        {ready && <div className="project-row-actions"><Link className="btn-secondary" to={`/studio/${project.id}?preview=1`} title="Visualizar"><Eye size={14} /><span className="sr-only">Visualizar</span></Link><Link className="btn-primary" to={`/studio/${project.id}`}><Pencil size={13} />Editar site</Link>{published && <a className="project-public" href={`/s/${project.id}`} target="_blank" rel="noreferrer" aria-label={`Abrir site publicado: ${project.name}`} title="Abrir publicado"><ArrowUpRight size={16} /></a>}{deleteButton(project)}</div>}
+        {!ready && <div className="project-generation flex items-center justify-between gap-2"><LeadWebsite crmLeadId={project.crmLead.id} />{deleteButton(project)}</div>}
       </article>;
     })}</div>}
     {creating && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"><section role="dialog" aria-modal="true" aria-labelledby="new-project-title" className="panel max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto !p-7"><div className="flex items-center justify-between"><h2 id="new-project-title" className="text-lg font-semibold text-slate-900 dark:text-white">Novo projeto</h2><Button variant="unstyled" className="btn-ghost !px-2" aria-label="Fechar" onClick={() => { setCreating(false); void load(); }}><X size={18} /></Button></div><p className="text-sm leading-relaxed text-slate-500">Para qual estabelecimento vamos criar um site?</p>{createError && <p role="alert" className="text-sm text-red-600">{createError}</p>}{loadingLeads ? <Loader2 size={22} className="animate-spin" /> : leads.length ? <><label className="block space-y-2 text-sm"><span>Estabelecimento</span><Select className="input" value={selected} onChange={e => setSelected(e.target.value)}><option value="">Selecione um lead...</option>{leads.map(l => <option key={l.id} value={l.id}>{l.lead.nome}{l.lead.cidade ? ` — ${l.lead.cidade}` : ''}</option>)}</Select></label>{selected && <LeadWebsite key={selected} crmLeadId={selected} />}</> : !createError && <div className="space-y-4"><p className="text-sm leading-relaxed text-slate-500">Adicione uma empresa ao CRM para começar um novo projeto. Os leads que já têm site continuam disponíveis na sua lista de projetos.</p><div className="flex flex-wrap gap-2"><Link className="btn-primary" to="/crm">Abrir CRM</Link><Link className="btn-secondary" to="/prospeccao">Pesquisar empresas</Link></div></div>}</section></div>}
+    <ConfirmDialog open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)} onConfirm={() => void handleDelete()} title="Excluir projeto" confirmLabel="Excluir" description={confirmDelete ? `O site "${confirmDelete.name}" será excluído permanentemente, junto com todas as seções e o site publicado. Esta ação não pode ser desfeita.` : undefined} />
   </div>;
 }

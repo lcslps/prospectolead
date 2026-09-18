@@ -34,3 +34,4 @@ prisma/migrations/.template*
 # Playwright
 test-results/
 playwright-report/
+.browser-profile/

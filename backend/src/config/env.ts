@@ -10,6 +10,9 @@ const envSchema = z.object({
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_MODEL: z.string().default(''),
   GEMINI_THINKING_LEVEL: z.enum(['low', 'medium', 'high']).default('low'),
+  PEXELS_API_KEY: z.string().default(''),
+  PIXABAY_API_KEY: z.string().default(''),
+  UNSPLASH_ACCESS_KEY: z.string().default(''),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   NODE_ENV: z
     .enum(['development', 'production', 'test'])

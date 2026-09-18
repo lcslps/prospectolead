@@ -26,7 +26,7 @@ test('Editor visual, autosave, histórico, responsividade e publicação real', 
   await expect(page.getByRole('heading', { name: 'Meus projetos', exact: true })).toBeVisible();
   await page.getByRole('textbox', { name: 'Buscar projetos' }).fill('Espetaria · teste do editor');
   await page.locator(`a[href="/studio/${siteId}"]`).click();
-  const frame = page.frameLocator('iframe[title="Prévia do site"]');
+  const frame = page.frameLocator('iframe');
   await expect(frame.getByRole('heading', { level: 1 })).toHaveText('Encontros à mesa, bons momentos');
   await frame.getByRole('heading', { level: 1 }).click();
   const title = page.locator('[data-editor-field="title"]');
@@ -41,7 +41,7 @@ test('Editor visual, autosave, histórico, responsividade e publicação real', 
   await page.getByRole('button', { name: 'Tablet', exact: true }).click();
   await expect(page.locator('.studio-frame')).toHaveCSS('width', '768px');
   await page.getByRole('button', { name: 'Desktop', exact: true }).click();
-  await page.locator('.studio-catalog').getByRole('button', { name: 'Serviços', exact: true }).click();
+  await page.locator('.studio-catalog button:nth-of-type(3)').click();
   await expect(page.locator('.studio-section-row')).toHaveCount(5);
   await page.getByRole('button', { name: 'Adicionar item', exact: true }).click();
   await page.getByLabel('Título / nome / pergunta').fill('Item editável');
@@ -57,6 +57,19 @@ test('Editor visual, autosave, histórico, responsividade e publicação real', 
   await expect(page.locator('.studio-section-row')).toHaveCount(6);
   await page.getByRole('button', { name: 'Refazer', exact: true }).click();
   await expect(page.locator('.studio-section-row')).toHaveCount(5);
+  await page.locator('.studio-section-select').filter({ hasText: 'Capa (primeira dobra)' }).click();
+  const stockPhoto = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aWQAAAABJRU5ErkJggg==';
+  await page.route('**/websites/photos*', route => route.fulfill({ json: { success: true, data: { photos: [{ url: stockPhoto, alt: 'Comida italiana', credit: 'Ana Fotógrafa', creditUrl: 'https://www.pexels.com/@ana/', provider: 'Pexels' }] } } }));
+  await page.getByRole('button', { name: 'Buscar imagens relevantes' }).click();
+  await page.getByRole('button', { name: 'Pexels · Ana Fotógrafa' }).click();
+  await expect(frame.locator('.ws-image-credit')).toContainText('Ana Fotógrafa');
+  const saveImage = page.waitForResponse(response => response.url().includes(`/websites/${siteId}/save`) && response.request().method() === 'POST');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  expect((await saveImage).status()).toBe(200);
+  await page.reload();
+  await page.locator('.studio-section-select').filter({ hasText: 'Capa (primeira dobra)' }).click();
+  await expect(page.locator('.studio-image-field img').first()).toBeVisible();
+  await expect(frame.locator('.ws-image-credit')).toContainText('Ana Fotógrafa');
   await page.getByRole('button', { name: 'Publicar', exact: true }).click();
   await expect(page.getByRole('link', { name: 'Abrir publicado ↗' })).toBeVisible();
   const publicResponse = await request.get(`http://localhost:3002/api/websites/public/${siteId}`);

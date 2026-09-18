@@ -5,6 +5,8 @@
    ============================================ */
 
 .page {
+  width: 100%;
+  min-width: 0;
   display: grid;
   gap: 20px;
   align-content: start;
@@ -15,6 +17,8 @@
 
 /* Painel padrão (bloco de conteúdo) */
 .panel {
+  width: 100%;
+  min-width: 0;
   background: var(--app-surface);
   border: 1px solid var(--app-border);
   border-radius: 12px;
