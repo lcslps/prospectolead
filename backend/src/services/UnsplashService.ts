@@ -5,14 +5,14 @@ const QUERY_MAP: Record<string, string> = {
   marmore: 'marble slab countertop stone',
   granito: 'granite slab countertop stone',
   restaurante: 'restaurant food dining',
-  pizzaria: 'pizza pizzeria',
+  pizzaria: 'pizza pizzeria wood fired',
   hamburgueria: 'hamburger burger restaurant',
   churrascaria: 'barbecue grilled meat',
-  cafeteria: 'coffee cafe',
+  cafeteria: 'coffee cafe pastry',
   padaria: 'bakery bread pastry',
   confeitaria: 'cake pastry bakery',
   barbearia: 'barber haircut barbershop',
-  cabeleireiro: 'hair salon haircut',
+  cabeleireiro: 'hair salon haircut stylist',
   estetica: 'beauty salon skincare',
   manicure: 'nail salon manicure',
   dentista: 'dentist dental clinic',
@@ -20,15 +20,72 @@ const QUERY_MAP: Record<string, string> = {
   veterinario: 'veterinary clinic pets',
   petshop: 'pet shop grooming dogs',
   academia: 'gym fitness training',
-  oficina: 'auto repair mechanic workshop',
+  oficina: 'auto repair mechanic car workshop',
   farmacia: 'pharmacy drugstore',
   floricultura: 'flower shop florist bouquet',
   imobiliaria: 'real estate house property',
   hotel: 'hotel room hospitality',
   pousada: 'inn guesthouse room',
-  supermercado: 'supermarket groceries',
+  supermercado: 'supermarket groceries shelves',
   escola: 'school classroom education',
   advocacia: 'law office lawyer',
+  eletricista: 'electrician repairing electrical panel tools',
+  eletrica: 'electrician electrical installation cables',
+  eletrico: 'electric motor generator industrial',
+  eletromecanica: 'industrial electric motor workshop',
+  motor: 'industrial electric motor engine',
+  motores: 'industrial electric motors workshop',
+  gerador: 'diesel generator power unit',
+  geradores: 'industrial generators equipment',
+  motobomba: 'water pump motor industrial',
+  bomba: 'industrial water pump',
+  bombas: 'industrial water pumps equipment',
+  energia: 'solar panel roof renewable energy',
+  solar: 'solar panels installation roof',
+  compressor: 'industrial air compressor machine',
+  construcao: 'construction site workers building brick',
+  'construcao civil': 'construction bricks building site',
+  obra: 'construction site building framework',
+  reforma: 'home renovation construction tools',
+  pedreiro: 'mason bricklayer building wall',
+  engenharia: 'engineer blueprint construction plans',
+  arquitet: 'architecture building blueprint model',
+  piso: 'tile floor installation construction',
+  telhado: 'roof tiles construction house',
+  agro: 'tractor agricultural farm field',
+  agricola: 'tractor harvesting farm field',
+  fazenda: 'farm countryside field cattle',
+  plantio: 'seedling planting farm field',
+  colheita: 'harvest crops combine tractor',
+  trator: 'tractor field agriculture',
+  pecuaria: 'cattle farm pasture livestock',
+  usinagem: 'metal lathe machining workshop',
+  metalurgica: 'steel factory metal industry worker',
+  fundicao: 'metal foundry casting factory',
+  serralheria: 'metal work welding workshop',
+  caldeiraria: 'industrial welding metal fabrication',
+  fab: 'industrial factory manufacturing',
+  industrial: 'industrial factory machinery',
+  furn: 'furniture store sofa interior display',
+  fotografo: 'photographer camera studio photoshoot',
+  fotografia: 'photographer camera studio',
+  escritorio: 'modern office desk meeting room',
+  seguranca: 'security guard monitoring cameras',
+  'auto pecas': 'car parts tires mechanics shelf',
+  autopecas: 'car spare parts accessories tires',
+  loja: 'retail store interior product shelves',
+  roupas: 'clothing store apparel rack',
+  moda: 'clothing fashion boutique store',
+  moveis: 'furniture store sofa living room',
+  calcado: 'shoe store sneakers display',
+  bijuteria: 'jewelry store rings display',
+  otica: 'eyewear glasses optical store',
+  presentes: 'gift shop products display',
+  variedades: 'general store retail products shelves',
+  ferramenta: 'tools hardware store',
+  material: 'construction materials hardware store',
+  brinquedo: 'toys store colorful display',
+  papelaria: 'stationery store notebooks pens',
 };
 
 function normalize(query: string): string {
@@ -41,12 +98,20 @@ function findMap(query: string): string {
   return normalized.split(' ').filter(word => word.length > 2).slice(0, 9).join(' ');
 }
 
+const REJECT_WORDS = new Set(['guitar', 'concert', 'music', 'musician', 'fashion model', 'modelo', 'scooter', 'skateboard', 'surfing', 'wedding dress', 'makeup model', 'celebrity', 'cowboy', 'rock band', 'drum']);
+
 function isRelevant(alt: string, term: string): boolean {
-  const stopWords = new Set(['business', 'professional', 'modern', 'beautiful', 'shop', 'store', 'showroom', 'quality', 'natural']);
+  const stopWords = new Set(['business', 'professional', 'modern', 'beautiful', 'quality', 'natural', 'stock', 'photo', 'picture', 'image', 'person', 'people', 'man', 'woman', 'hand', 'background']);
   const terms = normalize(term).split(' ').filter(word => word.length >= 4 && !stopWords.has(word));
   const description = normalize(alt);
+  if (!description || !terms.length) return false;
   const matched = terms.filter(word => description.includes(word)).length;
-  return Boolean(description && matched >= (terms.length >= 3 ? 2 : 1));
+  if (matched >= 2) return true;
+  if (terms.length < 3 && matched === 1) {
+    for (const reject of REJECT_WORDS) if (description.includes(reject)) return false;
+    return true;
+  }
+  return false;
 }
 
 export type PhotoProvider = 'Pexels' | 'Pixabay' | 'Unsplash' | 'Google Maps';

@@ -10,7 +10,7 @@ import { hasPhotoSearch, searchImages, type UnsplashImage } from './UnsplashServ
 import { contentSchema, documentSchema, sectionTypes, seoSchema, settingsSchema, themeSchema, artDirectionSchema, type WebsiteDocument } from './websiteSchema';
 import { climaTheme, presetImageQuery, presetPrompt, resolveNiche } from './sitePresets';
 import { normalizeBusiness } from './BusinessNormalizer';
-import { guardDocument } from './QualityGuard';
+import { guardDocument, auditDocument } from './QualityGuard';
 import { plannerCatalog } from './SectionRegistry';
 
 const include = { sections: { orderBy: { order: 'asc' as const } } };
@@ -24,6 +24,7 @@ const generatedSchema = z.object({
 });
 const emptySeo = { title: '', description: '', keywords: '' };
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
+const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 export class WebsiteService {
   async list() {
@@ -78,20 +79,31 @@ export class WebsiteService {
   async generateDocument(business: WebsiteDocument['business'], facts: unknown): Promise<WebsiteDocument> {
     const factStrings = JSON.stringify(facts);
     const factsRecord = facts && typeof facts === 'object' ? facts as Record<string, unknown> : {};
-    const preset = resolveNiche(business.category, typeof factsRecord.nicho === 'string' ? factsRecord.nicho : '', typeof factsRecord.categoria === 'string' ? factsRecord.categoria : '');
+    const preset = resolveNiche(business.category, typeof factsRecord.nicho === 'string' ? factsRecord.nicho : '', typeof factsRecord.categoria === 'string' ? factsRecord.categoria : '', business.name);
     const theme = themeSchema.parse(climaTheme(preset.clima));
-    const result = generatedSchema.parse(await generateJson(`You are a senior creative director and website content planner, never a frontend developer. Return only the specified JSON. Do not return HTML, CSS, JSX, React, class names, styles or executable code. Create a complete Brazilian Portuguese website plan using only this component catalog: ${JSON.stringify(plannerCatalog)}. Pick only a listed section type and its allowed variant. Use exactly the mandatory theme values below. Do not invent services, prices, people or testimonials. Return imageQueries.hero, imageQueries.about and imageQueries.gallery as short, precise visual search descriptions based on this business category and verified information. Describe visible subjects and materials, not the business name, street or vague ideas. A granite shop should use granite slabs, marble surfaces or a stone showroom, never generic retail stock, warehouses or unrelated workers. Keep each query specific to the image placement. Include header, hero and footer. Keep unknown factual content empty. Do not create fake image URLs.
+    const result = generatedSchema.parse(await generateJson(`You are a senior creative director and website content planner, never a frontend developer. Return only the specified JSON. Do not return HTML, CSS, JSX, React, class names, styles or executable code. Create a complete Brazilian Portuguese website plan using only this component catalog: ${JSON.stringify(plannerCatalog)}. Pick only a listed section type and its allowed variant. Use exactly the mandatory theme values below. Do not invent services, prices, people or testimonials. Return imageQueries.hero, imageQueries.about and imageQueries.gallery as short, precise visual search descriptions based on this business category and verified information. Describe visible subjects and materials, not the business name, street or vague ideas. A granite shop should use granite slabs, marble surfaces or a stone showroom, never generic retail stock, warehouses or unrelated workers. An electric motor company should use motors, generators, pumps or electrical panels, never guitars, scooters, fashion or consumer products. Keep each query specific to the image placement. Include header, hero and footer. Keep unknown factual content empty. Do not create fake image URLs.
 
 ${presetPrompt(preset)}
 
 Data: ${JSON.stringify(facts)}`, generationSchema));
-    const sections = result.sections.slice(0, 16).map(s => ({ id: randomUUID(), type: s.type, variant: (plannerCatalog.find(item => item.type === s.type)?.variants.includes(s.variant) ? s.variant : 'standard'), visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel, href: business.whatsapp }, secondaryButton: { label: s.secondaryLabel, href: '#contato' } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: theme.primary, color: '#ffffff', motion: 'reveal' } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) }));
-    const imageQueries = {
-      hero: result.imageQueries.hero || presetImageQuery(preset, 'hero'),
-      about: result.imageQueries.about || presetImageQuery(preset, 'about'),
-      gallery: result.imageQueries.gallery || presetImageQuery(preset, 'gallery'),
+    const ctaAnchor = result.sections.some(s => s.type === 'contact' || s.type === 'map') ? '#contato' : '';
+    const sections = result.sections.slice(0, 16).map(s => ({ id: randomUUID(), type: s.type, variant: (plannerCatalog.find(item => item.type === s.type)?.variants.includes(s.variant) ? s.variant : 'standard'), visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel || ((s.type === 'hero' || s.type === 'cta') && business.whatsapp ? preset.ctaLabel : ''), href: business.whatsapp || ctaAnchor }, secondaryButton: { label: s.secondaryLabel && ctaAnchor ? s.secondaryLabel : '', href: ctaAnchor } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: theme.primary, color: '#ffffff', motion: 'reveal' } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) }));
+    const businessContext = normalize(`${business.name} ${business.category} ${business.categories.join(' ')} ${typeof factsRecord.nicho === 'string' ? factsRecord.nicho : ''}`);
+    const pickImageQuery = (proposed: string, fallback: string) => {
+      if (!proposed) return fallback;
+      const words = proposed.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length >= 4);
+      const grounded = words.some(word => businessContext.includes(word));
+      return grounded ? proposed : fallback;
     };
-    return guardDocument(documentSchema.parse(await this.attachImages(business, { schemaVersion: 1, name: business.name, business, theme, artDirection: artDirectionSchema.parse({}), seo: seoSchema.parse(result.seo), sections }, imageQueries)));
+    const imageQueries = {
+      hero: pickImageQuery(result.imageQueries.hero, presetImageQuery(preset, 'hero')),
+      about: pickImageQuery(result.imageQueries.about, presetImageQuery(preset, 'about')),
+      gallery: pickImageQuery(result.imageQueries.gallery, presetImageQuery(preset, 'gallery')),
+    };
+    const guarded = guardDocument(documentSchema.parse(await this.attachImages(business, { schemaVersion: 1, name: business.name, business, theme, artDirection: artDirectionSchema.parse({}), seo: seoSchema.parse(result.seo), sections }, imageQueries)));
+    const audit = auditDocument(guarded);
+    if (audit.length) console.warn('[Website audit] corrigidos:', audit.join('; '));
+    return guarded;
   }
   private async attachImages(business: WebsiteDocument['business'], document: WebsiteDocument, queries: { hero: string; about: string; gallery: string }): Promise<WebsiteDocument> {
     let hero: UnsplashImage | undefined;
@@ -143,7 +155,9 @@ Data: ${JSON.stringify(facts)}`, generationSchema));
     const finalSections = hasGallery || !gallery.length ? sections : this.insertGallery(sections, business, gallery);
     return documentSchema.parse({ ...document, sections: finalSections });
   }  private insertGallery(sections: WebsiteDocument['sections'], business: WebsiteDocument['business'], gallery: UnsplashImage[]) {
-    const gallerySection = { id: randomUUID(), type: 'gallery' as const, variant: 'grid3', visible: true, content: contentSchema.parse({ title: 'Galeria de fotos', items: gallery.slice(0, 8).map((img, i) => ({ title: '', text: '', price: '', image: img.url, imageAlt: `Foto ${i + 1} de ${business.name}`, imageCredit: img.credit, imageCreditUrl: img.creditUrl, href: '' })) }), settings: settingsSchema.parse({}) };
+    if (gallery.length < 4) return sections;
+    const amount = Math.min(8, gallery.length);
+    const gallerySection = { id: randomUUID(), type: 'gallery' as const, variant: 'grid3', visible: true, content: contentSchema.parse({ title: 'Galeria de fotos', items: gallery.slice(0, amount).map((img, i) => ({ title: '', text: '', price: '', image: img.url, imageAlt: `Foto ${i + 1} de ${business.name}`, imageCredit: img.credit, imageCreditUrl: img.creditUrl, href: '' })) }), settings: settingsSchema.parse({}) };
     const footerIndex = sections.findIndex(s => s.type === 'footer');
     const at = footerIndex > 2 ? footerIndex : sections.findIndex(s => s.type === 'contact') > 2 ? sections.findIndex(s => s.type === 'contact') : sections.length - 1;
     const inserted = [...sections];
