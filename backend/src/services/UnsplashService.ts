@@ -1,124 +1,52 @@
 import { env } from '../config/env';
 
 const QUERY_MAP: Record<string, string> = {
-  restaurante: 'restaurant food',
-  'bar de vinhos': 'wine bar',
-  bar: 'bar drinks',
-  hamburgueria: 'burger restaurant',
-  pizzaria: 'pizza',
-  churrascaria: 'barbecue grill',
-  'comida caseira': 'homemade food',
-  panificadora: 'bakery',
-  padaria: 'bakery',
-  confeitaria: 'cake pastry',
-  sorveteria: 'ice cream shop',
-  cafeteria: 'coffee shop',
-  'cozinha japonesa': 'japanese sushi restaurant',
-  'cozinha italiana': 'italian restaurant',
-  'comida rápida': 'fast food',
-  'lanchonete': 'snack bar',
-  açaí: 'açai bowl',
-  barbearia: 'barber shop',
-  cabeleireiro: 'hair salon',
-  'salão de beleza': 'beauty salon',
-  'salão de cabeleireiro': 'hair salon',
-  estética: 'beauty salon',
-  'clínica de estética': 'beauty clinic',
-  'centro de estética': 'beauty clinic',
-  sobrancelhas: 'eyebrow beauty',
-  manicure: 'nail salon',
-  'estúdio de tatuagem': 'tattoo studio',
-  dentista: 'dentist office',
-  'clínica odontológica': 'dentist clinic',
-  'consultório odontológico': 'dentist clinic',
-  'clínica médica': 'medical clinic',
-  médico: 'doctor office',
-  hospital: 'hospital building',
-  'clínica veterinária': 'veterinary clinic',
-  veterinário: 'veterinarian',
-  petshop: 'pet shop',
-  'banho e tosa': 'pet grooming',
-  'academia': 'gym fitness',
-  'estúdio de crossfit': 'crossfit gym',
-  'estúdio de pilates': 'pilates studio',
-  'escola de dança': 'dance studio',
-  'escola de música': 'music school',
-  escola: 'school classroom',
-  'curso de idiomas': 'language school',
-  'colégio': 'school students',
-  'universidade': 'university campus',
-  'auto escola': 'driving school',
-  'oficina mecânica': 'car mechanic garage',
-  'oficina automotiva': 'car repair shop',
-  'auto peças': 'car parts store',
-  'pneus': 'tires car workshop',
-  'lavagem de carros': 'car wash',
-  'estética automotiva': 'car detailing',
-  concessionária: 'car dealership',
-  'loja de carros': 'used car dealership',
-  advogado: 'lawyer office',
-  advocacia: 'law firm',
-  contador: 'accountant office',
-  'contabilidade': 'accounting office',
-  'imobiliária': 'real estate agency',
-  'corretor de imóveis': 'realtor house',
-  'engenharia civil': 'construction engineer',
-  'arquitetura': 'architecture modern building',
-  'design de interiores': 'interior design',
-  'escritório de arquitetura': 'architecture office',
-  'mercado': 'supermarket groceries',
-  supermercado: 'supermarket',
-  'mercearia': 'grocery store',
-  'loja de roupas': 'clothing store fashion',
-  'loja de sapatos': 'shoe store',
-  'loja de móveis': 'furniture store',
-  'loja de eletrodomésticos': 'appliance store',
-  'loja de celulares': 'smartphone store',
-  'joalheria': 'jewelry store',
-  'ótica': 'eyewear store',
-  'farmacia': 'pharmacy',
-  'drogaria': 'pharmacy',
-  'floricultura': 'flower shop',
-  'materiais de construção': 'hardware store construction materials',
-  'ferragens': 'hardware store',
-  'papelaria': 'stationery store',
-  livraria: 'bookstore',
-  brinquedos: 'toys store',
-  'jogos': 'board games',
-  'hotel': 'hotel building',
-  pousada: 'cozy inn guesthouse',
-  'casa de eventos': 'event venue',
-  'buffet': 'catering buffet',
-  'salão de festas': 'party venue',
-  'espaco de eventos': 'event hall',
-  'igreja': 'church',
-  'box': 'boxing gym',
-  'loja de games': 'video game store',
-  'casa noturna': 'nightclub',
-  'barber shop': 'barber shop',
-  restaurant: 'restaurant food',
-  'auto repair': 'car mechanic garage',
-  dentist: 'dentist office',
-  'hair salon': 'hair salon',
-  'beauty salon': 'beauty salon',
-  gym: 'gym fitness',
-  clinic: 'medical clinic',
-  'pet store': 'pet shop',
-  pharmacy: 'pharmacy',
-  lawyer: 'lawyer office',
-  'real estate': 'real estate agency',
-  supermarket: 'supermarket',
-  school: 'school classroom',
-  bakery: 'bakery',
-  'coffee shop': 'coffee shop',
+  marmoraria: 'granite marble stone slab countertop',
+  marmore: 'marble slab countertop stone',
+  granito: 'granite slab countertop stone',
+  restaurante: 'restaurant food dining',
+  pizzaria: 'pizza pizzeria',
+  hamburgueria: 'hamburger burger restaurant',
+  churrascaria: 'barbecue grilled meat',
+  cafeteria: 'coffee cafe',
+  padaria: 'bakery bread pastry',
+  confeitaria: 'cake pastry bakery',
+  barbearia: 'barber haircut barbershop',
+  cabeleireiro: 'hair salon haircut',
+  estetica: 'beauty salon skincare',
+  manicure: 'nail salon manicure',
+  dentista: 'dentist dental clinic',
+  clinica: 'medical clinic doctor',
+  veterinario: 'veterinary clinic pets',
+  petshop: 'pet shop grooming dogs',
+  academia: 'gym fitness training',
+  oficina: 'auto repair mechanic workshop',
+  farmacia: 'pharmacy drugstore',
+  floricultura: 'flower shop florist bouquet',
+  imobiliaria: 'real estate house property',
+  hotel: 'hotel room hospitality',
+  pousada: 'inn guesthouse room',
+  supermercado: 'supermarket groceries',
+  escola: 'school classroom education',
+  advocacia: 'law office lawyer',
 };
 
+function normalize(query: string): string {
+  return query.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 function findMap(query: string): string {
-  const q = query.toLowerCase().trim();
-  if (QUERY_MAP[q]) return QUERY_MAP[q];
-  if (q.length < 3) return 'business';
-  for (const [key, value] of Object.entries(QUERY_MAP)) if (q.includes(key)) return value;
-  return q;
+  const normalized = normalize(query);
+  for (const [key, value] of Object.entries(QUERY_MAP)) if (normalized.includes(key)) return value;
+  return normalized.split(' ').filter(word => word.length > 2).slice(0, 9).join(' ');
+}
+
+function isRelevant(alt: string, term: string): boolean {
+  const stopWords = new Set(['business', 'professional', 'modern', 'beautiful', 'shop', 'store', 'showroom', 'quality', 'natural']);
+  const terms = normalize(term).split(' ').filter(word => word.length >= 4 && !stopWords.has(word));
+  const description = normalize(alt);
+  const matched = terms.filter(word => description.includes(word)).length;
+  return Boolean(description && matched >= (terms.length >= 3 ? 2 : 1));
 }
 
 export type PhotoProvider = 'Pexels' | 'Pixabay' | 'Unsplash' | 'Google Maps';
@@ -140,13 +68,17 @@ export function hasUnsplash() {
 export async function searchImages(query: string, perPage = 12): Promise<UnsplashImage[]> {
   if (!hasPhotoSearch()) return [];
   const term = findMap(query);
-  const norm = `${term.toLowerCase()}:${Math.min(30, Math.max(1, perPage))}`;
-  const cached = cache.get(norm);
-  if (cached && Date.now() - cached.at < TTL) return cached.images;
+  if (!term) return [];
   const count = Math.min(30, Math.max(1, perPage));
+  const key = `${term.toLowerCase()}:${count}`;
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.at < TTL) return cached.images;
   const result = await searchPexels(term, count) || await searchPixabay(term, count) || await searchUnsplash(term, count);
-  if (result.length) cache.set(norm, { at: Date.now(), images: result });
-    return result;
+  if (result.length) {
+    if (cache.size >= 300) { const oldest = cache.keys().next(); if (!oldest.done) cache.delete(oldest.value); }
+    cache.set(key, { at: Date.now(), images: result });
+  }
+  return result;
 }
 
 async function searchPexels(term: string, perPage: number): Promise<UnsplashImage[] | null> {
@@ -155,7 +87,7 @@ async function searchPexels(term: string, perPage: number): Promise<UnsplashImag
     const response = await fetch(`https://api.pexels.com/v1/search?query=${encodeURIComponent(term)}&per_page=${perPage}&orientation=landscape`, { headers: { Authorization: env.PEXELS_API_KEY }, signal: AbortSignal.timeout(10000) });
     if (!response.ok) return null;
     const data = await response.json() as { photos?: { alt?: string; photographer?: string; photographer_url?: string; src?: { large2x?: string; large?: string; landscape?: string } }[] };
-    const images = (data.photos ?? []).flatMap(photo => { const url = photo.src?.large2x || photo.src?.large || photo.src?.landscape; return url ? [{ url, alt: photo.alt || term, credit: photo.photographer || 'Pexels', creditUrl: photo.photographer_url || 'https://www.pexels.com/', provider: 'Pexels' as const }] : []; });
+    const images = (data.photos ?? []).flatMap(photo => { const url = photo.src?.large2x || photo.src?.large || photo.src?.landscape; const alt = photo.alt || ''; return url && isRelevant(alt, term) ? [{ url, alt, credit: photo.photographer || 'Pexels', creditUrl: photo.photographer_url || 'https://www.pexels.com/', provider: 'Pexels' as const }] : []; });
     return images.length ? images : null;
   } catch { return null; }
 }
@@ -167,7 +99,7 @@ async function searchPixabay(term: string, perPage: number): Promise<UnsplashIma
     const response = await fetch(`https://pixabay.com/api/?${params}`, { signal: AbortSignal.timeout(10000) });
     if (!response.ok) return null;
     const data = await response.json() as { hits?: { largeImageURL?: string; webformatURL?: string; tags?: string; user?: string; user_id?: number }[] };
-    const images = (data.hits ?? []).flatMap(photo => { const url = photo.largeImageURL || photo.webformatURL; return url ? [{ url, alt: photo.tags || term, credit: photo.user || 'Pixabay', creditUrl: photo.user_id ? `https://pixabay.com/users/${photo.user}-${photo.user_id}/` : 'https://pixabay.com/', provider: 'Pixabay' as const }] : []; });
+    const images = (data.hits ?? []).flatMap(photo => { const url = photo.largeImageURL || photo.webformatURL; const alt = photo.tags || ''; return url && isRelevant(alt, term) ? [{ url, alt, credit: photo.user || 'Pixabay', creditUrl: photo.user_id ? `https://pixabay.com/users/${photo.user}-${photo.user_id}/` : 'https://pixabay.com/', provider: 'Pixabay' as const }] : []; });
     return images.length ? images : null;
   } catch { return null; }
 }
@@ -179,7 +111,7 @@ async function searchUnsplash(term: string, perPage: number): Promise<UnsplashIm
     const response = await fetch(url, { headers: { Authorization: `Client-ID ${env.UNSPLASH_ACCESS_KEY}` }, signal: AbortSignal.timeout(10000) });
     if (!response.ok) return [];
     const data = await response.json() as { results?: { urls?: { raw?: string }; user?: { name?: string; links?: { html?: string } }; alt_description?: string | null; description?: string | null }[] };
-    return (data.results ?? []).flatMap(photo => { const raw = photo.urls?.raw; return raw ? [{ url: `${raw}${params(1600)}`, alt: photo.alt_description || photo.description || term, credit: photo.user?.name || 'Unsplash', creditUrl: photo.user?.links?.html || 'https://unsplash.com/', provider: 'Unsplash' as const }] : []; });
+    return (data.results ?? []).flatMap(photo => { const raw = photo.urls?.raw; const alt = photo.alt_description || photo.description || ''; return raw && isRelevant(alt, term) ? [{ url: `${raw}${params(1600)}`, alt, credit: photo.user?.name || 'Unsplash', creditUrl: photo.user?.links?.html || 'https://unsplash.com/', provider: 'Unsplash' as const }] : []; });
   } catch { return []; }
 }
 

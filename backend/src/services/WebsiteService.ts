@@ -8,12 +8,14 @@ import { googlePlacesService } from './GooglePlacesService';
 import { env } from '../config/env';
 import { hasPhotoSearch, searchImages, type UnsplashImage } from './UnsplashService';
 import { businessSchema, contentSchema, documentSchema, sectionTypes, seoSchema, settingsSchema, themeSchema, type WebsiteDocument } from './websiteSchema';
+import { climaTheme, presetImageQuery, presetPrompt, resolveNiche } from './sitePresets';
 
 const include = { sections: { orderBy: { order: 'asc' as const } } };
 const hex = z.string().regex(/^#[0-9a-f]{6}$/i);
 const generatedSchema = z.object({
   theme: z.object({ primary: hex, accent: hex, background: hex, text: hex, font: z.enum(['sans', 'serif']), radius: z.number().min(0).max(60) }),
   seo: z.object({ title: z.string(), description: z.string(), keywords: z.string() }),
+  imageQueries: z.object({ hero: z.string().max(160).default(''), about: z.string().max(160).default(''), gallery: z.string().max(160).default('') }).default({ hero: '', about: '', gallery: '' }),
   sections: z.array(z.object({ type: z.enum(sectionTypes), title: z.string(), subtitle: z.string(), eyebrow: z.string(), text: z.string(), primaryLabel: z.string(), secondaryLabel: z.string(), items: z.array(z.object({ title: z.string(), text: z.string(), price: z.string() })).max(20).default([]) })).min(3).max(16),
 });
 const emptySeo = { title: '', description: '', keywords: '' };
@@ -69,46 +71,72 @@ export class WebsiteService {
   }
   async generateDocument(business: WebsiteDocument['business'], facts: unknown): Promise<WebsiteDocument> {
     const factStrings = JSON.stringify(facts);
-    const result = generatedSchema.parse(await generateJson(`Crie o site completo de uma só vez, em português do Brasil, com tema, SEO e seções. Escolha um tema (cores primária, destaque, fundo e texto em hexadecimal, tipografia sans/serif e arredondamento) específico e adequado ao nicho. Escreva o seo com title curto, description de até 160 caracteres e keywords separadas por vírgula, sem inventar fatos. Escolha seções adequadas: restaurante pode ter cardápio; barbearia serviços e equipe; oficina especialidades; dentista tratamentos. Inclua header, hero e footer. Varie estrutura, textos e cores de acordo com o nicho. Se não conhecer os serviços/preços/pessoas, mantenha as seções sem afirmações factuais; o usuário preencherá depois. Use títulos comerciais curtos e claros. Não repita dados de contato nos textos; eles serão renderizados dos dados verificados. Não escreva depoimentos inventados. Em items, extraia somente títulos, descrições e preços copiados literalmente dos dados conhecidos. Se não existem itens conhecidos, retorne items vazio. Dados: ${JSON.stringify(facts)}`, generationSchema));
-    const sections = result.sections.slice(0, 16).map(s => ({ id: randomUUID(), type: s.type, visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel, href: business.whatsapp }, secondaryButton: { label: s.secondaryLabel, href: '#contato' } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: result.theme.primary, color: '#ffffff' } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) }));
-    return documentSchema.parse(await this.attachImages(business, { name: business.name, business, theme: themeSchema.parse(result.theme), seo: seoSchema.parse(result.seo), sections }));
+    const factsRecord = facts && typeof facts === 'object' ? facts as Record<string, unknown> : {};
+    const preset = resolveNiche(business.category, typeof factsRecord.nicho === 'string' ? factsRecord.nicho : '', typeof factsRecord.categoria === 'string' ? factsRecord.categoria : '');
+    const theme = themeSchema.parse(climaTheme(preset.clima));
+    const result = generatedSchema.parse(await generateJson(`Create a complete website in Brazilian Portuguese, including theme, SEO and sections. Use exactly the theme colors and fonts of the mandatory brand climate below; do not pick different colors. Do not invent services, prices, people or testimonials. Return imageQueries.hero, imageQueries.about and imageQueries.gallery as short, precise visual search descriptions based on this business category and verified information. Describe visible subjects and materials, not the business name, street or vague ideas. A granite shop should use granite slabs, marble surfaces or a stone showroom, never generic retail stock, warehouses or unrelated workers. Keep each query specific to the image placement: hero is the strongest business/product visual, about is the real type of workspace or storefront, gallery is products or details. Use English visual keywords for stock image search. Include header, hero and footer. Keep unknown factual content empty. Do not create fake image URLs.
+
+${presetPrompt(preset)}
+
+Data: ${JSON.stringify(facts)}`, generationSchema));
+    const sections = result.sections.slice(0, 16).map(s => ({ id: randomUUID(), type: s.type, visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel, href: business.whatsapp }, secondaryButton: { label: s.secondaryLabel, href: '#contato' } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: theme.primary, color: '#ffffff' } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) }));
+    const imageQueries = {
+      hero: result.imageQueries.hero || presetImageQuery(preset, 'hero'),
+      about: result.imageQueries.about || presetImageQuery(preset, 'about'),
+      gallery: result.imageQueries.gallery || presetImageQuery(preset, 'gallery'),
+    };
+    return documentSchema.parse(await this.attachImages(business, { name: business.name, business, theme, seo: seoSchema.parse(result.seo), sections }, imageQueries));
   }
-  private async attachImages(business: WebsiteDocument['business'], document: WebsiteDocument): Promise<WebsiteDocument> {
-    let images = hasPhotoSearch() ? await searchImages(business.category || business.name, 12).catch(() => [] as UnsplashImage[]) : [];
-    if (!images.length && business.googlePlaceId && env.NODE_ENV !== 'test') {
+  private async attachImages(business: WebsiteDocument['business'], document: WebsiteDocument, queries: { hero: string; about: string; gallery: string }): Promise<WebsiteDocument> {
+    let hero: UnsplashImage | undefined;
+    let about: UnsplashImage | undefined;
+    let gallery: UnsplashImage[] = [];
+    if (business.googlePlaceId && env.NODE_ENV !== 'test') {
       try {
         const place = await googlePlacesService.getPlaceDetails(business.googlePlaceId, ['id', 'photos']);
-        images = (place.photos ?? []).slice(0, 4).map((photo, index) => ({
-          url: `google-place://${encodeURIComponent(business.googlePlaceId)}/${index}`,
-          alt: `Google Maps photo of ${business.name}`,
+        const photos = (place.photos ?? []).slice(0, 8).map((photo, index) => ({
+          url: `google-place://${encodeURIComponent(business.googlePlaceId!)}/${index}`,
+          alt: `Real photo of ${business.name} from Google Maps`,
           credit: photo.authorAttributions?.[0]?.displayName || 'Google Maps',
-          creditUrl: photo.authorAttributions?.[0]?.uri || business.mapUrl || `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(business.googlePlaceId)}`,
-          provider: 'Google Maps',
+          creditUrl: photo.authorAttributions?.[0]?.uri || business.mapUrl || `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(business.googlePlaceId!)}`,
+          provider: 'Google Maps' as const,
         }));
+        hero = photos[0];
+        about = photos[1] ?? photos[0];
+        gallery = photos.slice(2, 8);
       } catch { /* Optional Maps photos must not block website generation. */ }
     }
-
-    if (!images.length) return document;
-    const hero = images[0];
-    const main = images[1] ?? images[0];
-    const gallery = images.slice(1, 9);
-    const sections = document.sections.map(s => {
-      if (s.content.image) return s;
-      const altFor = (img: UnsplashImage) => `${business.name}${img.alt ? ` — ${img.alt}` : ''}`.slice(0, 200);
-      if (s.type === 'hero') return { ...s, content: { ...s.content, image: hero.url, imageAlt: altFor(hero), imageCredit: hero.credit, imageCreditUrl: hero.creditUrl } };
-      if (s.type === 'about') return { ...s, content: { ...s.content, image: main.url, imageAlt: altFor(main), imageCredit: main.credit, imageCreditUrl: main.creditUrl } };
-      if (s.type === 'gallery') {
-        const items = s.content.items.map((item, i) => gallery[i] ? { ...item, image: gallery[i].url, imageAlt: item.imageAlt || `Foto ${i + 1} de ${business.name}`, imageCredit: gallery[i].credit, imageCreditUrl: gallery[i].creditUrl } : item);
-        for (const img of gallery.slice(items.length)) items.push({ title: '', text: '', price: '', image: img.url, imageAlt: `Foto ${items.length + 1} de ${business.name}`, imageCredit: img.credit, imageCreditUrl: img.creditUrl, href: '' });
-        return { ...s, content: { ...s.content, items } };
+    if (!hero && env.NODE_ENV !== 'test' && hasPhotoSearch()) {
+      const city = business.city ? ` ${business.city}` : '';
+      const title = document.sections.find(section => section.type === 'hero')?.content.title || business.category;
+      const heroResults = await searchImages(queries.hero || `${business.category} ${title}${city}`, 6).catch(() => [] as UnsplashImage[]);
+      hero = heroResults[0];
+      const aboutResults = await searchImages(queries.about || `${business.category} workspace interior storefront${city}`, 6).catch(() => [] as UnsplashImage[]);
+      about = aboutResults.find(image => image.url !== hero?.url);
+      const galleryResults = await searchImages(queries.gallery || `${business.category} products materials details${city}`, 12).catch(() => [] as UnsplashImage[]);
+      gallery = galleryResults.filter(image => image.url !== hero?.url && image.url !== about?.url).slice(0, 8);
+    }
+    if (!hero && !about && !gallery.length) return document;
+    const sections = document.sections.map(section => {
+      const altFor = (image: UnsplashImage) => `${business.name}${image.alt ? ` - ${image.alt}` : ''}`.slice(0, 200);
+      if (section.type === 'hero' && hero && !section.content.image) return { ...section, content: { ...section.content, image: hero.url, imageAlt: altFor(hero), imageCredit: hero.credit, imageCreditUrl: hero.creditUrl } };
+      if (section.type === 'about' && about && !section.content.image) return { ...section, content: { ...section.content, image: about.url, imageAlt: altFor(about), imageCredit: about.credit, imageCreditUrl: about.creditUrl } };
+      if (section.type === 'gallery' && gallery.length) {
+        let next = 0;
+        const items = section.content.items.map(item => {
+          if (item.image || !gallery[next]) return item;
+          const image = gallery[next++];
+          return { ...item, image: image.url, imageAlt: item.imageAlt || altFor(image), imageCredit: image.credit, imageCreditUrl: image.creditUrl };
+        });
+        for (const image of gallery.slice(next)) items.push({ title: '', text: '', price: '', image: image.url, imageAlt: altFor(image), imageCredit: image.credit, imageCreditUrl: image.creditUrl, href: '' });
+        return { ...section, content: { ...section.content, items } };
       }
-      return s;
+      return section;
     });
-    const hasGallery = sections.some(s => s.type === 'gallery');
-    const finalSections = hasGallery ? sections : this.insertGallery(sections, business, gallery);
+    const hasGallery = sections.some(section => section.type === 'gallery');
+    const finalSections = hasGallery || !gallery.length ? sections : this.insertGallery(sections, business, gallery);
     return documentSchema.parse({ ...document, sections: finalSections });
-  }
-  private insertGallery(sections: WebsiteDocument['sections'], business: WebsiteDocument['business'], gallery: UnsplashImage[]) {
+  }  private insertGallery(sections: WebsiteDocument['sections'], business: WebsiteDocument['business'], gallery: UnsplashImage[]) {
     const gallerySection = { id: randomUUID(), type: 'gallery' as const, visible: true, content: contentSchema.parse({ title: 'Galeria de fotos', items: gallery.slice(0, 8).map((img, i) => ({ title: '', text: '', price: '', image: img.url, imageAlt: `Foto ${i + 1} de ${business.name}`, imageCredit: img.credit, imageCreditUrl: img.creditUrl, href: '' })) }), settings: settingsSchema.parse({}) };
     const footerIndex = sections.findIndex(s => s.type === 'footer');
     const at = footerIndex > 2 ? footerIndex : sections.findIndex(s => s.type === 'contact') > 2 ? sections.findIndex(s => s.type === 'contact') : sections.length - 1;

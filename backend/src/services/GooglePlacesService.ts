@@ -153,8 +153,8 @@ export class GooglePlacesService {
         throw new AppError(429, 'Limite da Google Places API atingido. Tente novamente mais tarde.');
       }
       const message =
-        (data as { error?: { message?: string } }).error?.message ??
-        (data as { error?: { status?: string } }).error?.status ??
+        (data as { error?: { message?: string } } | undefined)?.error?.message ??
+        (data as { error?: { status?: string } } | undefined)?.error?.status ??
         `Erro na Google Places API (HTTP ${status})`;
       throw new AppError(502, message);
     }

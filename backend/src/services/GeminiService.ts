@@ -58,7 +58,7 @@ export const generatedSectionSchema = {
     items: { type: 'array', maxItems: 20, items: { type: 'object', required: ['title', 'text', 'price'], properties: { title: str, text: str, price: str } } },
   },
 };
-export const generationSchema = { type: 'object', required: ['theme', 'seo', 'sections'], properties: {
+export const generationSchema = { type: 'object', required: ['theme', 'seo', 'sections', 'imageQueries'], properties: {
   theme: { type: 'object', required: ['primary', 'accent', 'background', 'text', 'font', 'radius'], properties: {
     primary: str, accent: str, background: str, text: str,
     font: { type: 'string', enum: ['sans', 'serif'] },
@@ -66,4 +66,5 @@ export const generationSchema = { type: 'object', required: ['theme', 'seo', 'se
   } },
   seo: { type: 'object', required: ['title', 'description', 'keywords'], properties: { title: str, description: str, keywords: str } },
   sections: { type: 'array', minItems: 3, items: generatedSectionSchema },
+  imageQueries: { type: 'object', required: ['hero', 'about', 'gallery'], properties: { hero: str, about: str, gallery: str } },
 } };
