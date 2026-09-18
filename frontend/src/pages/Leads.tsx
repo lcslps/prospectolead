@@ -18,7 +18,7 @@ import {
 import { getData, postData, getCsv } from '../services/api';
 import { LEAD_STATUSES, type Lead, type LeadStatus, type PagedLeads } from '../types';
 import { STATUS_LABELS, CRM_STAGE_LABELS, CRM_STAGE_STYLES } from '../lib/utils';
-import { EmptyState, Pagination, SkeletonTable } from '../components/UI';
+import { EmptyState, Pagination, SkeletonTable, SortableTh, type SortDir } from '../components/UI';
 import { RatingBadge, ScoreBadge, StatusBadge } from '../components/Badges';
 import { ConfirmDialog } from '../components/Modal';
 import { MessageGeneratorModal } from '../components/MessageGeneratorModal';
@@ -148,6 +148,10 @@ export function LeadsPage() {
   }, [debounced]);
 
   const clearFilters = () => setFilters(INITIAL_FILTERS);
+
+  const handleSort = useCallback((field: string, order: SortDir) => {
+    setFilters((f) => ({ ...f, orderBy: field, order }));
+  }, []);
 
   const toggleAll = () => {
     if (!data) return;
@@ -388,19 +392,6 @@ export function LeadsPage() {
               <option value="in">No CRM</option>
             </Select>
           </div>
-          <div>
-            <Select
-              value={filters.orderBy}
-              onChange={(e) => setFilters((f) => ({ ...f, orderBy: e.target.value }))}
-            >
-              <option value="createdAt">Mais recentes</option>
-              <option value="nota">Maior nota</option>
-              <option value="avaliacoes">Mais avaliações</option>
-              <option value="score">Melhor score</option>
-              <option value="nome">Nome A-Z</option>
-              <option value="cidade">Cidade</option>
-            </Select>
-          </div>
           <div className="col-span-2 flex flex-wrap items-center gap-1 md:col-span-2 lg:col-span-2">
             <ToggleChip
               active={filters.comTelefone}
@@ -516,15 +507,15 @@ export function LeadsPage() {
                       onChange={toggleAll}
                     />
                   </th>
-                  <th className="table-th">Empresa</th>
-                  <th className="table-th hidden lg:table-cell">Categoria</th>
-                  <th className="table-th hidden md:table-cell">Cidade</th>
-                  <th className="table-th hidden xl:table-cell">Telefone</th>
-                  <th className="table-th hidden lg:table-cell">Site</th>
-                  <th className="table-th">Nota</th>
-                  <th className="table-th hidden lg:table-cell">Score</th>
+                  <SortableTh label="Empresa" field="nome" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} />
+                  <SortableTh label="Categoria" field="categoria" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} className="hidden lg:table-cell" />
+                  <SortableTh label="Cidade" field="cidade" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} className="hidden md:table-cell" />
+                  <SortableTh label="Telefone" field="telefone" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} className="hidden xl:table-cell" />
+                  <SortableTh label="Site" field="site" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} className="hidden lg:table-cell" />
+                  <SortableTh label="Nota" field="nota" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} />
+                  <SortableTh label="Score" field="score" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} className="hidden lg:table-cell" />
                   <th className="table-th hidden sm:table-cell">CRM</th>
-                  <th className="table-th">Status</th>
+                  <SortableTh label="Status" field="status" active={debounced.orderBy} dir={debounced.order} onSort={handleSort} />
                   <th className="table-th text-right">Ações</th>
                 </tr>
               </thead>

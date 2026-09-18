@@ -146,8 +146,39 @@ model Website {
   revision         Int @default(0)
   published        Json?
   publishedAt      DateTime?
+  schemaVersion    Int @default(1)
+  currentDocument  Json?
+  versions         WebsiteVersion[]
+  assets           WebsiteAsset[]
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+}
+
+model WebsiteVersion {
+  id        String   @id @default(cuid())
+  websiteId String
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  version   Int
+  document  Json
+  source    String
+  createdAt DateTime @default(now())
+
+  @@unique([websiteId, version])
+  @@index([websiteId, createdAt])
+}
+
+model WebsiteAsset {
+  id         String   @id @default(cuid())
+  websiteId  String
+  website    Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  provider   String
+  providerId String?
+  url        String
+  purpose    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([websiteId, purpose])
 }
 
 model WebsiteSection {

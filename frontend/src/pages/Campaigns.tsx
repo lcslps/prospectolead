@@ -19,7 +19,7 @@ import {
 import { getData, deleteData, postData, getCsv } from '../services/api';
 import { LEAD_STATUSES, type Campaign, type LeadStatus, type CrmStage } from '../types';
 import { STATUS_LABELS, CRM_STAGE_LABELS, CRM_STAGE_STYLES, whatsAppLink, formatDate } from '../lib/utils';
-import { EmptyState, PageLoader, SkeletonTable } from '../components/UI';
+import { EmptyState, PageLoader, SkeletonTable, SortableTh, type SortDir } from '../components/UI';
 import { ConfirmDialog } from '../components/Modal';
 import { RatingBadge, ScoreBadge, StatusBadge } from '../components/Badges';
 import { MessageGeneratorModal } from '../components/MessageGeneratorModal';
@@ -72,8 +72,15 @@ export function CampaignsPage() {
   const [messageModal, setMessageModal] = useState(false);
   const [confirmEnrich, setConfirmEnrich] = useState(false);
   const [confirmDeleteLead, setConfirmDeleteLead] = useState<{ ids: string[]; nome?: string } | null>(null);
+  const [sortBy, setSortBy] = useState('');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const toast = useToast();
+
+  const handleSort = useCallback((field: string, dir: SortDir) => {
+    setSortBy(field);
+    setSortDir(dir);
+  }, []);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -121,6 +128,8 @@ export function CampaignsPage() {
     }
     setOpenId(id);
     setDetail(null);
+    setSortBy('');
+    setSortDir('asc');
     clearSelection();
     await loadDetail(id);
   };
@@ -129,6 +138,40 @@ export function CampaignsPage() {
     () => (detail && detail.id === openId ? detail.leads.map(({ lead }) => lead.id) : []),
     [detail, openId],
   );
+
+  const sortedLeads = useMemo(() => {
+    if (!detail || detail.id !== openId || !sortBy) return detail?.leads ?? [];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const value = (lead: CampaignLead): string | number | null => {
+      switch (sortBy) {
+        case 'nome':
+          return lead.nome.toLocaleLowerCase('pt-BR');
+        case 'cidade':
+          return (lead.cidade ?? '').toLocaleLowerCase('pt-BR');
+        case 'telefone':
+          return lead.telefone ?? '';
+        case 'nota':
+          return lead.nota;
+        case 'score':
+          return lead.leadScore;
+        case 'status':
+          return lead.status;
+        case 'crm':
+          return lead.crmStage ?? '';
+        default:
+          return null;
+      }
+    };
+    return [...detail.leads].sort((a, b) => {
+      const va = value(a.lead);
+      const vb = value(b.lead);
+      if (va === null && vb === null) return 0;
+      if (va === null) return 1;
+      if (vb === null) return -1;
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va).localeCompare(String(vb), 'pt-BR') * dir;
+    });
+  }, [detail, openId, sortBy, sortDir]);
 
   const toggleAll = () => {
     if (openLeadIds.length === 0) return;
@@ -484,18 +527,18 @@ export function CampaignsPage() {
                                   onChange={toggleAll}
                                 />
                               </th>
-                              <th className="table-th">Empresa</th>
-                              <th className="table-th hidden lg:table-cell">Cidade</th>
-                              <th className="table-th hidden xl:table-cell">Telefone</th>
-                              <th className="table-th">Nota</th>
-                              <th className="table-th hidden lg:table-cell">Score</th>
-                              <th className="table-th hidden sm:table-cell">CRM</th>
-                              <th className="table-th">Status</th>
+                              <SortableTh label="Empresa" field="nome" active={sortBy} dir={sortDir} onSort={handleSort} />
+                              <SortableTh label="Cidade" field="cidade" active={sortBy} dir={sortDir} onSort={handleSort} className="hidden lg:table-cell" />
+                              <SortableTh label="Telefone" field="telefone" active={sortBy} dir={sortDir} onSort={handleSort} className="hidden xl:table-cell" />
+                              <SortableTh label="Nota" field="nota" active={sortBy} dir={sortDir} onSort={handleSort} />
+                              <SortableTh label="Score" field="score" active={sortBy} dir={sortDir} onSort={handleSort} className="hidden lg:table-cell" />
+                              <SortableTh label="CRM" field="crm" active={sortBy} dir={sortDir} onSort={handleSort} className="hidden sm:table-cell" />
+                              <SortableTh label="Status" field="status" active={sortBy} dir={sortDir} onSort={handleSort} />
                               <th className="table-th text-right">Ações</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {detail.leads.map(({ lead }) => {
+                            {sortedLeads.map(({ lead }) => {
                               const wa = whatsAppLink(lead.telefone, lead.telefoneInternacional);
                               const isEnriching = enrichingIds.has(lead.id);
                               const isAddingCrm = crmAddingIds.has(lead.id);

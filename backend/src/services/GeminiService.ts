@@ -51,9 +51,9 @@ export async function generateJson(prompt: string, schema: object): Promise<unkn
 }
 const str = { type: 'string' };
 export const generatedSectionSchema = {
-  type: 'object', required: ['type', 'title', 'subtitle', 'eyebrow', 'text', 'primaryLabel', 'secondaryLabel'],
+  type: 'object', required: ['type', 'variant', 'title', 'subtitle', 'eyebrow', 'text', 'primaryLabel', 'secondaryLabel'],
   properties: {
-    type: { type: 'string', enum: ['header', 'hero', 'services', 'about', 'gallery', 'testimonials', 'faq', 'contact', 'map', 'prices', 'menu', 'team', 'cta', 'hours', 'features', 'footer'] },
+    type: { type: 'string', enum: ['header', 'hero', 'services', 'about', 'gallery', 'testimonials', 'stats', 'faq', 'contact', 'map', 'prices', 'menu', 'team', 'cta', 'hours', 'features', 'footer'] }, variant: str,
     title: str, subtitle: str, eyebrow: str, text: str, primaryLabel: str, secondaryLabel: str,
     items: { type: 'array', maxItems: 20, items: { type: 'object', required: ['title', 'text', 'price'], properties: { title: str, text: str, price: str } } },
   },

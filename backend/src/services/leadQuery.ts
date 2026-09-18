@@ -73,6 +73,14 @@ export function buildOrderBy(
       return [{ cidade: dir }, defaultOrder];
     case 'estado':
       return [{ estado: dir }, defaultOrder];
+    case 'categoria':
+      return [{ categoria: dir }, defaultOrder];
+    case 'telefone':
+      return [{ telefone: dir }, defaultOrder];
+    case 'site':
+      return [{ site: dir }, defaultOrder];
+    case 'status':
+      return [{ status: dir }, defaultOrder];
     default:
       return [defaultOrder];
   }

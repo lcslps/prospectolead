@@ -1,5 +1,24 @@
 # Prospecção, CRM e sites
 
+## Arquitetura do gerador de sites
+
+O gerador usa `SiteDocument` (schemaVersion 1) como fonte de verdade. A IA atua somente como diretora criativa: ela escolhe tema, direção de arte, seções, variantes, conteúdo seguro e pedidos semânticos de imagem. Ela não produz HTML, CSS, JSX, React nem valores visuais arbitrários.
+
+```
+Lead no CRM → BusinessNormalizer → AI Site Planner → SiteDocument validado
+→ QualityGuard → ImageResolver → Website / WebsiteVersion → SiteRenderer
+→ Editor, preview e site publicado
+```
+
+- `backend/src/services/websiteSchema.ts` define o documento, links seguros, tokens e limites.
+- `backend/src/services/SectionRegistry.ts` é o catálogo serializável de seções e variantes permitidas.
+- `backend/src/services/BusinessNormalizer.ts` transforma dados do CRM/Google Places no formato interno seguro.
+- `backend/src/services/QualityGuard.ts` impede variantes desconhecidas, links perigosos, imagens duplicadas e garante Hero e Footer.
+- `WebsiteVersion` registra checkpoints de geração, edição e publicação. `WebsiteAsset` reserva metadados de origem de imagens por site.
+- O mesmo `WebsiteRenderer` é usado no editor, preview e rota pública; alterações simples atualizam somente o documento.
+
+Para adicionar uma seção, inclua o tipo no schema, registre variantes e limites em `SectionRegistry`, implemente a apresentação determinística no renderer e exponha os campos no editor. Para adicionar tema, inclua seu nome e tokens semânticos no schema/preset; nunca aceite CSS produzido pela IA.
+
 ## Como usar
 
 1. Pesquise em **Prospecção** e abra **Resultados da prospecção**.

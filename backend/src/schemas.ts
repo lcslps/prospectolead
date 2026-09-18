@@ -163,7 +163,19 @@ const leadFiltersSchema = z.object({
     semSite: optionalQueryBoolean(),
     notaMinima: optionalQueryNumber(),
     orderBy: z
-      .enum(['createdAt', 'nome', 'nota', 'avaliacoes', 'score', 'cidade', 'estado'])
+      .enum([
+        'createdAt',
+        'nome',
+        'nota',
+        'avaliacoes',
+        'score',
+        'cidade',
+        'estado',
+        'categoria',
+        'telefone',
+        'site',
+        'status',
+      ])
       .optional(),
     order: z.enum(['asc', 'desc']).optional(),
     page: z.coerce.number().int().min(1).optional(),

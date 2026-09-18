@@ -1,5 +1,59 @@
 import { Button } from './ui/Button';
+import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { ReactNode } from 'react';
+
+export type SortDir = 'asc' | 'desc';
+
+export function SortableTh({
+  label,
+  field,
+  active,
+  dir,
+  onSort,
+  className = '',
+  align = 'left',
+}: {
+  label: ReactNode;
+  field: string;
+  active: string;
+  dir: SortDir;
+  onSort: (field: string, dir: SortDir) => void;
+  className?: string;
+  align?: 'left' | 'right';
+}) {
+  const isActive = field === active;
+  const iconClass = `h-3.5 w-3.5 shrink-0 ${isActive ? '' : 'opacity-40'}`;
+  return (
+    <th
+      className={`table-th ${className}`}
+      aria-sort={isActive ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <button
+        type="button"
+        onClick={() => onSort(field, isActive && dir === 'asc' ? 'desc' : 'asc')}
+        className={`inline-flex w-full select-none items-center gap-1 transition ${
+          align === 'right' ? 'justify-end' : 'justify-start'
+        } ${
+          isActive
+            ? 'text-brand-600 dark:text-brand-400'
+            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+        }`}
+        title="Clique para ordenar"
+      >
+        {label}
+        {isActive ? (
+          dir === 'asc' ? (
+            <ArrowUp className={iconClass} />
+          ) : (
+            <ArrowDown className={iconClass} />
+          )
+        ) : (
+          <ArrowUpDown className={iconClass} />
+        )}
+      </button>
+    </th>
+  );
+}
 
 export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
   return (
