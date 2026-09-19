@@ -17,7 +17,7 @@ export function WebsiteFrame({ artefact, interactive = true, title = 'Prévia do
         title={title}
         className="studio-frame"
         srcDoc={srcDoc}
-        sandbox="allow-scripts allow-popups allow-forms"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"
         style={{ width: '100%', height: '100%', border: 0, background: '#fff', boxShadow: '0 2px 14px rgba(17,24,39,.12)', borderRadius: 4, display: 'block' }}
       />
     </div>
