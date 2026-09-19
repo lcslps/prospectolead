@@ -1,5 +1,5 @@
 import type { Lead } from '@prisma/client';
-import { businessSchema, type BusinessData } from './websiteSchema';
+import { businessSchema, type BusinessData } from './siteArtefactSchema';
 
 /** Converts CRM/Places records into the only business shape accepted by the planner. */
 export function normalizeBusiness(lead: Lead): BusinessData {

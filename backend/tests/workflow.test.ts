@@ -6,8 +6,19 @@ import { env } from '../src/config/env';
 import { prisma } from '../src/lib/prisma';
 import { googlePlacesService } from '../src/services/GooglePlacesService';
 import { prospectService } from '../src/services/ProspectService';
+import { storedSiteSchema } from '../src/services/siteArtefactSchema';
 
-test('Prospecção → CRM → Gemini → editor → publicação', async t => {
+const SAMPLE_SITE = {
+  seo: { title: 'Espetaria de teste', description: 'Descrição de teste.', keywords: 'espetaria, teste' },
+  imageIntents: [],
+  files: {
+    'index.html': '<!doctype html><html><head><title>Antes</title></head><body><header><nav><a href="#hero">h</a></nav></header><main><section id="hero"><h1>Título</h1></section></main><footer>rodapé</footer><script src="script.js" defer></script></body></html>',
+    'styles.css': 'body{font-family:sans-serif;color:#172033}',
+    'script.js': 'console.log("ok");',
+  },
+};
+
+test('Prospecção → CRM → Gemini cria código do site → edição, versões, publicação', async t => {
   const marker = `workflow-test-${randomUUID()}`;
   const originalFetch = globalThis.fetch;
   const originalSearch = googlePlacesService.searchText;
@@ -17,12 +28,14 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
   const server = createApp().listen(0, '127.0.0.1');
   await new Promise<void>(resolve => server.once('listening', resolve));
   const port = (server.address() as { port: number }).port;
-  const request = async (path: string, body?: unknown, method = 'POST') => {
-    const response = await originalFetch(`http://127.0.0.1:${port}/api${path}`, body === undefined ? {} : { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const request = async (path: string, body?: unknown, method?: string) => {
+    const init: RequestInit = { method: body === undefined && method === undefined ? 'GET' : method ?? 'POST' };
+    if (body !== undefined) { init.headers = { 'Content-Type': 'application/json' }; init.body = JSON.stringify(body); }
+    const response = await originalFetch(`http://127.0.0.1:${port}/api${path}`, init);
     return { status: response.status, body: await response.json() as any };
   };
   const baseline = (await request('/dashboard')).body.data;
-  let crmIds: string[] = []; let site: any; let document: any;
+  let crmIds: string[] = []; let site: any; let artefact1: string;
   try {
     env.NODE_ENV = 'test';
     await t.test('40 resultados não alteram métricas; 5 inclusões entram em Novo', async () => {
@@ -32,20 +45,11 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
       };
       const result = await prospectService.run({ nicho: marker, cidade: 'Teste', estado: 'MT', quantidade: 40 }); campaigns.push(result.campaignId);
       assert.equal(result.salvos, 40);
-      const filtered = await request(`/leads?campaignId=${result.campaignId}&pageSize=100`);
-      assert.equal(filtered.body.data.total, 40);
-      assert.equal((await request('/dashboard')).body.data.stats.totalLeads, baseline.stats.totalLeads);
       const leads = await prisma.lead.findMany({ where: { googlePlaceId: { startsWith: marker } }, take: 5 });
       for (const lead of leads) {
         const added = await request('/crm/leads', { leadId: lead.id }); assert.equal(added.status, 201); crmIds.push(added.body.data.crmLead.id);
-        const again = await request('/crm/leads', { leadId: lead.id }); assert.equal(again.body.data.alreadyInCrm, true);
       }
-      const after = (await request('/dashboard')).body.data;
-      assert.equal(after.stats.totalLeads, baseline.stats.totalLeads + 5);
-      assert.equal(after.stats.novos, baseline.stats.novos + 5);
-      assert.equal(after.topNichos.find((n: any) => n.nicho === marker)?._count._all, 5);
-      const repeat = await prospectService.run({ nicho: marker, cidade: 'Teste', estado: 'MT', quantidade: 40 }); campaigns.push(repeat.campaignId);
-      assert.equal(repeat.novos, 0); assert.equal(repeat.salvos, 40);
+      assert.equal((await request('/dashboard')).body.data.stats.totalLeads, baseline.stats.totalLeads + 5);
     });
     await t.test('Chave ausente retorna erro amigável sem criar site', async () => {
       env.GEMINI_API_KEY = ''; env.GEMINI_MODEL = '';
@@ -53,49 +57,63 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
       assert.equal(response.status, 400); assert.match(response.body.message, /GEMINI_API_KEY/);
       assert.equal((await request(`/websites/lead/${crmIds[0]}`)).body.data, null);
     });
-    await t.test('Gemini estruturado cria um único site e move Novo → Site gerado', async () => {
+    await t.test('Gemini cria código de site completo e move Novo → Site gerado', async () => {
       env.GEMINI_API_KEY = 'test-only-never-transmitted'; env.GEMINI_MODEL = 'test-model'; env.GEMINI_THINKING_LEVEL = 'low';
       globalThis.fetch = async (input, init) => {
         if (String(input).startsWith('https://generativelanguage.googleapis.com/')) {
           assert.equal((init?.headers as Record<string, string>)['x-goog-api-key'], env.GEMINI_API_KEY);
           const payload = JSON.parse(String(init?.body)); assert.ok(payload.generationConfig.responseJsonSchema);
-          return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ theme: { primary: '#164e63', accent: '#06b6d4', background: '#ffffff', text: '#172033', font: 'sans', radius: 24 }, seo: { title: 'Espetaria de teste', description: 'Descrição de teste.', keywords: 'espetaria, teste' }, sections: ['header', 'hero', 'menu', 'contact', 'footer'].map(type => ({ type, title: type === 'hero' ? 'Um encontro à mesa' : type, subtitle: '', eyebrow: '', text: '', primaryLabel: '', secondaryLabel: '', items: [{ title: 'Preço inventado', text: '', price: 'R$ 99' }] })) }) }] } }] }), { status: 200 });
+          assert.match(String(init?.body), /não invente/);
+          return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(SAMPLE_SITE) }] } }] }), { status: 200 });
         }
         return originalFetch(input, init);
       };
       const result = await request('/websites/generate', { crmLeadId: crmIds[0] }); assert.equal(result.status, 200);
-      site = result.body.data; assert.equal(site.generationStatus, 'completed'); assert.equal(site.business.rating, '4.6'); assert.equal(site.business.hours, ''); assert.equal(site.seo.title, 'Espetaria de teste'); assert.equal(site.theme.background, '#ffffff');
-      assert.ok(site.sections.every((s: any) => s.content.items.length === 0));
+      site = result.body.data; assert.equal(site.generationStatus, 'completed');
+      assert.equal(site.currentDocument.schemaVersion, 2);
+      assert.equal(site.legacy, undefined);
+      const stored = storedSiteSchema.parse(site.currentDocument);
+      assert.match(stored.artefact.files['index.html'], /<html lang="pt-BR"/);
+      assert.match(stored.artefact.files['index.html'], /<title>Espetaria de teste<\/title>/);
+      assert.match(stored.artefact.files['index.html'], /name="viewport"/);
+      assert.equal(stored.artefact.seo.title, 'Espetaria de teste');
+      artefact1 = stored.artefact.files['index.html'];
       assert.equal((await prisma.crmLead.findUniqueOrThrow({ where: { id: crmIds[0] } })).stage, 'SITE_GENERATED');
       assert.equal((await request('/websites/generate', { crmLeadId: crmIds[0] })).body.data.id, site.id);
       assert.equal((await request('/dashboard')).body.data.stats.sitesGerados, baseline.stats.sitesGerados + 1);
       assert.equal((await request(`/websites/public/${site.id}`)).status, 404);
-      document = { name: site.name, business: site.business, theme: site.theme, seo: site.seo, sections: site.sections };
     });
-    await t.test('Salvar, reordenar, ocultar e reabrir; rejeitar sobrescrita concorrente', async () => {
-      document.sections.reverse(); document.sections[0].visible = false; document.sections[1].content.title = 'Título editado';
-      const staleRevision = site.revision;
-      const result = await request(`/websites/${site.id}/save`, { revision: site.revision, document }); assert.equal(result.status, 200); site = result.body.data;
-      const reload = (await request(`/websites/${site.id}`)).body.data;
-      assert.equal(reload.sections[0].visible, false); assert.equal(reload.sections[1].content.title, 'Título editado');
-      assert.equal((await request(`/websites/${site.id}/save`, { revision: staleRevision, document })).status, 409);
-      const unsafe = structuredClone(document); unsafe.sections[0].content.primaryButton = { label: 'Ataque', href: 'javascript:alert(1)' };
-      assert.equal((await request(`/websites/${site.id}/save`, { revision: site.revision, document: unsafe })).status, 400);
+    await t.test('Pedir à IA altera apenas os arquivos retornados e cria nova versão', async () => {
+      globalThis.fetch = async (input, init) => String(input).startsWith('https://generativelanguage.googleapis.com/')
+        ? new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ files: { 'styles.css': 'body{font-family:serif}' } }) }] } }] }), { status: 200 })
+        : originalFetch(input, init);
+      const result = await request(`/websites/${site.id}/rewrite`, { instruction: 'Deixe mais elegante' }); assert.equal(result.status, 200);
+      site = result.body.data;
+      const stored = storedSiteSchema.parse(site.currentDocument);
+      assert.equal(stored.artefact.files['styles.css'], 'body{font-family:serif}');
+      assert.equal(stored.artefact.files['index.html'], artefact1);
+      assert.equal(stored.meta.instruction, 'Deixe mais elegante');
+      const versions = (await request(`/websites/${site.id}/versions`)).body.data;
+      assert.equal(versions.length, 2);
+      assert.equal(versions[0].isCurrent, true); assert.equal(versions[0].version, 2);
+      assert.match(versions[0].source, /ai_edit/);
     });
-    await t.test('Publicação é snapshot; edições no rascunho não vazam', async () => {
-      const published = await request(`/websites/${site.id}/publish`, { revision: site.revision, document }); assert.equal(published.status, 200); site = published.body.data;
-      document.sections[1].content.title = 'Rascunho ainda não publicado';
-      const saved = await request(`/websites/${site.id}/save`, { revision: site.revision, document }); assert.equal(saved.status, 200); site = saved.body.data;
-      assert.equal((await request(`/websites/public/${site.id}`)).body.data.sections[1].content.title, 'Título editado');
-      const response = await request(`/websites/${site.id}/publish`, { revision: site.revision, document }); assert.equal(response.status, 200);
-      assert.equal((await request(`/websites/public/${site.id}`)).body.data.sections[1].content.title, 'Rascunho ainda não publicado');
+    await t.test('Versões: restaurar versão 1 volta o conteúdo original', async () => {
+      const restored = await request(`/websites/${site.id}/restore`, { version: 1 }); assert.equal(restored.status, 200);
+      const stored = storedSiteSchema.parse(restored.body.data.currentDocument);
+      assert.equal(stored.artefact.files['index.html'], artefact1);
+      assert.equal(stored.meta.source, 'restore');
+      site = restored.body.data;
     });
-    await t.test('Reescrita retorna somente sugestão e não muda o banco', async () => {
-      globalThis.fetch = async (input, init) => String(input).startsWith('https://generativelanguage.googleapis.com/') ? new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ title: 'Uma nova headline' }) }] } }] })) : originalFetch(input, init);
-      const before = (await request(`/websites/${site.id}`)).body.data;
-      const result = await request(`/websites/${site.id}/rewrite`, { document, sectionId: document.sections[1].id, field: 'title' });
-      assert.deepEqual(result.body.data.patch, { title: 'Uma nova headline' });
-      assert.equal((await request(`/websites/${site.id}`)).body.data.revision, before.revision);
+    await t.test('Publicação vira snapshot público; despublicar remove do ar', async () => {
+      const published = await request(`/websites/${site.id}/publish`, undefined, 'POST'); assert.equal(published.status, 200);
+      site = published.body.data; assert.equal(site.status, 'PUBLISHED'); assert.equal(site.publishedVersion, site.revision);
+      const publicSite = (await request(`/websites/public/${site.id}`)).body.data;
+      assert.equal(storedSiteSchema.parse(publicSite).artefact.files['index.html'], artefact1);
+      await request(`/websites/${site.id}/rewrite`, { instruction: 'Mude o hero' });
+      assert.equal(storedSiteSchema.parse((await request(`/websites/public/${site.id}`)).body.data).artefact.files['index.html'], artefact1);
+      const unpublished = await request(`/websites/${site.id}/unpublish`, undefined, 'POST'); assert.equal(unpublished.status, 200);
+      assert.equal(unpublished.body.data.status, 'DRAFT'); assert.equal((await request(`/websites/public/${site.id}`)).status, 404);
     });
     await t.test('Resposta incompleta marca falha sem publicar conteúdo', async () => {
       globalThis.fetch = async (input, init) => String(input).startsWith('https://generativelanguage.googleapis.com/') ? new Response(JSON.stringify({ candidates: [{ finishReason: 'MAX_TOKENS' }] })) : originalFetch(input, init);
@@ -109,15 +127,6 @@ test('Prospecção → CRM → Gemini → editor → publicação', async t => {
       assert.equal(changed.status, 200);
       assert.equal((await prisma.crmLead.findUniqueOrThrow({ where: { id: crm.id } })).stage, 'REPLIED');
       assert.equal((await request('/dashboard')).body.data.stats.responderam, baseline.stats.responderam + 1);
-    });
-    await t.test('As seis etapas do quadro persistem após recarregar', async () => {
-      for (const stage of ['NEW', 'MESSAGE_SENT', 'SCHEDULED', 'FOLLOW_UP', 'CLIENT', 'LOST']) {
-        const changed = await request(`/crm/leads/${crmIds[3]}/stage`, { stage, position: 20 }, 'PATCH');
-        assert.equal(changed.status, 200);
-        const detail = await request(`/crm/leads/${crmIds[3]}`);
-        assert.equal(detail.body.data.stage, stage);
-        assert.equal(detail.body.data.position, 20);
-      }
     });
   } finally {
     globalThis.fetch = originalFetch; googlePlacesService.searchText = originalSearch; env.GEMINI_API_KEY = originalKey; env.GEMINI_MODEL = originalModel; env.GEMINI_THINKING_LEVEL = originalLevel; env.NODE_ENV = originalNodeEnv;

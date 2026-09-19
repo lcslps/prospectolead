@@ -146,6 +146,7 @@ model Website {
   generationError  String?
   revision         Int @default(0)
   published        Json?
+  publishedVersion Int?
   publishedAt      DateTime?
   schemaVersion    Int @default(1)
   currentDocument  Json?

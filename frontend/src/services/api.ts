@@ -2,11 +2,6 @@ import axios from 'axios';
 import type { ApiEnvelope } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001/api';
-export function resolveSiteImage(url: string): string | undefined {
-  const match = /^google-place:\/\/([A-Za-z0-9_-]{10,200})\/(\d{1,2})$/.exec(url);
-  if (match) return `${API_URL}/websites/place-photo?placeId=${encodeURIComponent(match[1])}&index=${match[2]}`;
-  return /^https:\/\//i.test(url) || /^data:image\/(png|jpeg|webp);base64,/i.test(url) ? url : undefined;
-}
 
 export const api = axios.create({
   baseURL: API_URL,

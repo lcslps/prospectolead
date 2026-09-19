@@ -4,6 +4,8 @@
 
 O gerador usa `SiteDocument` (schemaVersion 1) como fonte de verdade. A IA atua somente como diretora criativa: ela escolhe tema, direção de arte, seções, variantes, conteúdo seguro e pedidos semânticos de imagem. Ela não produz HTML, CSS, JSX, React nem valores visuais arbitrários.
 
+Antes de chamar a IA, o motor cria um `Blueprint` determinístico a partir da classificação semântica do negócio, das evidências verificadas e de uma semente estável do lead. O blueprint define objetivo, CTA, objeto-herói, ritmo, paleta, tipografia, receita de layout, seções que fazem sentido e plano de mídia. O `QualityGuard` remove seções vazias e texto inseguro ou inventado antes de persistir.
+
 ```
 Lead no CRM → BusinessNormalizer → AI Site Planner → SiteDocument validado
 → QualityGuard → ImageResolver → Website / WebsiteVersion → SiteRenderer

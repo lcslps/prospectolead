@@ -1,101 +1,214 @@
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowDown, ArrowUp, Check, Copy, Eye, EyeOff, Globe, GripVertical, Hand, Loader2, Monitor, MousePointer2, Plus, Redo2, Save, Smartphone, Sparkles, Tablet, Trash2, Undo2, X } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Check, Copy, ExternalLink, Eye, Globe, Hand, Loader2, MapPin, Monitor, MousePointer2, Phone, RefreshCw, Smartphone, Sparkles, Star, Tablet, X } from 'lucide-react';
 import { getData, postData } from '../services/api';
-import { SECTION_LABELS, newSection, type SectionType, type SiteContent, type SiteDocument, type Website } from '../types/website';
+import { VERSION_SOURCE_LABELS, type Website, type WebsiteVersion } from '../types/website';
 import { WebsiteFrame } from '../components/WebsiteFrame';
-import { SectionFields, SiteFields, TextField } from '../components/WebsiteFields';
-import './studio.css';
 import { ThemeToggle } from '../components/Theme';
+import './studio.css';
 
-const toDocument = (s: SiteDocument): SiteDocument => ({ name: s.name, business: s.business, theme: s.theme, seo: s.seo ?? { title: '', description: '', keywords: '' }, sections: s.sections });
+const KB = 1024;
+const DEVICES = [['390', Smartphone, 'Celular'], ['768', Tablet, 'Tablet'], ['1200', Monitor, 'Desktop']] as const;
+
 export function WebsiteStudioPage() {
   const { id } = useParams(); const navigate = useNavigate();
-  const [doc, setDoc] = useState<SiteDocument | null>(null); const [site, setSite] = useState<Website | null>(null);
-  const latest = useRef<SiteDocument | null>(null); const revision = useRef(0); const saved = useRef(''); const saving = useRef<Promise<void> | null>(null);
-  const [saveState, setSaveState] = useState('Salvo'); const [error, setError] = useState(''); const [selected, setSelected] = useState<string | null>(null);
-  const [width, setWidth] = useState(1200); const [zoom, setZoom] = useState(0.8); const [interactive, setInteractive] = useState(new URLSearchParams(window.location.search).has('preview'));  const [preview, setPreview] = useState(new URLSearchParams(window.location.search).has('preview')); 
-  const [history, setHistory] = useState<SiteDocument[]>([]); const [future, setFuture] = useState<SiteDocument[]>([]);
-  const [aiOpen, setAiOpen] = useState(false); const [aiBusy, setAiBusy] = useState(false); const [aiField, setAiField] = useState('title'); const [instruction, setInstruction] = useState('');
-  const [proposal, setProposal] = useState<{ document?: SiteDocument; patch?: Partial<SiteContent>; sectionId?: string | null } | null>(null);
-  const [aiError, setAiError] = useState('');
-  const [dragging, setDragging] = useState<string | null>(null); const [publishing, setPublishing] = useState(false); const [addOpen, setAddOpen] = useState(true);
+  const [site, setSite] = useState<Website | null>(null);
+  const [versions, setVersions] = useState<WebsiteVersion[]>([]);
+  const [error, setError] = useState('');
+  const [width, setWidth] = useState(1200); const [zoom, setZoom] = useState(0.8); const [interactive, setInteractive] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false); const [aiMode, setAiMode] = useState<'edit' | 'redesign'>('edit'); const [aiInstruction, setAiInstruction] = useState(''); const [aiBusy, setAiBusy] = useState(false); const [aiError, setAiError] = useState(''); const [aiDone, setAiDone] = useState(false);
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [viewport, setViewport] = useState({ w: 0, h: 0 });
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const measure = () => setViewport({ w: el.clientWidth, h: el.clientHeight });
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const load = useCallback(async () => {
+    const s = await getData<Website>(`/websites/${id}`);
+    if (s.generationStatus === 'completed') setVersions(await getData<WebsiteVersion[]>(`/websites/${id}/versions`).catch(() => []));
+    setSite(s);
+  }, [id]);
   useEffect(() => {
     let active = true;
-    getData<Website>(`/websites/${id}`).then(s => { if (!active) return; if (s.generationStatus !== 'completed') throw new Error(s.generationError || 'A geração ainda não foi concluída. Volte ao CRM para acompanhar.'); const d = toDocument(s); latest.current = d; revision.current = s.revision; saved.current = JSON.stringify(d); setDoc(d); setSite(s); }).catch(e => { if (active) setError(e.message); });
+    load().catch(e => { if (active) setError(e instanceof Error ? e.message : 'Erro ao carregar o site.'); });
     return () => { active = false; };
-  }, [id]);
-  const change = (next: SiteDocument) => { const previous = latest.current; if (previous) setHistory(h => [...h.slice(-39), previous]); setFuture([]); latest.current = next; setDoc(next); setSaveState('Alterações pendentes'); };
-  const persist = useCallback(async (publish = false) => {
-    const previous = saving.current ?? Promise.resolve();
-    const task = previous.catch(() => {}).then(async () => {
-      const d = latest.current; if (!d) return;
-      const snapshot = JSON.stringify(d); if (!publish && snapshot === saved.current) return;
-      setSaveState(publish ? 'Publicando...' : 'Salvando...');
-      try {
-        const result = await postData<Website>(`/websites/${id}/${publish ? 'publish' : 'save'}`, { revision: revision.current, document: d });
-        revision.current = result.revision; saved.current = snapshot; setSite(result); setError(''); setSaveState(JSON.stringify(latest.current) === snapshot ? 'Salvo' : 'Alterações pendentes');
-      } catch (e) { setSaveState('Falha ao salvar'); setError(e instanceof Error ? e.message : 'Erro ao salvar'); throw e; }
-    });
-    saving.current = task;
-    try { await task; } finally { if (saving.current === task) saving.current = null; }
-  }, [id]);
-  useEffect(() => { if (!doc) return; const timer = setTimeout(() => { void persist().catch(() => {}); }, 900); return () => clearTimeout(timer); }, [doc, persist]);
-  useEffect(() => () => { void persist().catch(() => {}); }, [persist]);
-  useEffect(() => { const warn = (e: BeforeUnloadEvent) => { if (latest.current && saved.current !== JSON.stringify(latest.current)) { e.preventDefault(); } }; window.addEventListener('beforeunload', warn); return () => window.removeEventListener('beforeunload', warn); }, []);
-  const select = (sectionId: string, field?: string) => { setSelected(sectionId); if (field) setTimeout(() => document.querySelector<HTMLElement>(`[data-editor-field="${field}"]`)?.focus(), 30); };
-  const undo = () => { const d = history.at(-1); if (!d || !doc) return; setFuture(f => [doc, ...f]); setHistory(h => h.slice(0, -1)); latest.current = d; setDoc(d); };
-  const redo = () => { const d = future[0]; if (!d || !doc) return; setHistory(h => [...h, doc]); setFuture(f => f.slice(1)); latest.current = d; setDoc(d); };
-  const move = (from: number, to: number) => { if (!doc || to < 0 || to >= doc.sections.length || from === to) return; const sections = [...doc.sections]; sections.splice(to, 0, sections.splice(from, 1)[0]); change({ ...doc, sections }); };
-  const add = (type: SectionType, before?: string) => { if (!doc || doc.sections.length >= 60) return; const section = newSection(type); const sections = [...doc.sections]; const index = before ? sections.findIndex(s => s.id === before) : -1; sections.splice(index < 0 ? sections.length : index, 0, section); change({ ...doc, sections }); setSelected(section.id); };
-  const publish = async () => { setPublishing(true); try { await persist(true); } catch { /* error is shown beside the canvas */ } finally { setPublishing(false); } };
-  const askAi = async () => {
-    if (!doc) return; setAiBusy(true); setProposal(null); setAiError('');
-    try { const result = await postData<{ document?: SiteDocument; patch?: Partial<SiteContent> }>(`/websites/${id}/rewrite`, { document: doc, sectionId: selected ?? undefined, field: aiField, instruction }); setProposal({ ...result, sectionId: selected }); }
-    catch (e) { setAiError(e instanceof Error ? e.message : 'Erro na geração'); } finally { setAiBusy(false); }
+  }, [load]);
+  useEffect(() => {
+    if (site?.generationStatus !== 'generating') return;
+    const timer = setInterval(() => { void load().catch(() => {}); }, 4000);
+    return () => clearInterval(timer);
+  }, [site?.generationStatus, load]);
+  useEffect(() => { if (aiInstruction.trim()) setAiDone(false); }, [aiInstruction]);
+
+  const generateAgain = async () => {
+    setError(''); setSite(s => s ? { ...s, generationStatus: 'generating', generationError: null } : s);
+    try { await postData('/websites/generate', { crmLeadId: site?.crmLeadId }); await load(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Erro ao gerar.'); }
   };
-  if (!doc) return <div className="studio-loading">{error ? <><p role="alert">{error}</p><Button variant="unstyled" onClick={() => navigate('/crm')}>Voltar ao CRM</Button></> : <><Loader2 className="animate-spin" />Carregando editor...</>}</div>;
-  const section = doc.sections.find(s => s.id === selected);
-  return <div className={`studio ${preview ? 'studio-preview' : ''}`}>
+
+  const askAi = async () => {
+    if (!aiInstruction.trim()) { setAiError('Descreva o que deseja mudar no site.'); return; }
+    setAiBusy(true); setAiError(''); setAiDone(false);
+    try {
+      const body = aiMode === 'edit' ? { instruction: aiInstruction.trim() } : { instruction: aiInstruction.trim() };
+      const result = await postData<Website>(`/websites/${id}/${aiMode === 'edit' ? 'rewrite' : 'regenerate'}`, body);
+      setSite(result); setVersions(await getData<WebsiteVersion[]>(`/websites/${id}/versions`).catch(() => [])); setAiDone(true);
+    } catch (e) { setAiError(e instanceof Error ? e.message : 'Erro ao aplicar a alteração.'); }
+    finally { setAiBusy(false); }
+  };
+
+  const publish = async () => {
+    setPublishBusy(true); setError('');
+    try { setSite(await postData<Website>(`/websites/${id}/publish`, {})); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Erro ao publicar.'); }
+    finally { setPublishBusy(false); }
+  };
+  const unpublish = async () => {
+    setPublishBusy(true); setError('');
+    try { setSite(await postData<Website>(`/websites/${id}/unpublish`, {})); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Erro ao despublicar.'); }
+    finally { setPublishBusy(false); }
+  };
+  const restore = async (version: number) => {
+    setError('');
+    try { setSite(await postData<Website>(`/websites/${id}/restore`, { version })); setVersions(await getData<WebsiteVersion[]>(`/websites/${id}/versions`).catch(() => [])); }
+    catch (e) { setError(e instanceof Error ? e.message : 'Erro ao restaurar a versão.'); }
+  };
+  const copyUrl = async () => {
+    try { await navigator.clipboard.writeText(`${window.location.origin}/s/${id}`); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* clipboard indisponível */ }
+  };
+
+  if (!site) {
+    return <div className="studio studio-loading">{error ? <><p role="alert">{error}</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar aos projetos</Button></> : <><Loader2 className="animate-spin" />Carregando site...</>}</div>;
+  }
+  if (site.legacy) {
+    return <div className="studio studio-loading"><p role="alert">Este site usa o editor antigo, que foi substituído pela criação de sites com IA. Crie um novo site para este estabelecimento.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar aos projetos</Button></div>;
+  }
+
+  const doc = site.currentDocument;
+  const busy = publishBusy || aiBusy;
+  const publishedUrl = `${window.location.origin}/s/${id}`;
+  const published = site.status === 'PUBLISHED' && Boolean(site.publishedAt);
+  const sizeKb = doc ? Math.round(doc.meta.sizeBytes / KB) : 0;
+  const facts = doc?.business;
+
+  const isDesktop = width >= 1200;
+  const availW = viewport.w > 0 ? viewport.w : 1200;
+  const availH = viewport.h > 0 ? viewport.h : 800;
+  const stageLayout = isDesktop
+    ? { w: Math.round(availW / zoom), h: Math.round(availH / zoom) }
+    : { w: width, h: width >= 1024 ? availH : Math.round(width * (width >= 768 ? 1.4 : 2.1)) };
+  const frameVisual = isDesktop
+    ? { w: availW, h: availH }
+    : { w: Math.round(stageLayout.w * zoom), h: Math.round(stageLayout.h * zoom) };
+
+  return <div className="studio">
     <header className="studio-toolbar">
       <ThemeToggle />
-      <Button variant="unstyled" title="Voltar aos meus projetos" onClick={async () => { try { await persist(); navigate('/sites'); } catch { /* preserve unsaved edits */ } }}><ArrowLeft size={17} /></Button>
-      <Input unstyled aria-label="Nome do projeto" className="studio-project-name" value={doc.name} onChange={e => change({ ...doc, name: e.target.value })} />
-      <Button variant="unstyled" title="Desfazer" disabled={!history.length} onClick={undo}><Undo2 size={16} /></Button><Button variant="unstyled" title="Refazer" disabled={!future.length} onClick={redo}><Redo2 size={16} /></Button>
-      <span className="studio-save-state" role="status">{saveState === 'Salvo' ? <Check size={13} /> : saveState.includes('...') ? <Loader2 size={13} className="animate-spin" /> : null}{saveState}</span>
+      <Button variant="unstyled" title="Voltar aos meus projetos" onClick={() => navigate('/sites')}><ArrowLeft size={17} /></Button>
+      <span className="studio-project-name" title={site.name}>{site.name}</span>
       <div className="studio-toolbar-divider" />
+      <div className="studio-device-buttons">{DEVICES.map(([w, Icon, label]) => <Button variant="unstyled" key={w} className={width === Number(w) ? 'active' : ''} title={label} aria-label={label} onClick={() => setWidth(Number(w))}><Icon size={17} /></Button>)}</div>
+      <Select aria-label="Zoom" value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[0.5, 0.65, 0.8, 1].map(z => <option key={z} value={z}>{Math.round(z * 100)}%</option>)}</Select>
+      <span className="studio-toolbar-divider" />
       <Button variant="unstyled" className={!interactive ? 'active' : ''} onClick={() => setInteractive(false)}><MousePointer2 size={15} />Editar direto</Button>
       <Button variant="unstyled" className={interactive ? 'active' : ''} onClick={() => setInteractive(true)}><Hand size={15} />Interagir</Button>
-      <Button variant="unstyled" onClick={() => { setPreview(!preview); setInteractive(!preview); }}><Eye size={15} />{preview ? 'Voltar ao editor' : 'Visualizar'}</Button>
-      <Button variant="unstyled" onClick={() => { setSelected(null); setPreview(false); }}>Ficha / marca</Button>
-      <Button variant="unstyled" onClick={() => void persist().catch(() => {})}><Save size={15} />Salvar</Button>
-      <Button variant="unstyled" className="studio-publish" disabled={publishing} onClick={() => void publish()}>{publishing ? <Loader2 size={15} className="animate-spin" /> : <Globe size={15} />}Publicar</Button>
-      {site?.publishedAt && <a className="studio-public-link" target="_blank" rel="noreferrer" href={`/s/${id}`}>Abrir publicado ↗</a>}
+      <span className="studio-save-state">{published ? <><Check size={13} />Publicado (v{site.publishedVersion})</> : <span>Rascunho · v{site.revision}</span>}</span>
+      <div className="studio-toolbar-divider" />
+      <Button variant="unstyled" className="studio-outline" onClick={() => { setAiOpen(true); setAiMode('edit'); setAiDone(false); setAiError(''); }}><Sparkles size={15} />Pedir à IA</Button>
+      {published ? <Button variant="unstyled" className="studio-outline" disabled={busy} onClick={() => void unpublish()}><Eye size={15} />Despublicar</Button>
+        : <Button variant="unstyled" className="studio-publish" disabled={busy || site.generationStatus !== 'completed'} onClick={() => void publish()}>{publishBusy ? <Loader2 size={15} className="animate-spin" /> : <Globe size={15} />}Publicar</Button>}
+      {published && <a className="studio-public-link" href={publishedUrl} target="_blank" rel="noreferrer">Abrir publicado <ExternalLink size={11} /></a>}
+      {published && <Button variant="unstyled" className="studio-outline" title="Copiar link publicado" onClick={() => void copyUrl()}><Copy size={14} />{copied ? 'Link copiado' : 'Link'}</Button>}
     </header>
     {error && <div className="studio-alert" role="alert">{error}<Button variant="unstyled" onClick={() => setError('')} aria-label="Fechar aviso"><X size={15} /></Button></div>}
+    {site.generationStatus !== 'completed' && <div className="studio-generating" role="status">
+      {site.generationStatus === 'failed' ? <><p role="alert">{site.generationError || 'A geração falhou.'}</p><Button variant="unstyled" className="studio-publish" onClick={() => void generateAgain()}><RefreshCw size={15} />Gerar novamente</Button><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>
+        : <><Loader2 className="animate-spin" /><p>Gemini está criando o site deste estabelecimento... Isso pode levar um minuto.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
+    </div>}
     <div className="studio-workspace">
-      {!preview && <aside className="studio-left"><div className="studio-panel-heading"><h2>Seções do site</h2><p>Arraste para alterar a ordem</p></div>
-        <div className="studio-section-list">{doc.sections.map((s, index) => <div key={s.id} className={`studio-section-row ${selected === s.id ? 'selected' : ''} ${!s.visible ? 'hidden-section' : ''}`} draggable onDragStart={e => { setDragging(s.id); e.dataTransfer.setData('text/plain', s.id); }} onDragEnd={() => setDragging(null)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); const type = e.dataTransfer.getData('section-type'); if (type) add(type as SectionType, s.id); else if (dragging) move(doc.sections.findIndex(x => x.id === dragging), index); setDragging(null); }}>
-          <Button variant="unstyled" className="studio-section-select" onClick={() => select(s.id)}><GripVertical size={13} /><span>{SECTION_LABELS[s.type]}<small>{s.content.title}</small></span>{!s.visible && <EyeOff size={12} />}</Button>
-          {selected === s.id && <div className="studio-section-actions"><Button variant="unstyled" title="Mover para cima" disabled={index === 0} onClick={() => move(index, index - 1)}><ArrowUp size={13} /></Button><Button variant="unstyled" title="Mover para baixo" disabled={index === doc.sections.length - 1} onClick={() => move(index, index + 1)}><ArrowDown size={13} /></Button><Button variant="unstyled" title="Duplicar" disabled={doc.sections.length >= 60} onClick={() => { const copy = { ...structuredClone(s), id: crypto.randomUUID() }; const sections = [...doc.sections]; sections.splice(index + 1, 0, copy); change({ ...doc, sections }); setSelected(copy.id); }}><Copy size={13} /></Button><Button variant="unstyled" title={s.visible ? 'Ocultar' : 'Mostrar'} onClick={() => change({ ...doc, sections: doc.sections.map(x => x.id === s.id ? { ...x, visible: !x.visible } : x) })}>{s.visible ? <Eye size={13} /> : <EyeOff size={13} />}</Button><Button variant="unstyled" title="Excluir seção" disabled={doc.sections.length <= 1} onClick={() => { change({ ...doc, sections: doc.sections.filter(x => x.id !== s.id) }); setSelected(null); }}><Trash2 size={13} /></Button></div>}
-        </div>)}</div>
-        <div className="studio-panel-heading"><Button variant="unstyled" className="studio-add-title" onClick={() => setAddOpen(!addOpen)}><Plus size={16} />Adicionar seção</Button><p>Escolha ou arraste uma seção para o site</p></div>
-        {addOpen && <div className="studio-catalog">{Object.entries(SECTION_LABELS).map(([type, label]) => <Button variant="unstyled" key={type} draggable onDragStart={e => e.dataTransfer.setData('section-type', type)} onClick={() => add(type as SectionType)}>{label}<GripVertical size={12} /></Button>)}</div>}
-      </aside>}
-      <div className="studio-center"><div className="studio-viewport-toolbar"><div className="studio-device-buttons">{([[390, Smartphone, 'Celular'], [768, Tablet, 'Tablet'], [1200, Monitor, 'Desktop']] as const).map(([w, Icon, label]) => <Button variant="unstyled" key={w} className={width === w ? 'active' : ''} title={label} aria-label={label} onClick={() => setWidth(w)}><Icon size={17} /></Button>)}</div><span className="studio-toolbar-divider" /><Select aria-label="Zoom" value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[0.5, 0.65, 0.8, 1].map(z => <option key={z} value={z}>{Math.round(z * 100)}%</option>)}</Select><span className="studio-draft-label">{site?.publishedAt ? 'Rascunho · publicação disponível' : 'Rascunho'}</span></div>
-        <div className="studio-canvas-scroll" onDragOver={e => e.preventDefault()} onDrop={e => { const type = e.dataTransfer.getData('section-type'); if (type) add(type as SectionType); }}><div className="studio-canvas-size" style={{ width: width * zoom, height: `calc((100vh - 155px) * ${zoom})` }}><div style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width }}><WebsiteFrame document={doc} width={width} selectedId={selected} interactive={interactive} onSelect={select} /></div></div></div>
+      <aside className="studio-left">
+        <div className="studio-panel-heading"><h2>O que a IA sabe</h2><p>Use fatos reais ao pedir alterações.</p></div>
+        {facts && <div className="studio-facts">
+          <p className="studio-fact-main"><strong>{facts.name}</strong><span>{[facts.category, facts.city].filter(Boolean).join(' · ')}</span></p>
+          {facts.address && <p><MapPin size={12} />{facts.address}</p>}
+          {facts.phone && <p><Phone size={12} />{facts.phone}</p>}
+          {facts.whatsapp && <p><Phone size={12} />WhatsApp {(facts.whatsapp || '').replace(/^https?:\/\/wa\.me\//, '')}</p>}
+          {facts.hours && <p className="studio-fact-block"><span>Horários</span>{facts.hours}</p>}
+          {facts.rating && facts.reviewCount && <p><Star size={12} />{facts.rating}/5 · {facts.reviewCount} avaliações</p>}
+          {facts.mapUrl && <a href={facts.mapUrl} target="_blank" rel="noreferrer">Ver no Google Maps <ExternalLink size={11} /></a>}
+          <p className="studio-fact-block"><span>SEO</span>{doc?.artefact.seo.title}</p>
+          <p className="studio-fact-meta">Código</p>
+          <p className="studio-fact-block"><span>Tamanho</span>{sizeKb} KB · {doc?.artefact.format === 'html-standalone' ? 'HTML+CSS+JS' : doc?.artefact.format}</p>
+        </div>}
+        <div className="studio-panel-heading"><h2>Créditos de imagem</h2><p>Levantados na geração; o site usa os mesmos na página.</p></div>
+        <div className="studio-facts">{doc?.assets.map(asset => <p key={asset.id} className="studio-fact-block"><span>{asset.alt || asset.id}</span>{asset.credit} · {asset.provider}{asset.creditUrl && <> · <a href={asset.creditUrl} target="_blank" rel="noreferrer">fonte</a></>}</p>)}</div>
+        <div className="studio-panel-heading"><h2>Versões</h2><p>Cada geração e ajuste cria uma nova versão.</p></div>
+        <div className="studio-versions">
+          {versions.length === 0 && <p className="studio-fact-meta">Nenhuma versão salva ainda.</p>}
+          {versions.map(v => <div key={v.version} className={`studio-version-row ${v.isCurrent ? 'current' : ''}`}>
+            <span className="studio-version-no">v{v.version}</span>
+            <span className="studio-version-info"><strong>{VERSION_SOURCE_LABELS[v.source] || v.source}</strong><small>{new Date(v.createdAt).toLocaleString('pt-BR')} · {Math.round(v.sizeBytes / KB)} KB{v.isCurrent ? ' · atual' : ''}{v.isPublished ? ' · publicada' : ''}</small></span>
+            <Button variant="unstyled" className="studio-outline" disabled={v.isCurrent} onClick={() => void restore(v.version)}>Restaurar</Button>
+          </div>)}
+        </div>
+      </aside>
+      <div className="studio-center">
+        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span></div>
+        <div className="studio-canvas-scroll" ref={canvasRef}>
+          <div className={isDesktop ? 'studio-canvas-size desktop' : 'studio-canvas-size device'} style={{ width: frameVisual.w, height: frameVisual.h }}>
+            <div className="studio-stage" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: stageLayout.w, height: stageLayout.h }}><WebsiteFrame artefact={doc?.artefact ?? null} interactive={interactive} /></div>
+          </div>
+        </div>
       </div>
-      {!preview && <aside className="studio-right"><div className="studio-panel-heading"><h2>{section ? SECTION_LABELS[section.type] : 'Site'}</h2>{section && <Button variant="unstyled" className="studio-text-button" onClick={() => setSelected(null)}>Configurações do site</Button>}</div>{section ? <SectionFields section={section} document={doc} onChange={next => change({ ...doc, sections: doc.sections.map(s => s.id === next.id ? next : s) })} /> : <SiteFields document={doc} onChange={change} />}</aside>}
+      <aside className="studio-right">
+        <div className="studio-panel-heading"><h2>Ajustes rápidos</h2><p>O que você pode fazer agora.</p></div>
+        <div className="studio-tips">
+          <Button variant="unstyled" className="studio-tip" onClick={() => { setAiOpen(true); setAiMode('edit'); setAiInstruction(''); setAiDone(false); setAiError(''); }}><Sparkles size={15} /><span><strong>Pedir à IA</strong><small>Peça mudanças específicas como "destaque o WhatsApp no topo".</small></span></Button>
+          <Button variant="unstyled" className="studio-tip" onClick={() => { setAiOpen(true); setAiMode('redesign'); setAiInstruction('Nova direção de arte, mais moderna e elegante.'); setAiDone(false); setAiError(''); }}><RefreshCw size={15} /><span><strong>Nova direção de arte</strong><small>Recria o visual inteiro mantendo os fatos reais.</small></span></Button>
+          <a className="studio-tip" href={publishedUrl} target="_blank" rel="noreferrer"><ExternalLink size={15} /><span><strong>Abrir site publicado</strong><small>Visualize o que seus clientes veem.</small></span></a>
+          <Link className="studio-tip" to={`/leads/${site.crmLeadId}`}><ArrowLeft size={15} /><span><strong>Ficha do estabelecimento</strong><small>Acompanhe dados e status no CRM.</small></span></Link>
+        </div>
+        <div className="studio-panel-heading"><h2>Dicas</h2></div>
+        <ul className="studio-facts studio-facts-list">
+          <li>A IA nunca inventa fatos: só usa os dados verificados do estabelecimento.</li>
+          <li>Peça uma coisa por vez para resultados melhores.</li>
+          <li>No modo <strong>Editar direto</strong>, role pelo site sem ativar os links; use <strong>Interagir</strong> para clicar.</li>
+        </ul>
+      </aside>
     </div>
-    <Button variant="unstyled" className="studio-ai-button" onClick={() => { setAiOpen(true); setAiField(selected ? 'title' : 'structure'); setProposal(null); }}><Sparkles size={17} />Pedir à IA</Button>
-    {aiOpen && <div className="studio-modal-backdrop"><div className="studio-ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-title"><div className="studio-modal-heading"><h2 id="ai-title"><Sparkles size={20} />Assistente do site</h2><Button variant="unstyled" disabled={aiBusy} aria-label="Fechar" onClick={() => setAiOpen(false)}><X size={19} /></Button></div><p>Revise a sugestão antes de aplicar ao rascunho.</p><label className="studio-field"><span>O que deseja criar?</span><Select value={aiField} disabled={aiBusy} onChange={e => { setAiField(e.target.value); setProposal(null); }}>{selected && <><option value="title">Nova headline</option><option value="subtitle">Nova descrição</option><option value="text">Melhorar texto</option><option value="section">Reescrever seção</option></>}<option value="structure">Gerar outra estrutura do site</option></Select></label><TextField label="Instruções (opcional)" value={instruction} onChange={setInstruction} multiline />
-      {aiField === 'structure' && <p>Ao aplicar, a nova estrutura substituirá as seções do rascunho. Você poderá desfazer no editor.</p>}
-      {aiError && <p role="alert" className="studio-error">{aiError}</p>}
-      {proposal && <div className="studio-ai-proposal">{proposal.document ? <><h3>Nova estrutura</h3>{proposal.document.sections.map(s => <p key={s.id}><strong>{SECTION_LABELS[s.type]}</strong> · {s.content.title}</p>)}</> : Object.entries(proposal.patch || {}).map(([key, value]) => <div key={key}><small>{({ title: 'Título', subtitle: 'Subtítulo', text: 'Texto', eyebrow: 'Linha pequena' } as Record<string, string>)[key]}</small><p>{String(value)}</p></div>)}</div>}
-      <div className="studio-modal-actions"><Button variant="unstyled" className="studio-outline" disabled={aiBusy} onClick={() => void askAi()}>{aiBusy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{aiBusy ? 'Criando sugestão...' : 'Gerar sugestão'}</Button>{proposal && <Button variant="unstyled" className="studio-publish" onClick={() => { if (proposal.document) change(proposal.document); else change({ ...doc, sections: doc.sections.map(s => s.id === proposal.sectionId ? { ...s, content: { ...s.content, ...proposal.patch } } : s) }); setAiOpen(false); setProposal(null); }}>Aplicar sugestão</Button>}</div>
-    </div></div>}
+    {aiOpen && <div className="studio-modal-backdrop">
+      <div className="studio-ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-title">
+        <div className="studio-modal-heading"><h2 id="ai-title"><Sparkles size={20} />Assistente do site</h2><Button variant="unstyled" disabled={aiBusy} aria-label="Fechar" onClick={() => setAiOpen(false)}><X size={19} /></Button></div>
+        <label className="studio-field"><span>O que fazer?</span>
+          <Select value={aiMode} disabled={aiBusy} onChange={e => { setAiMode(e.target.value as 'edit' | 'redesign'); setAiDone(false); }}>
+            <option value="edit">Ajustar o site (mudanças pontuais)</option>
+            <option value="redesign">Nova direção de arte (recriar do zero)</option>
+          </Select>
+        </label>
+        <label className="studio-field"><span>{aiMode === 'edit' ? 'O que devo mudar?' : 'Como deve ser a nova direção? (opcional)'}</span>
+          <textarea className="studio-instruction" rows={5} value={aiInstruction} disabled={aiBusy} onChange={e => setAiInstruction(e.target.value)} placeholder={aiMode === 'edit' ? 'Ex.: deixe o WhatsApp em destaque no cabeçalho e adicione um botão "Chamar agora" no topo…' : 'Ex.: visual mais elegante, com tons escuros e fotos em destaque…'} autoFocus />
+        </label>
+        <p className="studio-field-hint">{aiMode === 'edit' ? 'A alteração é aplicada ao código e salva automaticamente como uma nova versão. Você poderá restaurar a qualquer momento.' : 'Uma nova versão completa substituirá o visual atual (rascunho). As versões anteriores continuam no histórico.'}</p>
+        {aiDone && <p className="studio-success" role="status"><Check size={14} />Alterações aplicadas e salvas como nova versão.</p>}
+        {aiError && <p role="alert" className="studio-error">{aiError}</p>}
+        <div className="studio-modal-actions">
+          <Button variant="unstyled" className="studio-outline" disabled={aiBusy} onClick={() => setAiOpen(false)}>Cancelar</Button>
+          <Button variant="unstyled" className="studio-publish" disabled={aiBusy || (aiMode === 'edit' && !aiInstruction.trim())} onClick={() => void askAi()}>{aiBusy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{aiBusy ? 'Editando com IA...' : 'Gerar e salvar versão'}</Button>
+        </div>
+      </div>
+    </div>}
+    <Button variant="unstyled" className="studio-ai-button" onClick={() => { setAiOpen(true); setAiError(''); setAiDone(false); }}><Sparkles size={17} />Pedir à IA</Button>
   </div>;
 }

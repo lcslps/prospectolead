@@ -1,30 +1,29 @@
-import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { AppError, notFound } from '../utils/apiError';
-import { generateJson, generationSchema, requireGemini } from './GeminiService';
-import { googlePlacesService } from './GooglePlacesService';
-import { env } from '../config/env';
-import { hasPhotoSearch, searchImages, type UnsplashImage } from './UnsplashService';
-import { contentSchema, documentSchema, sectionTypes, seoSchema, settingsSchema, themeSchema, artDirectionSchema, type WebsiteDocument } from './websiteSchema';
-import { climaTheme, presetImageQuery, presetPrompt, resolveNiche } from './sitePresets';
+import { generateJson, requireGemini, siteCreateGenerationSchema, siteEditGenerationSchema } from './GeminiService';
 import { normalizeBusiness } from './BusinessNormalizer';
-import { guardDocument, auditDocument } from './QualityGuard';
-import { plannerCatalog } from './SectionRegistry';
+import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, type ArtefactFiles, type StoredSite } from './siteArtefactSchema';
+import { buildCreatePrompt, buildEditPrompt, buildRegeneratePrompt } from './SitePrompt';
+import { sanitizeFiles, artefactSize } from './SiteSanitizer';
+import { collectPlacePhotos, resolveSiteImages } from './SiteImages';
 
-const include = { sections: { orderBy: { order: 'asc' as const } } };
-const generatedSchema = z.object({
-  // Theme tokens are selected deterministically from the project design system.
-  // The model may describe a theme but its arbitrary colour values are never trusted.
-  theme: z.object({ primary: z.string(), accent: z.string(), background: z.string(), text: z.string(), font: z.string(), radius: z.number() }),
-  seo: z.object({ title: z.string(), description: z.string(), keywords: z.string() }),
-  imageQueries: z.object({ hero: z.string().max(160).default(''), about: z.string().max(160).default(''), gallery: z.string().max(160).default('') }).default({ hero: '', about: '', gallery: '' }),
-  sections: z.array(z.object({ type: z.enum(sectionTypes), variant: z.string().default('standard'), title: z.string(), subtitle: z.string(), eyebrow: z.string(), text: z.string(), primaryLabel: z.string(), secondaryLabel: z.string(), items: z.array(z.object({ title: z.string(), text: z.string(), price: z.string() })).max(20).default([]) })).min(3).max(16),
-});
-const emptySeo = { title: '', description: '', keywords: '' };
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
-const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const emptySeo = { title: '', description: '', keywords: '' };
+const legacyStored = (value: unknown): boolean => Boolean(value && typeof value === 'object' && (value as Record<string, unknown>).schemaVersion !== 2);
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function ensureTitle(files: ArtefactFiles, seoTitle: string, fallbackName: string): ArtefactFiles {
+  const title = `<title>${escapeHtml(seoTitle || fallbackName)}</title>`;
+  const html = files['index.html'].replace(/<title>[\s\S]*?<\/title>/i, title);
+  if (html === files['index.html'] && !/<title>/i.test(html)) {
+    return { ...files, 'index.html': html.replace(/<\/head>/i, () => `${title}\n</head>`) };
+  }
+  return { ...files, 'index.html': html };
+}
 
 export class WebsiteService {
   async list() {
@@ -33,171 +32,218 @@ export class WebsiteService {
       select: {
         id: true, name: true, status: true, generationStatus: true,
         generationError: true, updatedAt: true, publishedAt: true,
+        business: true, seo: true,
         crmLead: { select: { id: true, lead: { select: { id: true, nome: true, categoria: true, cidade: true, estado: true } } } },
-        _count: { select: { sections: true } },
       },
     });
   }
+
   async get(id: string) {
-    const site = await prisma.website.findUnique({ where: { id }, include });
+    const site = await prisma.website.findUnique({ where: { id } });
     if (!site) throw notFound('Site não encontrado');
     const { published: _published, ...draft } = site;
+    if (site.schemaVersion !== 2) {
+      (draft as Record<string, unknown>).legacy = true;
+    }
     return draft;
   }
+
   async byLead(leadId: string) {
-    return prisma.website.findUnique({ where: { crmLeadId: leadId }, select: { id: true, generationStatus: true, generationError: true, status: true } });
+    const site = await prisma.website.findUnique({ where: { crmLeadId: leadId }, select: { id: true, generationStatus: true, generationError: true, status: true, schemaVersion: true } });
+    if (!site) return null;
+    if (site.schemaVersion !== 2) return null;
+    return site;
   }
-  async generate(crmLeadId: string) {
+
+  private async createStoredSite(business: StoredSite['business'], opts: { notes?: string | null; baseUrl?: string }, creativeDirection?: string) {
+    const assets = await collectPlacePhotos(business, opts.baseUrl);
+    const prompt = creativeDirection
+      ? buildRegeneratePrompt({ business, instruction: creativeDirection, assets })
+      : buildCreatePrompt({ business, assets, notes: opts.notes || undefined });
+    const raw = await generateJson(prompt, siteCreateGenerationSchema);
+    const parsed = siteCreateSchema.parse(raw);
+    const resolved = await resolveSiteImages(parsed.files, business, assets, parsed.imageIntents ?? []);
+    const sanitized = sanitizeFiles(resolved.files);
+    const files = ensureTitle(sanitized.files, parsed.seo.title, business.name);
+    const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo: parsed.seo });
+    const stored = storedSiteSchema.parse({
+      schemaVersion: 2,
+      business,
+      artefact,
+      imageMap: resolved.imageMap,
+      assets: resolved.assets,
+      meta: { source: 'ai_generation', instruction: creativeDirection || '', sizeBytes: artefactSize(files) },
+    });
+    return stored;
+  }
+
+  private async commit({ site, crmLeadId, stored, source, instruction }: {
+    site: { id: string; revision: number };
+    crmLeadId?: string;
+    stored: StoredSite;
+    source: 'ai_generation' | 'ai_edit' | 'restore';
+    instruction?: string;
+  }) {
+    const meta = { ...stored.meta, source, instruction: instruction || stored.meta.instruction || '', sizeBytes: stored.meta.sizeBytes };
+    const doc = { ...stored, meta };
+    await prisma.$transaction(async tx => {
+      const nextRevision = site.revision + 1;
+      await tx.website.update({
+        where: { id: site.id },
+        data: {
+          name: doc.business.name,
+          business: asJson(doc.business),
+          seo: asJson(doc.artefact.seo),
+          schemaVersion: 2,
+          currentDocument: asJson(doc),
+          generationStatus: 'completed',
+          generationError: null,
+          revision: nextRevision,
+        },
+      });
+      await tx.websiteSection.deleteMany({ where: { websiteId: site.id } });
+      await tx.websiteVersion.create({ data: { websiteId: site.id, version: nextRevision, document: asJson(doc), source } });
+      if (crmLeadId && source === 'ai_generation') {
+        const changed = await tx.crmLead.updateMany({ where: { id: crmLeadId, stage: 'NEW' }, data: { stage: 'SITE_GENERATED' } });
+        if (changed.count) await tx.crmActivity.create({ data: { crmLeadId, type: 'STAGE_CHANGED', description: 'Site gerado com IA. Lead movido para Site gerado.' } });
+      }
+    });
+  }
+
+  async generate(crmLeadId: string, baseUrl?: string) {
     requireGemini();
     const crm = await prisma.crmLead.findUnique({ where: { id: crmLeadId }, include: { lead: true } });
     if (!crm) throw notFound('Adicione o estabelecimento ao CRM antes de gerar um site.');
-    const l = crm.lead;
-    const business = normalizeBusiness(l);
-    const site = await prisma.website.upsert({ where: { crmLeadId }, create: { crmLeadId, name: l.nome, business, theme: themeSchema.parse({}), seo: emptySeo }, update: {} });
-    if (site.generationStatus === 'completed') return this.get(site.id);
+    const business = normalizeBusiness(crm.lead);
+    const site = await prisma.website.upsert({ where: { crmLeadId }, create: { crmLeadId, name: business.name, business: asJson(business), theme: asJson({}), seo: asJson(emptySeo), schemaVersion: 2 }, update: {} });
+    if (site.generationStatus === 'completed' && !legacyStored(site.currentDocument)) return this.get(site.id);
     const lock = await prisma.website.updateMany({ where: { id: site.id, OR: [{ generationStatus: { in: ['pending', 'failed'] } }, { generationStatus: 'generating', updatedAt: { lt: new Date(Date.now() - 150000) } }] }, data: { generationStatus: 'generating', generationError: null } });
     if (!lock.count) throw new AppError(409, 'Este site já está sendo gerado. Aguarde alguns instantes.');
     try {
-      const document = await this.generateDocument(business, { ...l, crmNotes: crm.notes });
-      await prisma.$transaction(async tx => {
-        await tx.websiteSection.deleteMany({ where: { websiteId: site.id } });
-        const nextRevision = site.revision + 1;
-        await tx.website.update({ where: { id: site.id }, data: { name: document.name, business: asJson(document.business), theme: asJson(document.theme), seo: asJson(document.seo), schemaVersion: document.schemaVersion, currentDocument: asJson(document), generationStatus: 'completed', revision: nextRevision, sections: { create: document.sections.map((s, order) => ({ id: s.id, type: s.type, visible: s.visible, order, content: asJson(s.content), settings: asJson({ ...s.settings, variant: s.variant }) })) } } });
-        await tx.websiteVersion.create({ data: { websiteId: site.id, version: nextRevision, document: asJson(document), source: 'ai_generation' } });
-        const changed = await tx.crmLead.updateMany({ where: { id: crmLeadId, stage: 'NEW' }, data: { stage: 'SITE_GENERATED' } });
-        if (changed.count) await tx.crmActivity.create({ data: { crmLeadId, type: 'STAGE_CHANGED', description: 'Site gerado com IA. Lead movido para Site gerado.' } });
-      });
+      const stored = await this.createStoredSite(business, { notes: crm.notes, baseUrl });
+      await this.commit({ site, crmLeadId, stored, source: 'ai_generation' });
       return this.get(site.id);
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : 'erro desconhecido';
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'erro desconhecido';
       console.error('[Website generation]', { websiteId: site.id, crmLeadId, detail });
-      const message = e instanceof AppError ? e.message : `O site gerado não passou na validação: ${detail}`;
+      const message = error instanceof AppError ? error.message : `O site gerado não passou na validação: ${detail}`;
       await prisma.website.update({ where: { id: site.id }, data: { generationStatus: 'failed', generationError: message } });
       throw new AppError(502, message);
     }
   }
-  async generateDocument(business: WebsiteDocument['business'], facts: unknown): Promise<WebsiteDocument> {
-    const factStrings = JSON.stringify(facts);
-    const factsRecord = facts && typeof facts === 'object' ? facts as Record<string, unknown> : {};
-    const preset = resolveNiche(business.category, typeof factsRecord.nicho === 'string' ? factsRecord.nicho : '', typeof factsRecord.categoria === 'string' ? factsRecord.categoria : '', business.name);
-    const theme = themeSchema.parse(climaTheme(preset.clima));
-    const result = generatedSchema.parse(await generateJson(`You are a senior creative director and website content planner, never a frontend developer. Return only the specified JSON. Do not return HTML, CSS, JSX, React, class names, styles or executable code. Create a complete Brazilian Portuguese website plan using only this component catalog: ${JSON.stringify(plannerCatalog)}. Pick only a listed section type and its allowed variant. Use exactly the mandatory theme values below. Do not invent services, prices, people or testimonials. Return imageQueries.hero, imageQueries.about and imageQueries.gallery as short, precise visual search descriptions based on this business category and verified information. Describe visible subjects and materials, not the business name, street or vague ideas. A granite shop should use granite slabs, marble surfaces or a stone showroom, never generic retail stock, warehouses or unrelated workers. An electric motor company should use motors, generators, pumps or electrical panels, never guitars, scooters, fashion or consumer products. Keep each query specific to the image placement. Include header, hero and footer. Keep unknown factual content empty. Do not create fake image URLs.
 
-${presetPrompt(preset)}
+  async regenerate(id: string, instruction: string | undefined, baseUrl?: string) {
+    requireGemini();
+    const site = await prisma.website.findUnique({ where: { id }, include: { crmLead: { include: { lead: true } } } });
+    if (!site) throw notFound('Site não encontrado');
+    const business = normalizeBusiness(site.crmLead.lead);
+    const lock = await prisma.website.updateMany({ where: { id, generationStatus: { not: 'generating' } }, data: { generationStatus: 'generating', generationError: null } });
+    if (!lock.count) throw new AppError(409, 'Este site já está sendo gerado. Aguarde alguns instantes.');
+    try {
+      const stored = await this.createStoredSite(business, { notes: site.crmLead.notes, baseUrl }, instruction);
+      await this.commit({ site, crmLeadId: site.crmLeadId, stored, source: 'ai_generation', instruction });
+      return this.get(id);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'erro desconhecido';
+      console.error('[Website regenerate]', { websiteId: id, detail });
+      const message = error instanceof AppError ? error.message : `A regeneração não passou na validação: ${detail}`;
+      await prisma.website.update({ where: { id }, data: { generationStatus: 'failed', generationError: message } });
+      throw new AppError(502, message);
+    }
+  }
 
-Data: ${JSON.stringify(facts)}`, generationSchema));
-    const ctaAnchor = result.sections.some(s => s.type === 'contact' || s.type === 'map') ? '#contato' : '';
-    const sections = result.sections.slice(0, 16).map(s => ({ id: randomUUID(), type: s.type, variant: (plannerCatalog.find(item => item.type === s.type)?.variants.includes(s.variant) ? s.variant : 'standard'), visible: true, content: contentSchema.parse({ title: s.type === 'header' || s.type === 'footer' ? business.name : s.title, subtitle: s.subtitle, eyebrow: s.eyebrow, text: s.text, items: s.items.filter(item => item.title && [item.title, item.text, item.price].every(value => !value || factStrings.includes(value))), primaryButton: { label: s.primaryLabel || ((s.type === 'hero' || s.type === 'cta') && business.whatsapp ? preset.ctaLabel : ''), href: business.whatsapp || ctaAnchor }, secondaryButton: { label: s.secondaryLabel && ctaAnchor ? s.secondaryLabel : '', href: ctaAnchor } }), settings: settingsSchema.parse(s.type === 'hero' || s.type === 'cta' ? { background: theme.primary, color: '#ffffff', motion: 'reveal' } : s.type === 'header' || s.type === 'footer' ? { padding: 24 } : {}) }));
-    const businessContext = normalize(`${business.name} ${business.category} ${business.categories.join(' ')} ${typeof factsRecord.nicho === 'string' ? factsRecord.nicho : ''}`);
-    const pickImageQuery = (proposed: string, fallback: string) => {
-      if (!proposed) return fallback;
-      const words = proposed.toLowerCase().split(/[^a-z0-9]+/).filter(word => word.length >= 4);
-      const grounded = words.some(word => businessContext.includes(word));
-      return grounded ? proposed : fallback;
+  async rewrite(id: string, instruction: string) {
+    const site = await prisma.website.findUnique({ where: { id } });
+    if (!site) throw notFound('Site não encontrado');
+    if (site.generationStatus !== 'completed' || legacyStored(site.currentDocument)) throw new AppError(400, 'Gere o site antes de pedir alterações.');
+    const current = storedSiteSchema.parse(site.currentDocument);
+    const editScript = /(script|anima|menu mobile|intera|carr|slider|efeito|carreg|estilo)/i.test(instruction);
+    const filesToSend: Partial<Record<'index.html' | 'styles.css' | 'script.js', string>> = {
+      'index.html': current.artefact.files['index.html'],
+      'styles.css': current.artefact.files['styles.css'],
     };
-    const imageQueries = {
-      hero: pickImageQuery(result.imageQueries.hero, presetImageQuery(preset, 'hero')),
-      about: pickImageQuery(result.imageQueries.about, presetImageQuery(preset, 'about')),
-      gallery: pickImageQuery(result.imageQueries.gallery, presetImageQuery(preset, 'gallery')),
+    if (editScript) filesToSend['script.js'] = current.artefact.files['script.js'];
+    const prompt = buildEditPrompt({ business: current.business, instruction, files: filesToSend });
+    const raw = await generateJson(prompt, siteEditGenerationSchema);
+    const edit = siteEditSchema.parse(raw);
+    const merged = {
+      'index.html': edit.files['index.html'] ?? current.artefact.files['index.html'],
+      'styles.css': edit.files['styles.css'] ?? current.artefact.files['styles.css'],
+      'script.js': edit.files['script.js'] ?? current.artefact.files['script.js'],
     };
-    const guarded = guardDocument(documentSchema.parse(await this.attachImages(business, { schemaVersion: 1, name: business.name, business, theme, artDirection: artDirectionSchema.parse({}), seo: seoSchema.parse(result.seo), sections }, imageQueries)));
-    const audit = auditDocument(guarded);
-    if (audit.length) console.warn('[Website audit] corrigidos:', audit.join('; '));
-    return guarded;
-  }
-  private async attachImages(business: WebsiteDocument['business'], document: WebsiteDocument, queries: { hero: string; about: string; gallery: string }): Promise<WebsiteDocument> {
-    let hero: UnsplashImage | undefined;
-    let about: UnsplashImage | undefined;
-    let gallery: UnsplashImage[] = [];
-    if (business.googlePlaceId && env.NODE_ENV !== 'test') {
-      try {
-        const place = await googlePlacesService.getPlaceDetails(business.googlePlaceId, ['id', 'photos']);
-        const photos = (place.photos ?? []).slice(0, 8).map((photo, index) => ({
-          url: `google-place://${encodeURIComponent(business.googlePlaceId!)}/${index}`,
-          alt: `Real photo of ${business.name} from Google Maps`,
-          credit: photo.authorAttributions?.[0]?.displayName || 'Google Maps',
-          creditUrl: photo.authorAttributions?.[0]?.uri || business.mapUrl || `https://www.google.com/maps/search/?api=1&query_place_id=${encodeURIComponent(business.googlePlaceId!)}`,
-          provider: 'Google Maps' as const,
-        }));
-        hero = photos[0];
-        about = photos[1] ?? photos[0];
-        gallery = photos.slice(2, 8);
-      } catch { /* Optional Maps photos must not block website generation. */ }
-    }
-    if (!hero && env.NODE_ENV !== 'test' && hasPhotoSearch()) {
-      const city = business.city ? ` ${business.city}` : '';
-      const title = document.sections.find(section => section.type === 'hero')?.content.title || business.category;
-      const heroResults = await searchImages(queries.hero || `${business.category} ${title}${city}`, 6).catch(() => [] as UnsplashImage[]);
-      hero = heroResults[0];
-      const aboutResults = await searchImages(queries.about || `${business.category} workspace interior storefront${city}`, 6).catch(() => [] as UnsplashImage[]);
-      about = aboutResults.find(image => image.url !== hero?.url);
-      const galleryResults = await searchImages(queries.gallery || `${business.category} products materials details${city}`, 12).catch(() => [] as UnsplashImage[]);
-      gallery = galleryResults.filter(image => image.url !== hero?.url && image.url !== about?.url).slice(0, 8);
-    }
-    if (!hero && !about && !gallery.length) return document;
-    const sections = document.sections.map(section => {
-      const altFor = (image: UnsplashImage) => `${business.name}${image.alt ? ` - ${image.alt}` : ''}`.slice(0, 200);
-      if (section.type === 'hero' && hero && !section.content.image) return { ...section, content: { ...section.content, image: hero.url, imageAlt: altFor(hero), imageCredit: hero.credit, imageCreditUrl: hero.creditUrl } };
-      if (section.type === 'about' && about && !section.content.image) return { ...section, content: { ...section.content, image: about.url, imageAlt: altFor(about), imageCredit: about.credit, imageCreditUrl: about.creditUrl } };
-      if (section.type === 'gallery' && gallery.length) {
-        let next = 0;
-        const items = section.content.items.map(item => {
-          if (item.image || !gallery[next]) return item;
-          const image = gallery[next++];
-          return { ...item, image: image.url, imageAlt: item.imageAlt || altFor(image), imageCredit: image.credit, imageCreditUrl: image.creditUrl };
-        });
-        for (const image of gallery.slice(next)) items.push({ title: '', text: '', price: '', image: image.url, imageAlt: altFor(image), imageCredit: image.credit, imageCreditUrl: image.creditUrl, href: '' });
-        return { ...section, content: { ...section.content, items } };
-      }
-      return section;
+    const seo = edit.seo ?? current.artefact.seo;
+    const sanitized = sanitizeFiles(merged);
+    const files = ensureTitle(sanitized.files, seo.title, current.business.name);
+    const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo });
+    const stored = storedSiteSchema.parse({
+      ...current,
+      artefact,
+      meta: { source: 'ai_edit', instruction, sizeBytes: artefactSize(files) },
     });
-    const hasGallery = sections.some(section => section.type === 'gallery');
-    const finalSections = hasGallery || !gallery.length ? sections : this.insertGallery(sections, business, gallery);
-    return documentSchema.parse({ ...document, sections: finalSections });
-  }  private insertGallery(sections: WebsiteDocument['sections'], business: WebsiteDocument['business'], gallery: UnsplashImage[]) {
-    if (gallery.length < 4) return sections;
-    const amount = Math.min(8, gallery.length);
-    const gallerySection = { id: randomUUID(), type: 'gallery' as const, variant: 'grid3', visible: true, content: contentSchema.parse({ title: 'Galeria de fotos', items: gallery.slice(0, amount).map((img, i) => ({ title: '', text: '', price: '', image: img.url, imageAlt: `Foto ${i + 1} de ${business.name}`, imageCredit: img.credit, imageCreditUrl: img.creditUrl, href: '' })) }), settings: settingsSchema.parse({}) };
-    const footerIndex = sections.findIndex(s => s.type === 'footer');
-    const at = footerIndex > 2 ? footerIndex : sections.findIndex(s => s.type === 'contact') > 2 ? sections.findIndex(s => s.type === 'contact') : sections.length - 1;
-    const inserted = [...sections];
-    inserted.splice(at > 0 ? at : sections.length, 0, gallerySection);
-    return inserted;
-  }
-  async save(id: string, revision: number, document: WebsiteDocument, publish = false) {
-    await prisma.$transaction(async tx => {
-      const checked = guardDocument(documentSchema.parse(document));
-      const changed = await tx.website.updateMany({ where: { id, revision, generationStatus: 'completed' }, data: { name: checked.name, business: asJson(checked.business), theme: asJson(checked.theme), seo: asJson(checked.seo), schemaVersion: checked.schemaVersion, currentDocument: asJson(checked), revision: { increment: 1 }, ...(publish ? { status: 'PUBLISHED', published: asJson(checked), publishedAt: new Date() } : {}) } });
-      if (!changed.count) throw new AppError(409, 'O site foi alterado em outra aba ou ainda está sendo gerado. Recarregue antes de salvar.');
-      await tx.websiteSection.deleteMany({ where: { websiteId: id } });
-      const nextVersion = revision + 1;
-      await tx.websiteSection.createMany({ data: checked.sections.map((s, order) => ({ id: s.id, type: s.type, visible: s.visible, websiteId: id, order, content: asJson(s.content), settings: asJson({ ...s.settings, variant: s.variant }) })) });
-      await tx.websiteVersion.create({ data: { websiteId: id, version: nextVersion, document: asJson(checked), source: publish ? 'publish' : 'manual_edit' } });
-    });
+    await this.commit({ site, crmLeadId: site.crmLeadId, stored, source: 'ai_edit', instruction });
     return this.get(id);
   }
+
+  async publish(id: string) {
+    const site = await prisma.website.findUnique({ where: { id } });
+    if (!site) throw notFound('Site não encontrado');
+    if (site.generationStatus !== 'completed' || legacyStored(site.currentDocument)) throw new AppError(400, 'Gere o site antes de publicar.');
+    const stored = storedSiteSchema.parse(site.currentDocument);
+    await prisma.website.update({ where: { id }, data: { status: 'PUBLISHED', published: asJson(stored), publishedAt: new Date(), publishedVersion: site.revision } });
+    return this.get(id);
+  }
+
+  async unpublish(id: string) {
+    const site = await prisma.website.findUnique({ where: { id } });
+    if (!site) throw notFound('Site não encontrado');
+    await prisma.website.update({ where: { id }, data: { status: 'DRAFT', published: Prisma.DbNull, publishedAt: null, publishedVersion: null } });
+    return this.get(id);
+  }
+
+  async versions(id: string) {
+    const site = await prisma.website.findUnique({ where: { id }, select: { revision: true, publishedVersion: true } });
+    if (!site) throw notFound('Site não encontrado');
+    const rows = await prisma.websiteVersion.findMany({ where: { websiteId: id }, orderBy: { version: 'desc' } });
+    return rows.map(version => {
+      let sizeBytes = 0;
+      let title = '';
+      try {
+        const doc = storedSiteSchema.parse(version.document);
+        sizeBytes = doc.meta.sizeBytes ?? 0;
+        title = doc.artefact.seo.title;
+      } catch { /* keep zeros for legacy entries */ }
+      return {
+        version: version.version,
+        source: version.source,
+        createdAt: version.createdAt,
+        sizeBytes,
+        title,
+        isCurrent: version.version === site.revision,
+        isPublished: version.version === site.publishedVersion,
+      };
+    });
+  }
+
+  async restore(id: string, version: number) {
+    const site = await prisma.website.findUnique({ where: { id } });
+    if (!site) throw notFound('Site não encontrado');
+    const row = await prisma.websiteVersion.findUnique({ where: { websiteId_version: { websiteId: id, version } } });
+    if (!row) throw notFound('Versão não encontrada');
+    const stored = storedSiteSchema.parse(row.document);
+    await this.commit({ site, stored, source: 'restore' });
+    return this.get(id);
+  }
+
   async publicSite(id: string) {
     const site = await prisma.website.findUnique({ where: { id }, select: { status: true, published: true } });
-    if (site?.status !== 'PUBLISHED' || !site.published) throw notFound('Site não publicado');
+    if (site?.status !== 'PUBLISHED' || !site.published || legacyStored(site.published)) throw notFound('Site não publicado');
     return site.published;
   }
+
   async remove(id: string) {
     const site = await prisma.website.findUnique({ where: { id } });
     if (!site) throw notFound('Site não encontrado');
     await prisma.website.delete({ where: { id } });
-  }
-  async rewrite(id: string, document: WebsiteDocument, sectionId: string | undefined, field: string, instruction: string) {
-    const site = await prisma.website.findUnique({ where: { id }, include: { crmLead: { include: { lead: true } } } });
-    if (!site) throw notFound();
-    if (field === 'structure') return { document: await this.generateDocument(document.business, site.crmLead.lead) };
-    const section = document.sections.find(s => s.id === sectionId);
-    if (!section) throw notFound('Seção não encontrada');
-    const keys = field === 'section' ? ['eyebrow', 'title', 'subtitle', 'text'] : [field];
-    const currentText = Object.fromEntries(['eyebrow', 'title', 'subtitle', 'text'].map(key => [key, section.content[key as keyof typeof section.content]]));
-    const schema = { type: 'object', required: keys, properties: Object.fromEntries(keys.map(k => [k, { type: 'string' }])) };
-    const raw = await generateJson(`Reescreva apenas os campos solicitados desta seção, sem alterar fatos. Pedido: ${instruction}. Dados verificados: ${JSON.stringify(site.crmLead.lead)}. Seção atual: ${JSON.stringify(currentText)}. Campos: ${keys.join(', ')}.`, schema);
-    const parsed = z.object(Object.fromEntries(keys.map(k => [k, z.string().max(12000)]))).parse(raw);
-    return { patch: parsed };
   }
 }
 export const websiteService = new WebsiteService();

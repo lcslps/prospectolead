@@ -13,7 +13,7 @@ import type { CrmLeadFull } from '../types';
 
 interface Project {
   id: string; name: string; status: string; generationStatus: string; generationError: string | null;
-  updatedAt: string; publishedAt: string | null; _count: { sections: number };
+  updatedAt: string; publishedAt: string | null;
   crmLead: { id: string; lead: { id: string; nome: string; categoria: string | null; cidade: string | null; estado: string | null } };
 }
 const filterLabels = { all: 'Todos os projetos', draft: 'Rascunhos', published: 'Publicados', pending: 'Em andamento' };
@@ -65,8 +65,8 @@ export function WebsitesPage() {
       <div className="projects-empty-copy"><span aria-hidden="true">Seu próximo projeto.</span><h3>Todo negócio merece<br />um bom lugar na internet.</h3><p>Escolha uma empresa do seu CRM e comece a criar. Seus rascunhos e sites publicados ficam organizados aqui.</p><Button variant="unstyled" className="btn-primary" onClick={() => void openCreate()}>Criar meu primeiro projeto<ArrowUpRight size={15} /></Button></div>
       <div className="projects-empty-steps">{[
         ['01', 'Escolha o estabelecimento', 'Selecione uma empresa que já faz parte do seu CRM.'],
-        ['02', 'Dê forma ao site', 'Ajuste os textos, as imagens e cada detalhe no editor.'],
-        ['03', 'Publique quando estiver pronto', 'Revise o resultado e compartilhe o site com seu cliente.'],
+        ['02', 'Dê forma ao site', 'A IA transforma os dados reais do estabelecimento em um site único.'],
+        ['03', 'Publique quando estiver pronto', 'Peça ajustes, revise as versões e compartilhe o site com seu cliente.'],
       ].map(([n, title, copy]) => <div className="projects-empty-step" key={n}><span>{n}</span><div><h4>{title}</h4><p>{copy}</p></div></div>)}</div>
     </div> : <div className="projects-list">{shown.map(project => {
       const ready = project.generationStatus === 'completed';
@@ -78,7 +78,7 @@ export function WebsitesPage() {
         <div className="project-initials" aria-hidden="true">{initials}</div>
         <div className="project-info"><h3 title={project.name}>{project.name}</h3><Link to={`/leads/${project.crmLead.lead.id}`}>{project.crmLead.lead.nome}<ArrowUpRight size={11} /></Link><p>{[project.crmLead.lead.categoria, project.crmLead.lead.cidade].filter(Boolean).join(' · ')}</p></div>
         <span className={`project-status ${published ? 'is-published' : failed ? 'is-failed' : ''}`}>{status}</span>
-        <div className="project-date">{new Date(project.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}<small>{project._count.sections} seções</small></div>
+        <div className="project-date">{new Date(project.updatedAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}<small>Site em código</small></div>
         {ready && <div className="project-row-actions"><Link className="btn-secondary" to={`/studio/${project.id}?preview=1`} title="Visualizar"><Eye size={14} /><span className="sr-only">Visualizar</span></Link><Link className="btn-primary" to={`/studio/${project.id}`}><Pencil size={13} />Editar site</Link>{published && <a className="project-public" href={`/s/${project.id}`} target="_blank" rel="noreferrer" aria-label={`Abrir site publicado: ${project.name}`} title="Abrir publicado"><ArrowUpRight size={16} /></a>}{deleteButton(project)}</div>}
         {!ready && <div className="project-generation flex items-center justify-between gap-2"><LeadWebsite crmLeadId={project.crmLead.id} />{deleteButton(project)}</div>}
       </article>;

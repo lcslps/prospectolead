@@ -5,15 +5,15 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ok, okNoContent } from '../utils/respond';
 import { badRequest, notFound } from '../utils/apiError';
 import { websiteService } from '../services/WebsiteService';
-import { documentSchema } from '../services/websiteSchema';
 import { env } from '../config/env';
 import { googlePlacesService } from '../services/GooglePlacesService';
 import { searchImages } from '../services/UnsplashService';
 
 export const websitesRouter = Router();
 const aiLimit = rateLimit({ windowMs: 60000, max: 10, message: { success: false, message: 'Aguarde um minuto antes de solicitar mais gerações.' } });
-const saveSchema = z.object({ revision: z.number().int().nonnegative(), document: documentSchema });
 const photoSearchLimit = rateLimit({ windowMs: 60000, max: 45, standardHeaders: true, legacyHeaders: false });
+
+const baseUrlOf = (value: unknown) => (typeof value === 'string' && /^https?:\/\/[^/]+/.test(value) ? value.replace(/\/+$/, '') : undefined);
 
 websitesRouter.get('/', asyncHandler(async (_req, res) => { ok(res, await websiteService.list()); }));
 websitesRouter.get('/photos', photoSearchLimit, asyncHandler(async (req, res) => {
@@ -47,16 +47,23 @@ websitesRouter.get('/place-photo', photoSearchLimit, asyncHandler(async (req, re
 websitesRouter.get('/public/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.publicSite(String(req.params.id))); }));
 websitesRouter.get('/lead/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.byLead(String(req.params.id))); }));
 websitesRouter.post('/generate', aiLimit, asyncHandler(async (req, res) => {
-  const { crmLeadId } = z.object({ crmLeadId: z.string().min(1).max(100) }).parse(req.body);
-  ok(res, await websiteService.generate(crmLeadId));
+  const { crmLeadId, baseUrl } = z.object({ crmLeadId: z.string().min(1).max(100), baseUrl: z.string().optional() }).parse(req.body);
+  ok(res, await websiteService.generate(crmLeadId, baseUrlOf(baseUrl)));
 }));
-websitesRouter.get('/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.get(String(req.params.id))); }));
-websitesRouter.delete('/:id', asyncHandler(async (req, res) => { await websiteService.remove(String(req.params.id)); okNoContent(res); }));
-for (const action of ['save', 'publish']) websitesRouter.post(`/:id/${action}`, asyncHandler(async (req, res) => {
-  const { revision, document } = saveSchema.parse(req.body);
-  ok(res, await websiteService.save(String(req.params.id), revision, document, action === 'publish'));
+websitesRouter.get('/:id/versions', asyncHandler(async (req, res) => { ok(res, await websiteService.versions(String(req.params.id))); }));
+websitesRouter.post('/:id/restore', aiLimit, asyncHandler(async (req, res) => {
+  const { version } = z.object({ version: z.number().int().min(1) }).parse(req.body);
+  ok(res, await websiteService.restore(String(req.params.id), version));
+}));
+websitesRouter.post('/:id/regenerate', aiLimit, asyncHandler(async (req, res) => {
+  const { instruction, baseUrl } = z.object({ instruction: z.string().max(2000).optional(), baseUrl: z.string().optional() }).parse(req.body);
+  ok(res, await websiteService.regenerate(String(req.params.id), instruction, baseUrlOf(baseUrl)));
 }));
 websitesRouter.post('/:id/rewrite', aiLimit, asyncHandler(async (req, res) => {
-  const input = z.object({ document: documentSchema, sectionId: z.string().optional(), field: z.enum(['title', 'subtitle', 'text', 'eyebrow', 'section', 'structure']), instruction: z.string().max(2000).default('Melhore o texto mantendo os fatos.') }).parse(req.body);
-  ok(res, await websiteService.rewrite(String(req.params.id), input.document, input.sectionId, input.field, input.instruction));
+  const { instruction } = z.object({ instruction: z.string().min(1).max(2000) }).parse(req.body);
+  ok(res, await websiteService.rewrite(String(req.params.id), instruction));
 }));
+websitesRouter.post('/:id/publish', asyncHandler(async (req, res) => { ok(res, await websiteService.publish(String(req.params.id))); }));
+websitesRouter.post('/:id/unpublish', asyncHandler(async (req, res) => { ok(res, await websiteService.unpublish(String(req.params.id))); }));
+websitesRouter.get('/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.get(String(req.params.id))); }));
+websitesRouter.delete('/:id', asyncHandler(async (req, res) => { await websiteService.remove(String(req.params.id)); okNoContent(res); }));

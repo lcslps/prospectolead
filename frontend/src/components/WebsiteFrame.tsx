@@ -1,13 +1,25 @@
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { WebsiteRenderer } from './WebsiteRenderer';
-import type { SiteDocument } from '../types/website';
-import css from './website.css?inline';
+import { useMemo } from 'react';
+import type { SiteArtefact } from '../types/website';
+import { buildSiteDoc } from '../lib/siteHtml';
 
-export function WebsiteFrame({ document, width, selectedId, interactive, onSelect }: { document: SiteDocument; width: number; selectedId: string | null; interactive: boolean; onSelect: (id: string, field?: string) => void }) {
-  const [body, setBody] = useState<HTMLElement | null>(null);
-  useEffect(() => { if (selectedId && body) body.querySelector(`[data-section-id="${CSS.escape(selectedId)}"]`)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, [selectedId, body]);
-  return <iframe title="Prévia do site" className="studio-frame" style={{ width }} onLoad={e => setBody(e.currentTarget.contentDocument?.body ?? null)} srcDoc={`<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;padding:0}html{scroll-behavior:smooth}${css}</style></head><body></body></html>`}>
-    {body && createPortal(<WebsiteRenderer document={document} selectedId={selectedId} interactive={interactive} onSelect={onSelect} />, body)}
-  </iframe>;
+export function WebsiteFrame({ artefact, interactive = true, title = 'Prévia do site' }: { artefact: SiteArtefact | null; interactive?: boolean; title?: string }) {
+  const srcDoc = useMemo(() => (artefact ? buildSiteDoc(artefact, { interactive }) : undefined), [artefact, interactive]);
+  if (!artefact || !srcDoc) {
+    return (
+      <div className="studio-frame-empty" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8792a2', background: '#fff', borderRadius: 6 }}>
+        Nenhuma prévia disponível.
+      </div>
+    );
+  }
+  return (
+    <div className="studio-frame-wrap" style={{ width: '100%', height: '100%' }}>
+      <iframe
+        title={title}
+        className="studio-frame"
+        srcDoc={srcDoc}
+        sandbox="allow-scripts allow-popups allow-forms"
+        style={{ width: '100%', height: '100%', border: 0, background: '#fff', boxShadow: '0 2px 14px rgba(17,24,39,.12)', borderRadius: 4, display: 'block' }}
+      />
+    </div>
+  );
 }
