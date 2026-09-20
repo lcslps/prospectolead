@@ -2,48 +2,58 @@
 
 ## Arquitetura do gerador de sites
 
-O gerador usa `SiteDocument` (schemaVersion 1) como fonte de verdade. A IA atua somente como diretora criativa: ela escolhe tema, direção de arte, seções, variantes, conteúdo seguro e pedidos semânticos de imagem. Ela não produz HTML, CSS, JSX, React nem valores visuais arbitrários.
-
-Antes de chamar a IA, o motor cria um `Blueprint` determinístico a partir da classificação semântica do negócio, das evidências verificadas e de uma semente estável do lead. O blueprint define objetivo, CTA, objeto-herói, ritmo, paleta, tipografia, receita de layout, seções que fazem sentido e plano de mídia. O `QualityGuard` remove seções vazias e texto inseguro ou inventado antes de persistir.
+Cada site é um `StoredSite` (`schemaVersion` 2) com artefato `html-standalone`: `index.html`, `styles.css` e `script.js` gerados pelo Gemini e renderizados em iframe no editor e na rota pública. O backend não decide design: o Gemini atua como agente de design e escreve o código seguindo um pipeline explícito.
 
 ```
-Lead no CRM → BusinessNormalizer → AI Site Planner → SiteDocument validado
-→ QualityGuard → ImageResolver → Website / WebsiteVersion → SiteRenderer
-→ Editor, preview e site publicado
+Lead no CRM → Gemini analisa o negócio
+  → direção criativa + design system + componentes + estratégia de conversão (designPlan)
+  → gera HTML/CSS/JS originais → resolve imagens reais
+  → validação estrutural → se crítico, correção automática via Gemini (modelo auxiliar)
+  → commit como nova versão (edições preservam identidade)
 ```
 
-- `backend/src/services/websiteSchema.ts` define o documento, links seguros, tokens e limites.
-- `backend/src/services/SectionRegistry.ts` é o catálogo serializável de seções e variantes permitidas.
-- `backend/src/services/BusinessNormalizer.ts` transforma dados do CRM/Google Places no formato interno seguro.
-- `backend/src/services/QualityGuard.ts` impede variantes desconhecidas, links perigosos, imagens duplicadas e garante Hero e Footer.
-- `WebsiteVersion` registra checkpoints de geração, edição e publicação. `WebsiteAsset` reserva metadados de origem de imagens por site.
-- O mesmo `WebsiteRenderer` é usado no editor, preview e rota pública; alterações simples atualizam somente o documento.
-
-Para adicionar uma seção, inclua o tipo no schema, registre variantes e limites em `SectionRegistry`, implemente a apresentação determinística no renderer e exponha os campos no editor. Para adicionar tema, inclua seu nome e tokens semânticos no schema/preset; nunca aceite CSS produzido pela IA.
+- `backend/src/services/SitePrompt.ts` instrui o agente: processo de projeto (planejar antes de codar), catálogo de componentes, regras de design system, conteúdo verificado, veto a templates reciclados e a fatos inventados, responsividade e estrutura de arquivos.
+- `backend/src/services/siteArtefactSchema.ts` define `seo`, `designPlan` (análise, direção, design system, componentes/`pageFlow`, conversão, variantes) e `files`; tokens de imagem `{{...}}` nunca são inventados pelo modelo.
+- `backend/src/services/GeminiService.ts` valida a resposta do modelo com JSON Schema; `backend/src/services/SiteQuality.ts` (`inspectArtifact`/`criticalIssues`) checa estrutura, `<title>`, viewport, tokens pendentes e imagens quebradas; `WebsiteService.settleFiles` corrige via Gemini (1 tentativa) e falha com `502` se o problema persistir.
+- `backend/src/services/SiteImages.ts` + `backend/src/services/LeadSocialService.ts` levantam fotos reais (Google Places, Instagram, Facebook, site do estabelecimento e via Pexels/Pixabay/Unsplash para lacunas licenciadas). Intents de imagem são resolvidos por esses provedores e persistidos como `WebsiteAsset`.
+- `WebsiteVersion` registra checkpoints de geração, edição e publicação. Regenerar cria nova direção de arte usando o `designPlan` atual como referência de diferenciação; o editor (`custom`/`rewrite`) recebe o `designPlan` vigente para preservar identidade e conteúdo.
 
 ## Como usar
 
 1. Pesquise em **Prospecção** e abra **Resultados da prospecção**.
 2. Clique em **Enviar para o CRM** (ou **Adicionar ao CRM** nos detalhes).
-3. Abra o card no **CRM** e clique em **Gerar site com IA**.
-4. No editor, selecione uma seção na lista ou diretamente na prévia. Edite os campos à direita. As alterações são salvas após 900 ms de pausa.
-5. Use **Interagir** para testar links, perguntas e formulário. **Visualizar** amplia a prévia. Há modos desktop, tablet e celular e controle de zoom.
-6. **Pedir à IA** cria uma sugestão para título, descrição, texto, seção ou estrutura. A sugestão só altera o rascunho ao clicar em **Aplicar sugestão**.
-7. **Publicar** salva uma versão pública, acessível em `/s/:websiteId`. Alterações posteriores continuam no rascunho até uma nova publicação.
+3. Abra o card no **CRM** e clique em **Gerar site com IA**. O overlay mostra as etapas: análise do negócio, direção/design system, componentes, código e validação.
+4. No studio, a prévia é o site real em iframe; o painel mostra fatos verificados, decisões do agente de design e imagens reais usadas. Use desktop/tablet/móvel e zoom.
+5. **Pedir à IA** edita o site preservando identidade, design system e conteúdo; cada ajuste cria nova versão.
+6. **Regenerar** gera um novo projeto visualmente diferente, mantendo os fatos reais.
+7. **Publicar** salva um snapshot público em `/s/:websiteId`. Alterações posteriores ficam no rascunho até nova publicação.
 
 ## Configuração
 
 No `backend/.env`, preencha:
 
 ```dotenv
+GOOGLE_MAPS_API_KEY=
 GEMINI_API_KEY=
-GEMINI_MODEL=
+GEMINI_MODEL=gemini-3.8-flash
+GEMINI_AUX_MODEL=gemini-3.8-flash-lite
 GEMINI_THINKING_LEVEL=low
+MAX_RETRIES=3
+MAX_CONCURRENT_GENERATIONS=2
+PEXELS_API_KEY=
+PIXABAY_API_KEY=
+UNSPLASH_ACCESS_KEY=
+FACEBOOK_ACCESS_TOKEN=
+GEMINI_SEND_IMAGES=true
 ```
 
-`GEMINI_THINKING_LEVEL` aceita `low`, `medium` ou `high` e controla o nível de raciocínio do modelo.
-
-Use um modelo disponível na sua conta com suporte a saída estruturada. Reinicie o backend após alterar o `.env`. Nenhuma dessas variáveis deve receber prefixo `VITE_` ou ser copiada para o frontend. A integração usa `generateContent` com JSON Schema e validação adicional no backend, conforme a [documentação oficial do Gemini](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
+- `GEMINI_MODEL` (padrão `gemini-3.8-flash`) é o modelo principal: cria e revisa os sites. O backend nunca decide cores, layout ou estilo; o Gemini faz a direção de arte.
+- `GEMINI_AUX_MODEL` (padrão `gemini-3.8-flash-lite`) é o modelo barato usado em tarefas auxiliares (correção estrutural no `settleFiles`). Se vazio, usa `GEMINI_MODEL`.
+- `MAX_RETRIES` (padrão `3`) define tentativas extras após a primeira com backoff exponencial + jitter em `429`/`5xx`/timeout, respeitando o header `Retry-After` quando enviado.
+- `MAX_CONCURRENT_GENERATIONS` (padrão `2`) limita sites gerados simultaneamente pela fila, protegendo contra estouro de cota.
+- `GEMINI_THINKING_LEVEL` aceita `low`, `medium` ou `high` e controla o nível de raciocínio do modelo.
+- `GEMINI_SEND_IMAGES` (`true`/`false`, padrão `true`) controla se as fotos reais são anexadas ao Gemini para ele escolher o encaixe.
+- USe um modelo disponível na sua conta com suporte a saída estruturada. Reinicie o backend após alterar o `.env`. Nenhuma variável deve receber prefixo `VITE_` ou ser copiada para o frontend. A integração usa `generateContent` com JSON Schema e validação adicional no backend, conforme a [documentação oficial do Gemini](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
 
 Após atualizar o projeto:
 
@@ -62,17 +72,15 @@ Se o Windows informar que a DLL do Prisma está em uso, pare somente o backend d
 - A tabela histórica `Lead` mantém os estabelecimentos encontrados, preservando campanhas, enriquecimento, exportação e rotas existentes. Ela representa o resultado de prospecção, e **não** define pertencimento ao CRM.
 - `CrmLead` é a entrada comercial explícita criada por **Adicionar ao CRM**, com relação única a um estabelecimento. O Dashboard filtra essa relação e calcula os status por `CrmLead.stage`.
 - `Website` pertence a `CrmLead`, com vínculo único. Não é possível gerar site para um estabelecimento que ainda não entrou no CRM. A geração concluída move apenas cards em `NEW` para `SITE_GENERATED`; outras etapas são preservadas.
-- `WebsiteSection` guarda tipo, posição, visibilidade, conteúdo e estilo. IDs permanecem estáveis durante edição; duplicações recebem novos IDs.
+- `StoredSite.document` persiste `seo`, `designPlan` e `files` (schemaVersion 2). Reads aceitam documentos v1 (dados sem `designPlan` recebem plano vazio).
 - A migration `20260917000100_websites` é aditiva e não promove resultados antigos ao CRM.
 - `revision` impede gravações concorrentes com versões antigas. Se outra aba alterar o site, o editor mantém a edição local e informa o conflito em vez de sobrescrever o banco.
 - `published` guarda o snapshot público. A rota pública retorna apenas esse documento; não retorna notas do CRM nem o rascunho.
-- Estados de geração: `pending`, `generating`, `completed`, `failed`. Uma tentativa interrompida pode ser retomada depois de 150 segundos. Erros do provedor são apresentados sem expor a chave.
+- Estados de geração: `pending`, `generating`, `completed`, `failed`. As gerações passam por uma fila em memória (`GenerationQueue`) que limita a concorrência a `MAX_CONCURRENT_GENERATIONS`: pedidos extras esperam e, por padrão, cada site usa **uma chamada ao Gemini** (criação completa) + no máximo uma chamada barata de correção se a validação estrutural falhar — nunca chamadas por seção. Erros temporários são repetidos com backoff exponencial (`MAX_RETRIES`). `GET /websites/queue` expõe o estado da fila. Na inicialização, sites `pending`/ativos de um processo anterior são retomados automaticamente; uma tentativa interrompida pode ser retomada depois de 150 segundos. Erros do provedor são apresentados sem expor a chave.
 
 ## Conteúdo e imagens
 
-Dados de contato, endereço, nota e número de avaliações vêm do estabelecimento. Campos desconhecidos ficam vazios. O Gemini recebe instruções para não inventar informações. Itens factuais gerados só são aceitos quando seus textos estão presentes nos dados fornecidos; revise os textos comerciais antes de publicar.
-
-O editor aceita URLs HTTPS e upload de PNG, JPEG e WebP até 2 MB por imagem. Os uploads ficam incorporados ao documento persistido no banco, incluindo o snapshot publicado. O limite total de uma gravação é 12 MB; para galerias maiores, use URLs HTTPS. Não são inventadas fotos do estabelecimento nem depoimentos. Campos de imagem começam vazios quando não há uma imagem disponível.
+Dados de contato, endereço, nota, número de avaliações, horários e redes verificadas vêm do estabelecimento/Google Places. O enriquecimento também traz do Google Places a **descrição do lugar** (`editorialSummary`) e os **textos de avaliações reais com o nome dos autores** (até 6), repassados ao prompt do Gemini — que é instruído a nunca inventar fatos nem depoimentos; `SiteQuality` rejeita seções estruturais ausentes. Imagens vêm de fontes reais (Google Places, Instagram, Facebook, site do negócio) e provedores licenciados (Pexels, Pixabay, Unsplash) quando a própria empresa não tem foto. Não são inventadas fotos do estabelecimento nem depoimentos.
 
 O formulário abre uma mensagem no WhatsApp para o visitante enviar; não simula entrega de mensagens. Configure o link do WhatsApp na ficha da empresa. O mapa usa o endereço preenchido.
 

@@ -40,6 +40,13 @@ export const siteAssetSchema = z.object({
   credit: z.string().default(''),
   creditUrl: z.string().default(''),
   provider: z.string().default(''),
+  kind: z.string().max(40).default(''),
+  usage: z.string().max(60).default(''),
+  sourceType: z.enum(['business', 'social', 'stock', 'generated']).default('stock'),
+  isBusinessAsset: z.boolean().default(false),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  score: z.number().finite().optional(),
 });
 export type SiteAsset = z.infer<typeof siteAssetSchema>;
 
@@ -64,12 +71,65 @@ export const versionMetaSchema = z.object({
 });
 export type VersionMeta = z.infer<typeof versionMetaSchema>;
 
+export const designSystemSchema = z.object({
+  palette: z.object({
+    primary: z.string().max(40).default(''),
+    secondary: z.string().max(40).default(''),
+    accent: z.string().max(40).default(''),
+    background: z.string().max(40).default(''),
+    surface: z.string().max(40).default(''),
+    text: z.string().max(40).default(''),
+    muted: z.string().max(40).default(''),
+  }).default({}),
+  typography: z.object({
+    family: z.string().max(120).default(''),
+    display: z.string().max(120).default(''),
+    headings: z.string().max(120).default(''),
+    body: z.string().max(120).default(''),
+  }).default({}),
+  shape: z.object({
+    radius: z.string().max(40).default(''),
+    shadow: z.string().max(120).default(''),
+    border: z.string().max(40).default(''),
+  }).default({}),
+  spacing: z.string().max(120).default(''),
+  motion: z.object({
+    easing: z.string().max(80).default(''),
+    duration: z.string().max(80).default(''),
+    reveal: z.string().max(120).default(''),
+  }).default({}),
+}).default({});
+export type DesignSystem = z.infer<typeof designSystemSchema>;
+
+export const planComponentSchema = z.object({
+  name: z.string().max(60).default(''),
+  purpose: z.string().max(240).default(''),
+  content: z.string().max(240).default(''),
+  responsive: z.string().max(240).default(''),
+});
+export type PlanComponent = z.infer<typeof planComponentSchema>;
+
+export const designPlanSchema = z.object({
+  businessInsight: z.string().max(700).default(''),
+  targetAudience: z.string().max(300).default(''),
+  creativeDirection: z.string().max(700).default(''),
+  designSystem: designSystemSchema,
+  components: z.array(planComponentSchema).max(24).default([]),
+  pageFlow: z.array(z.string().max(60)).max(30).default([]),
+  primaryAction: z.string().max(140).default(''),
+  whatsappStrategy: z.string().max(300).default(''),
+  contentDecisions: z.string().max(500).default(''),
+  variationNote: z.string().max(500).default(''),
+}).default({});
+export type DesignPlan = z.infer<typeof designPlanSchema>;
+
 export const storedSiteSchema = z.object({
   schemaVersion: z.literal(2),
   business: businessSchema,
   artefact: artefactSchema,
   imageMap: z.record(z.string(), siteAssetSchema).default({}),
   assets: z.array(siteAssetSchema).default([]),
+  designPlan: designPlanSchema,
   meta: versionMetaSchema.default({}),
 });
 export type StoredSite = z.infer<typeof storedSiteSchema>;
@@ -78,6 +138,7 @@ export const siteCreateSchema = z.object({
   seo: artefactSeoSchema,
   files: artefactFilesSchema,
   imageIntents: z.array(imageIntentSchema).max(12).default([]),
+  designPlan: designPlanSchema,
 });
 export type SiteCreate = z.infer<typeof siteCreateSchema>;
 

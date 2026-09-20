@@ -66,7 +66,7 @@ copy .env.example .env
 Edite o `backend/.env`:
 
 ```
-PORT=3001
+PORT=4000
 DATABASE_URL="postgresql://prospector:prospector@localhost:5434/prospector"
 GOOGLE_MAPS_API_KEY=SUA_CHAVE_AQUI
 FRONTEND_URL="http://localhost:5173"
@@ -91,7 +91,7 @@ npm run prisma:seed
 npm run dev
 ```
 
-A API sobe em `http://localhost:3001` (health check: `GET /api/health`).
+A API sobe em `http://localhost:4000` (health check: `GET /api/health`).
 
 ### 6. Configurar e iniciar o frontend
 
@@ -192,7 +192,7 @@ npm run typecheck         # checagem de tipos
 
 ## Configuração dos exemplos
 
-- `frontend/.env` → `VITE_API_URL=http://localhost:3001/api`
+- `frontend/.env` → `VITE_API_URL=http://localhost:4000/api`
 - `backend/.env` → `PORT`, `DATABASE_URL`, `GOOGLE_MAPS_API_KEY`, `FRONTEND_URL`, `NODE_ENV`
 
 **Nunca** coloque `GOOGLE_MAPS_API_KEY` em variáveis `VITE_*` — isso exporia a chave no bundle do frontend.

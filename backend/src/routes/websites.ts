@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ok, okNoContent } from '../utils/respond';
 import { badRequest, notFound } from '../utils/apiError';
 import { websiteService } from '../services/WebsiteService';
+import { generationQueue } from '../services/GenerationQueue';
 import { env } from '../config/env';
 import { googlePlacesService } from '../services/GooglePlacesService';
 import { searchImages } from '../services/UnsplashService';
@@ -46,6 +47,7 @@ websitesRouter.get('/place-photo', photoSearchLimit, asyncHandler(async (req, re
 }));
 websitesRouter.get('/public/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.publicSite(String(req.params.id))); }));
 websitesRouter.get('/lead/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.byLead(String(req.params.id))); }));
+websitesRouter.get('/queue', asyncHandler(async (_req, res) => { ok(res, generationQueue.snapshot()); }));
 websitesRouter.post('/generate', aiLimit, asyncHandler(async (req, res) => {
   const { crmLeadId, baseUrl } = z.object({ crmLeadId: z.string().min(1).max(100), baseUrl: z.string().optional() }).parse(req.body);
   ok(res, await websiteService.generate(crmLeadId, baseUrlOf(baseUrl)));

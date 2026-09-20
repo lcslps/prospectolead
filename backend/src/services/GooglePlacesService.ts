@@ -25,6 +25,14 @@ export interface GooglePlace {
   types?: string[];
   location?: { latitude?: number; longitude?: number };
   photos?: Array<{ name: string; widthPx?: number; heightPx?: number; authorAttributions?: Array<{ displayName?: string; uri?: string }> }>;
+  editorialSummary?: { text?: string };
+  reviews?: Array<{
+    authorAttribution?: { displayName?: string; uri?: string };
+    rating?: number;
+    text?: { text?: string };
+    relativePublishTimeDescription?: string;
+  }>;
+  regularOpeningHours?: { periods?: Array<{ open?: { day?: number; hour?: number; minute?: number }; close?: { day?: number; hour?: number; minute?: number } }> };
 }
 
 export interface SearchTextResponse {
@@ -71,6 +79,8 @@ const DETAIL_FIELDS = [
   'businessStatus',
   'types',
   'location',
+  'editorialSummary',
+  'reviews',
 ];
 
 const MAX_RETRIES = 3;

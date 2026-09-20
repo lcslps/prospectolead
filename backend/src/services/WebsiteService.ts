@@ -1,12 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { AppError, notFound } from '../utils/apiError';
-import { generateJson, requireGemini, siteCreateGenerationSchema, siteEditGenerationSchema } from './GeminiService';
+import { generateJson, generateAuxJson, requireGemini, siteCreateGenerationSchema, siteEditGenerationSchema, siteRepairGenerationSchema, type RetryEvent } from './GeminiService';
 import { normalizeBusiness } from './BusinessNormalizer';
-import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, type ArtefactFiles, type StoredSite } from './siteArtefactSchema';
-import { buildCreatePrompt, buildEditPrompt, buildRegeneratePrompt } from './SitePrompt';
+import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, type ArtefactFiles, type DesignPlan, type StoredSite } from './siteArtefactSchema';
+import { buildCreatePrompt, buildEditPrompt, buildRegeneratePrompt, buildRepairPrompt, SYSTEM_INSTRUCTION } from './SitePrompt';
 import { sanitizeFiles, artefactSize } from './SiteSanitizer';
-import { collectPlacePhotos, resolveSiteImages } from './SiteImages';
+import { collectLeadImages, collectImageBytes, resolveSiteImages, type LeadImageCollection } from './SiteImages';
+import { inspectArtifact, criticalIssues, type QualityIssue } from './SiteQuality';
+import { generationQueue, type GenerationJob } from './GenerationQueue';
+import { env } from '../config/env';
 
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
 const emptySeo = { title: '', description: '', keywords: '' };
@@ -26,6 +29,24 @@ function ensureTitle(files: ArtefactFiles, seoTitle: string, fallbackName: strin
 }
 
 export class WebsiteService {
+  private deferredAttempts = new Map<string, number>();
+
+  private transientGenerationError(error: unknown): boolean {
+    if (!(error instanceof AppError)) return false;
+    return /sobrecarregado|limite de uso|não foi possível conectar/i.test(error.message);
+  }
+
+  private deferGeneration(siteId: string, crmLeadId: string, baseUrl?: string): boolean {
+    const attempts = (this.deferredAttempts.get(siteId) ?? 0) + 1;
+    if (attempts > env.MAX_DEFERRED_GENERATION_RETRIES) return false;
+    this.deferredAttempts.set(siteId, attempts);
+    setTimeout(() => {
+      void this.enqueueGenerate(crmLeadId, { baseUrl, resume: true }).catch(error => {
+        console.error('[Website deferred generation]', { websiteId: siteId, attempt: attempts, detail: error instanceof Error ? error.message : 'erro desconhecido' });
+      });
+    }, env.GEMINI_OVERLOAD_RETRY_MS);
+    return true;
+  }
   async list() {
     return prisma.website.findMany({
       orderBy: { updatedAt: 'desc' },
@@ -55,16 +76,49 @@ export class WebsiteService {
     return site;
   }
 
-  private async createStoredSite(business: StoredSite['business'], opts: { notes?: string | null; baseUrl?: string }, creativeDirection?: string) {
-    const assets = await collectPlacePhotos(business, opts.baseUrl);
+  private async generateArtifact(business: StoredSite['business'], input: LeadImageCollection, opts: { notes?: string | null }, creativeDirection?: string, previousPlan?: DesignPlan, onRetry?: (event: RetryEvent) => void) {
+    const { assets, profiles, summary, reviews } = input;
     const prompt = creativeDirection
-      ? buildRegeneratePrompt({ business, instruction: creativeDirection, assets })
-      : buildCreatePrompt({ business, assets, notes: opts.notes || undefined });
-    const raw = await generateJson(prompt, siteCreateGenerationSchema);
+      ? buildRegeneratePrompt({ business, instruction: creativeDirection, assets, profiles, summary, reviews, previousPlan })
+      : buildCreatePrompt({ business, assets, profiles, notes: opts.notes || undefined, summary, reviews });
+    const vision = env.GEMINI_SEND_IMAGES ? await collectImageBytes(assets, business) : [];
+    const raw = await generateJson(prompt, siteCreateGenerationSchema, SYSTEM_INSTRUCTION, vision, { onRetry });
     const parsed = siteCreateSchema.parse(raw);
     const resolved = await resolveSiteImages(parsed.files, business, assets, parsed.imageIntents ?? []);
-    const sanitized = sanitizeFiles(resolved.files);
-    const files = ensureTitle(sanitized.files, parsed.seo.title, business.name);
+    return { parsed, resolved };
+  }
+
+  private async settleFiles(files: ArtefactFiles, business: StoredSite['business'], seoTitle: string, onRetry?: (event: RetryEvent) => void): Promise<ArtefactFiles> {
+    const prepare = (input: ArtefactFiles) => {
+      const sanitized = sanitizeFiles(input).files;
+      return ensureTitle(sanitized, seoTitle || '', business.name);
+    };
+    let current = prepare(files);
+    for (let attempt = 0; attempt <= env.MAX_SITE_REFINEMENT_ITERATIONS; attempt += 1) {
+      const critical = criticalIssues(inspectArtifact(current));
+      if (!critical.length) return current;
+      if (attempt === env.MAX_SITE_REFINEMENT_ITERATIONS) {
+        throw new AppError(502, `O site não passou na validação estrutural após ${attempt} revisão(ões): ${critical.map(issue => issue.message).join(' ')}`);
+      }
+      const repair = await generateAuxJson(
+        buildRepairPrompt({ business, files: current, issues: critical as QualityIssue[] }),
+        siteRepairGenerationSchema,
+        { onRetry },
+      );
+      const patch = siteEditSchema.parse(repair);
+      current = prepare({
+        'index.html': patch.files['index.html'] ?? current['index.html'],
+        'styles.css': patch.files['styles.css'] ?? current['styles.css'],
+        'script.js': patch.files['script.js'] ?? current['script.js'],
+      });
+    }
+    return current;
+  }
+
+  private async createStoredSite(business: StoredSite['business'], opts: { notes?: string | null; baseUrl?: string }, creativeDirection?: string, previousPlan?: DesignPlan, onRetry?: (event: RetryEvent) => void) {
+    const input = await collectLeadImages(business, opts.baseUrl);
+    const { parsed, resolved } = await this.generateArtifact(business, input, { notes: opts.notes }, creativeDirection, previousPlan, onRetry);
+    const files = await this.settleFiles(resolved.files, business, parsed.seo.title, onRetry);
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo: parsed.seo });
     const stored = storedSiteSchema.parse({
       schemaVersion: 2,
@@ -72,6 +126,7 @@ export class WebsiteService {
       artefact,
       imageMap: resolved.imageMap,
       assets: resolved.assets,
+      designPlan: parsed.designPlan,
       meta: { source: 'ai_generation', instruction: creativeDirection || '', sizeBytes: artefactSize(files) },
     });
     return stored;
@@ -111,19 +166,57 @@ export class WebsiteService {
   }
 
   async generate(crmLeadId: string, baseUrl?: string) {
+    await this.enqueueGenerate(crmLeadId, { baseUrl });
+    const site = await prisma.website.findUnique({ where: { crmLeadId } });
+    if (!site) throw notFound('Site não encontrado');
+    return this.get(site.id);
+  }
+
+  async enqueueGenerate(crmLeadId: string, opts: { baseUrl?: string; resume?: boolean } = {}) {
     requireGemini();
     const crm = await prisma.crmLead.findUnique({ where: { id: crmLeadId }, include: { lead: true } });
     if (!crm) throw notFound('Adicione o estabelecimento ao CRM antes de gerar um site.');
     const business = normalizeBusiness(crm.lead);
     const site = await prisma.website.upsert({ where: { crmLeadId }, create: { crmLeadId, name: business.name, business: asJson(business), theme: asJson({}), seo: asJson(emptySeo), schemaVersion: 2 }, update: {} });
-    if (site.generationStatus === 'completed' && !legacyStored(site.currentDocument)) return this.get(site.id);
+    if (site.generationStatus === 'completed' && !legacyStored(site.currentDocument)) return;
+    await prisma.website.update({ where: { id: site.id }, data: { generationStatus: 'pending', generationError: null } });
+    const job = this.makeJob(site.id, crmLeadId, 'generate', () => this.processGenerate(site.id, crmLeadId, opts.baseUrl, job));
+    void generationQueue.enqueue(job);
+    await job.promise;
+    if (job.state === 'failed') throw new AppError(502, job.error || 'Falha na geração do site.');
+  }
+
+  private makeJob(siteId: string, crmLeadId: string, kind: GenerationJob['kind'], run: () => Promise<void>): GenerationJob {
+    let resolveJob: (value: void) => void = () => {};
+    const promise = new Promise<void>(resolve => { resolveJob = resolve; });
+    const job: GenerationJob = {
+      siteId, crmLeadId, kind, state: 'pending', attempts: 0,
+      queuedAt: Date.now(),
+      run,
+      resolve: resolveJob,
+      promise,
+    };
+    return job;
+  }
+
+  private async processGenerate(siteId: string, crmLeadId: string, baseUrl: string | undefined, job: GenerationJob) {
+    const site = await prisma.website.findUnique({ where: { id: siteId } });
+    if (!site) throw notFound('Site não encontrado');
     const lock = await prisma.website.updateMany({ where: { id: site.id, OR: [{ generationStatus: { in: ['pending', 'failed'] } }, { generationStatus: 'generating', updatedAt: { lt: new Date(Date.now() - 150000) } }] }, data: { generationStatus: 'generating', generationError: null } });
-    if (!lock.count) throw new AppError(409, 'Este site já está sendo gerado. Aguarde alguns instantes.');
+    if (!lock.count) return;
+    const onRetry = () => generationQueue.setRetrying(job);
     try {
-      const stored = await this.createStoredSite(business, { notes: crm.notes, baseUrl });
+      const crm = await prisma.crmLead.findUnique({ where: { id: crmLeadId }, include: { lead: true } });
+      if (!crm) throw notFound('Lead do CRM não encontrado.');
+      const business = normalizeBusiness(crm.lead);
+      const stored = await this.createStoredSite(business, { notes: crm.notes, baseUrl }, undefined, undefined, onRetry);
       await this.commit({ site, crmLeadId, stored, source: 'ai_generation' });
-      return this.get(site.id);
+      this.deferredAttempts.delete(site.id);
     } catch (error) {
+      if (this.transientGenerationError(error) && this.deferGeneration(site.id, crmLeadId, baseUrl)) {
+        await prisma.website.update({ where: { id: site.id }, data: { generationStatus: 'pending', generationError: 'Gemini temporariamente indisponível. Nova tentativa automática agendada.' } });
+        return;
+      }
       const detail = error instanceof Error ? error.message : 'erro desconhecido';
       console.error('[Website generation]', { websiteId: site.id, crmLeadId, detail });
       const message = error instanceof AppError ? error.message : `O site gerado não passou na validação: ${detail}`;
@@ -133,16 +226,38 @@ export class WebsiteService {
   }
 
   async regenerate(id: string, instruction: string | undefined, baseUrl?: string) {
+    await this.enqueueRegenerate(id, instruction, baseUrl);
+    return this.get(id);
+  }
+
+  async enqueueRegenerate(id: string, instruction: string | undefined, baseUrl?: string) {
     requireGemini();
     const site = await prisma.website.findUnique({ where: { id }, include: { crmLead: { include: { lead: true } } } });
     if (!site) throw notFound('Site não encontrado');
-    const business = normalizeBusiness(site.crmLead.lead);
+    if (site.generationStatus === 'generating' && Date.now() - new Date(site.updatedAt).getTime() < 150000) {
+      throw new AppError(409, 'Este site já está sendo gerado. Aguarde alguns instantes.');
+    }
+    await prisma.website.update({ where: { id }, data: { generationStatus: 'pending', generationError: null } });
+    const job = this.makeJob(id, site.crmLeadId ?? '', 'regenerate', () => this.processRegenerate(id, instruction, baseUrl, job));
+    void generationQueue.enqueue(job);
+    await job.promise;
+    if (job.state === 'failed') throw new AppError(502, job.error || 'Falha na regeneração do site.');
+  }
+
+  private async processRegenerate(id: string, instruction: string | undefined, baseUrl: string | undefined, job: GenerationJob) {
+    const site = await prisma.website.findUnique({ where: { id }, include: { crmLead: { include: { lead: true } } } });
+    if (!site) throw notFound('Site não encontrado');
     const lock = await prisma.website.updateMany({ where: { id, generationStatus: { not: 'generating' } }, data: { generationStatus: 'generating', generationError: null } });
-    if (!lock.count) throw new AppError(409, 'Este site já está sendo gerado. Aguarde alguns instantes.');
+    if (!lock.count) return;
+    const onRetry = () => generationQueue.setRetrying(job);
     try {
-      const stored = await this.createStoredSite(business, { notes: site.crmLead.notes, baseUrl }, instruction);
+      const business = normalizeBusiness(site.crmLead.lead);
+      let previousPlan: DesignPlan | undefined;
+      try {
+        previousPlan = storedSiteSchema.parse(site.currentDocument).designPlan;
+      } catch { /* site sem documento anterior */ }
+      const stored = await this.createStoredSite(business, { notes: site.crmLead.notes, baseUrl }, instruction, previousPlan, onRetry);
       await this.commit({ site, crmLeadId: site.crmLeadId, stored, source: 'ai_generation', instruction });
-      return this.get(id);
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'erro desconhecido';
       console.error('[Website regenerate]', { websiteId: id, detail });
@@ -163,7 +278,7 @@ export class WebsiteService {
       'styles.css': current.artefact.files['styles.css'],
     };
     if (editScript) filesToSend['script.js'] = current.artefact.files['script.js'];
-    const prompt = buildEditPrompt({ business: current.business, instruction, files: filesToSend });
+    const prompt = buildEditPrompt({ business: current.business, instruction, files: filesToSend, designPlan: current.designPlan });
     const raw = await generateJson(prompt, siteEditGenerationSchema);
     const edit = siteEditSchema.parse(raw);
     const merged = {
@@ -172,8 +287,7 @@ export class WebsiteService {
       'script.js': edit.files['script.js'] ?? current.artefact.files['script.js'],
     };
     const seo = edit.seo ?? current.artefact.seo;
-    const sanitized = sanitizeFiles(merged);
-    const files = ensureTitle(sanitized.files, seo.title, current.business.name);
+    const files = await this.settleFiles(merged, current.business, seo.title);
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo });
     const stored = storedSiteSchema.parse({
       ...current,

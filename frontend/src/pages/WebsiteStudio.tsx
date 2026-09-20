@@ -97,6 +97,10 @@ export function WebsiteStudioPage() {
   }
 
   const doc = site.currentDocument;
+  const plan = doc?.designPlan;
+  const hasPlan = Boolean(plan && (plan.creativeDirection || plan.businessInsight || plan.primaryAction || plan.variationNote || plan.pageFlow.length || plan.designSystem?.palette?.primary));
+  const PALETTE_KEYS = [['primary', 'Primária'], ['secondary', 'Secundária'], ['accent', 'Destaque'], ['background', 'Fundo'], ['surface', 'Superfície']] as const;
+  const designPlan = doc?.designPlan && hasPlan ? doc.designPlan : undefined;
   const busy = publishBusy || aiBusy;
   const publishedUrl = `${window.location.origin}/s/${id}`;
   const published = site.status === 'PUBLISHED' && Boolean(site.publishedAt);
@@ -135,7 +139,7 @@ export function WebsiteStudioPage() {
     {error && <div className="studio-alert" role="alert">{error}<Button variant="unstyled" onClick={() => setError('')} aria-label="Fechar aviso"><X size={15} /></Button></div>}
     {site.generationStatus !== 'completed' && <div className="studio-generating" role="status">
       {site.generationStatus === 'failed' ? <><p role="alert">{site.generationError || 'A geração falhou.'}</p><Button variant="unstyled" className="studio-publish" onClick={() => void generateAgain()}><RefreshCw size={15} />Gerar novamente</Button><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>
-        : <><Loader2 className="animate-spin" /><p>Gemini está criando o site deste estabelecimento... Isso pode levar um minuto.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
+        : <><Loader2 className="animate-spin" /><p><strong>{site.generationStatus === 'pending' ? 'Aguardando o Gemini para retomar a geração automaticamente...' : 'Gerando site com IA para este estabelecimento...'}</strong></p><ul className="studio-generating-steps"><li>Analisando o negócio e o público</li><li>Definindo direção de arte e design system</li><li>Escolhendo os componentes da página</li><li>Escrevendo o código do site</li><li>Validando estrutura e responsividade</li></ul><p className="studio-generating-note">Você não precisa enviar de novo: esta tela atualiza o status automaticamente.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
     </div>}
     <div className="studio-workspace">
       <aside className="studio-left">
@@ -152,8 +156,20 @@ export function WebsiteStudioPage() {
           <p className="studio-fact-meta">Código</p>
           <p className="studio-fact-block"><span>Tamanho</span>{sizeKb} KB · {doc?.artefact.format === 'html-standalone' ? 'HTML+CSS+JS' : doc?.artefact.format}</p>
         </div>}
-        <div className="studio-panel-heading"><h2>Créditos de imagem</h2><p>Levantados na geração; o site usa os mesmos na página.</p></div>
-        <div className="studio-facts">{doc?.assets.map(asset => <p key={asset.id} className="studio-fact-block"><span>{asset.alt || asset.id}</span>{asset.credit} · {asset.provider}{asset.creditUrl && <> · <a href={asset.creditUrl} target="_blank" rel="noreferrer">fonte</a></>}</p>)}</div>
+        {designPlan && <><div className="studio-panel-heading"><h2>Decisões do agente de design</h2><p>Análise, direção e sistema escolhidos pela IA para este negócio.</p></div>
+        <div className="studio-facts studio-plan">
+          {designPlan.businessInsight && <p className="studio-fact-block"><span>Análise do negócio</span>{designPlan.businessInsight}</p>}
+          {designPlan.targetAudience && <p className="studio-fact-block"><span>Público</span>{designPlan.targetAudience}</p>}
+          {designPlan.creativeDirection && <p className="studio-fact-block"><span>Direção criativa</span>{designPlan.creativeDirection}</p>}
+          {designPlan.designSystem?.palette?.primary && <p className="studio-fact-block"><span>Design system</span><span className="studio-plan-swatches">{PALETTE_KEYS.map(([key, label]) => { const color = designPlan.designSystem?.palette?.[key]; return color ? <i key={key} title={`${label} ${color}`} style={{ background: color }} /> : null; })}<em>{designPlan.designSystem?.typography?.family || ''}{designPlan.designSystem?.shape?.radius ? ` · raio ${designPlan.designSystem.shape.radius}` : ''}</em></span></p>}
+          {designPlan.pageFlow.length > 0 && <p className="studio-fact-block"><span>Componentes</span><span className="studio-plan-flow">{designPlan.pageFlow.map(c => <i key={c}>{c}</i>)}</span></p>}
+          {designPlan.primaryAction && <p className="studio-fact-block"><span>Ação principal</span>{designPlan.primaryAction}</p>}
+          {designPlan.whatsappStrategy && <p className="studio-fact-block"><span>WhatsApp</span>{designPlan.whatsappStrategy}</p>}
+          {designPlan.contentDecisions && <p className="studio-fact-block"><span>Adaptação de conteúdo</span>{designPlan.contentDecisions}</p>}
+          {designPlan.variationNote && <p className="studio-fact-block"><span>Diferenciação</span>{designPlan.variationNote}</p>}
+        </div></>}
+        <div className="studio-panel-heading"><h2>Imagens e fontes usadas</h2><p>Priorizamos Google Maps e redes autorizadas; quando necessário, usamos imagens licenciadas compatíveis com o nicho.</p></div>
+        <div className="studio-facts">{doc?.assets.map(asset => <p key={asset.id} className="studio-fact-block"><span className="studio-asset-label"><em>{asset.provider}</em>{asset.alt || asset.id}</span>{asset.credit !== asset.provider ? `${asset.credit} · ` : ''}{asset.creditUrl && <a href={asset.creditUrl} target="_blank" rel="noreferrer">fonte</a>}</p>)}</div>
         <div className="studio-panel-heading"><h2>Versões</h2><p>Cada geração e ajuste cria uma nova versão.</p></div>
         <div className="studio-versions">
           {versions.length === 0 && <p className="studio-fact-meta">Nenhuma versão salva ainda.</p>}

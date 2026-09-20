@@ -1,7 +1,10 @@
 import { createApp } from './app';
 import { env } from './config/env';
+import { generationQueue } from './services/GenerationQueue';
 
 const app = createApp();
+
+void generationQueue.resumePending();
 
 app.listen(env.PORT, () => {
   console.log(`API rodando em http://localhost:${env.PORT}`);

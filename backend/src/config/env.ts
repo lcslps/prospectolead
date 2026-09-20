@@ -4,15 +4,25 @@ import { z } from 'zod';
 dotenv.config();
 
 const envSchema = z.object({
-  PORT: z.coerce.number().default(3001),
+  PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatória'),
   GOOGLE_MAPS_API_KEY: z.string().default(''),
   GEMINI_API_KEY: z.string().default(''),
-  GEMINI_MODEL: z.string().default(''),
+  GEMINI_MODEL: z.string().default('gemini-3.8-flash'),
+  GEMINI_AUX_MODEL: z.string().default('gemini-3.5-flash-lite'),
+  GEMINI_FALLBACK_MODEL: z.string().default('gemini-3.5-flash-lite'),
   GEMINI_THINKING_LEVEL: z.enum(['low', 'medium', 'high']).default('low'),
+  MAX_RETRIES: z.coerce.number().int().min(0).max(6).default(3),
+  MAX_CONCURRENT_GENERATIONS: z.coerce.number().int().min(1).max(10).default(2),
   PEXELS_API_KEY: z.string().default(''),
   PIXABAY_API_KEY: z.string().default(''),
   UNSPLASH_ACCESS_KEY: z.string().default(''),
+  FACEBOOK_ACCESS_TOKEN: z.string().default(''),
+  INSTAGRAM_BUSINESS_ACCOUNT_ID: z.string().default(''),
+  MAX_SITE_REFINEMENT_ITERATIONS: z.coerce.number().int().min(0).max(3).default(2),
+  GEMINI_OVERLOAD_RETRY_MS: z.coerce.number().int().min(15000).max(600000).default(60000),
+  MAX_DEFERRED_GENERATION_RETRIES: z.coerce.number().int().min(0).max(12).default(5),
+  GEMINI_SEND_IMAGES: z.string().default('true').transform(value => !['false', '0', 'off', 'no'].includes(value.toLowerCase())),
   FRONTEND_URL: z.string().default('http://localhost:5173'),
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
