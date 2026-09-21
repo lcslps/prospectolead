@@ -266,7 +266,7 @@ export function WebsiteStudioPage() {
         </div>
       </aside>
       <div className="studio-center">
-        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span>{mode === 'edit' && <span className="studio-edit-hint">Clique em um texto para editar, em uma imagem para trocar e use as setas para mover o bloco.</span>}</div>
+        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span>{mode === 'edit' && <span className="studio-edit-hint">Clique em um texto para editar, em uma imagem para trocar e arraste o bloco selecionado para movê-lo (ou use as setas da barra).</span>}</div>
         <div className="studio-canvas-scroll" ref={canvasRef}>
           <div className={isDesktop ? 'studio-canvas-size desktop' : 'studio-canvas-size device'} style={{ width: frameVisual.w, height: frameVisual.h }}>
             <div className="studio-stage" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: stageLayout.w, height: stageLayout.h }}><WebsiteFrame artefact={doc?.artefact ?? null} interactive={mode === 'interact'} editable={mode === 'edit'} frameRef={frameRef} /></div>
@@ -285,7 +285,7 @@ export function WebsiteStudioPage() {
         <ul className="studio-facts studio-facts-list">
           <li>A IA nunca inventa fatos: só usa os dados verificados do estabelecimento.</li>
           <li>Peça uma coisa por vez para resultados melhores.</li>
-          <li>No modo <strong>Editar direto</strong>, clique em um texto para alterá-lo, em uma imagem para trocá-la e use as setas para mover o bloco. Depois clique em <strong>Salvar alterações</strong>.</li>
+          <li>No modo <strong>Editar direto</strong>, clique em um texto para alterá-lo, em uma imagem para trocá-la e arraste o bloco selecionado para movê-lo para onde quiser. Depois clique em <strong>Salvar alterações</strong>.</li>
           <li>Use <strong>Interagir</strong> para navegar pelos links e testar o site como um visitante.</li>
         </ul>
       </aside>
