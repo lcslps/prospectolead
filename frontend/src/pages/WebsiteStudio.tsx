@@ -187,6 +187,7 @@ export function WebsiteStudioPage() {
   const publishedUrl = `${window.location.origin}/s/${id}`;
   const published = site.status === 'PUBLISHED' && Boolean(site.publishedAt);
   const generationLabel = generationStageLabel(site.generationStage);
+  const generationStageIndex = GENERATION_STAGES.findIndex(([key]) => key === site.generationStage);
   const sizeKb = doc ? Math.round(doc.meta.sizeBytes / KB) : 0;
   const facts = doc?.business;
 
@@ -223,8 +224,15 @@ export function WebsiteStudioPage() {
     </header>
     {error && <div className="studio-alert" role="alert">{error}<Button variant="unstyled" onClick={() => setError('')} aria-label="Fechar aviso"><X size={15} /></Button></div>}
     {site.generationStatus !== 'completed' && <div className="studio-generating" role="status">
-      {site.generationStatus === 'failed' ? <><p role="alert">{site.generationError || 'A geração falhou.'}</p><Button variant="unstyled" className="studio-publish" onClick={() => void generateAgain()}><RefreshCw size={15} />Gerar novamente</Button><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>
-        : <><Loader2 className="animate-spin" /><p><strong>{generationLabel}</strong></p><ul className="studio-generating-steps">{GENERATION_STAGES.map(([key, label]) => <li key={key} className={site.generationStage === key ? 'active' : ''}>{site.generationStage === key ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}{label}</li>)}</ul>{site.generationStage === 'RETRY_WAIT' && site.generationNextAttemptAt && <p className="studio-generating-note">Próxima tentativa: {new Date(site.generationNextAttemptAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.</p>}<p className="studio-generating-note">Esta tela consulta o estágio persistido pelo backend a cada poucos segundos.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
+      {site.generationStatus === 'failed' ? <div className="studio-gen-card studio-gen-failed"><p role="alert">{site.generationError || 'A geração falhou.'}</p><div className="studio-modal-actions"><Button variant="unstyled" className="studio-publish" onClick={() => void generateAgain()}><RefreshCw size={15} />Gerar novamente</Button><Button variant="unstyled" className="studio-outline" onClick={() => navigate('/sites')}>Voltar</Button></div></div>
+        : <div className="studio-gen-card">
+            <div className="studio-gen-head"><span className="studio-gen-badge"><Sparkles size={17} /></span><div><h2>Gerando seu site</h2><p className="studio-gen-label">{generationLabel}</p></div></div>
+            <div className="studio-generating-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={generationStageIndex === -1 ? 0 : Math.round(((generationStageIndex + 1) / GENERATION_STAGES.length) * 100)}><i style={{ width: `${generationStageIndex === -1 ? 0 : Math.round(((generationStageIndex + 1) / GENERATION_STAGES.length) * 100)}%` }} /></div>
+            <ul className="studio-generating-steps">{GENERATION_STAGES.map(([key, label]) => { const idx = GENERATION_STAGES.findIndex(([k]) => k === key); const state = generationStageIndex === -1 ? 'pending' : generationStageIndex === idx ? 'active' : generationStageIndex > idx ? 'done' : 'pending'; return <li key={key} className={state}>{state === 'done' ? <span className="studio-step-icon done"><Check size={13} /></span> : null}{state === 'active' ? <span className="studio-step-icon active"><Loader2 size={14} className="animate-spin" /></span> : null}{state === 'pending' ? <span className="studio-step-dot" /> : null}<span>{label}</span></li>; })}</ul>
+            {site.generationStage === 'RETRY_WAIT' && site.generationNextAttemptAt && <p className="studio-generating-note">Próxima tentativa: {new Date(site.generationNextAttemptAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.</p>}
+            <p className="studio-generating-note">Esta tela consulta o estágio persistido pelo backend a cada poucos segundos.</p>
+            <Button variant="unstyled" className="studio-gen-back" onClick={() => navigate('/sites')}>Voltar aos projetos</Button>
+          </div>}
     </div>}
     <div className="studio-workspace">
       <aside className="studio-left">
