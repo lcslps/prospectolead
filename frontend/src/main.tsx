@@ -8,6 +8,7 @@ import './theme.css';
 import './components/ui/controls.css';
 import './pages/page.css';
 import './pages/page-standard.css';
+import './animations.css';
 import { initializeTheme } from './components/Theme';
 
 initializeTheme();

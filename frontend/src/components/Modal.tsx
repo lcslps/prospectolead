@@ -29,9 +29,9 @@ export function Modal({
   const sizes = { sm: 'max-w-md', md: 'max-w-xl', lg: 'max-w-3xl', xl: 'max-w-5xl' };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <div className="anim-modal-overlay fixed inset-0 z-[90] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
       <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className={`relative z-10 my-8 w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 ${sizes[size]}`}>
+      <div className={`anim-modal-panel relative z-10 my-8 w-full rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900 ${sizes[size]}`}>
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">{title}</h2>
           <Button variant="unstyled"
