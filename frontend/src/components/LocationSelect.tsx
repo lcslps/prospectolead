@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Field } from './ui/Field';
 import { Input } from './ui/Input';
 import { Select } from './ui/Select';
+import { getData } from '../services/api';
 
 export interface LocationValue {
   pais: string;
@@ -35,44 +36,63 @@ export const COUNTRIES = [
   'Austrália',
 ];
 
-const FALLBACK_STATES: Array<{ sigla: string; nome: string }> = [
-  { sigla: 'AC', nome: 'Acre' },
-  { sigla: 'AL', nome: 'Alagoas' },
-  { sigla: 'AP', nome: 'Amapá' },
-  { sigla: 'AM', nome: 'Amazonas' },
-  { sigla: 'BA', nome: 'Bahia' },
-  { sigla: 'CE', nome: 'Ceará' },
-  { sigla: 'DF', nome: 'Distrito Federal' },
-  { sigla: 'ES', nome: 'Espírito Santo' },
-  { sigla: 'GO', nome: 'Goiás' },
-  { sigla: 'MA', nome: 'Maranhão' },
-  { sigla: 'MT', nome: 'Mato Grosso' },
-  { sigla: 'MS', nome: 'Mato Grosso do Sul' },
-  { sigla: 'MG', nome: 'Minas Gerais' },
-  { sigla: 'PA', nome: 'Pará' },
-  { sigla: 'PB', nome: 'Paraíba' },
-  { sigla: 'PR', nome: 'Paraná' },
-  { sigla: 'PE', nome: 'Pernambuco' },
-  { sigla: 'PI', nome: 'Piauí' },
-  { sigla: 'RJ', nome: 'Rio de Janeiro' },
-  { sigla: 'RN', nome: 'Rio Grande do Norte' },
-  { sigla: 'RS', nome: 'Rio Grande do Sul' },
-  { sigla: 'RO', nome: 'Rondônia' },
-  { sigla: 'RR', nome: 'Roraima' },
-  { sigla: 'SC', nome: 'Santa Catarina' },
-  { sigla: 'SP', nome: 'São Paulo' },
-  { sigla: 'SE', nome: 'Sergipe' },
-  { sigla: 'TO', nome: 'Tocantins' },
+const COUNTRY_CODES: Record<string, string> = {
+  Brasil: 'BR',
+  Portugal: 'PT',
+  'Estados Unidos': 'US',
+  'Canadá': 'CA',
+  'México': 'MX',
+  Argentina: 'AR',
+  Chile: 'CL',
+  Uruguai: 'UY',
+  Paraguai: 'PY',
+  'Bolívia': 'BO',
+  Peru: 'PE',
+  'Colômbia': 'CO',
+  Venezuela: 'VE',
+  Equador: 'EC',
+  Espanha: 'ES',
+  'França': 'FR',
+  'Itália': 'IT',
+  Alemanha: 'DE',
+  'Reino Unido': 'GB',
+  'Japão': 'JP',
+  'Austrália': 'AU',
+};
+
+const FALLBACK_STATES: Array<{ code: string; name: string }> = [
+  { code: 'AC', name: 'Acre' },
+  { code: 'AL', name: 'Alagoas' },
+  { code: 'AP', name: 'Amapá' },
+  { code: 'AM', name: 'Amazonas' },
+  { code: 'BA', name: 'Bahia' },
+  { code: 'CE', name: 'Ceará' },
+  { code: 'DF', name: 'Distrito Federal' },
+  { code: 'ES', name: 'Espírito Santo' },
+  { code: 'GO', name: 'Goiás' },
+  { code: 'MA', name: 'Maranhão' },
+  { code: 'MT', name: 'Mato Grosso' },
+  { code: 'MS', name: 'Mato Grosso do Sul' },
+  { code: 'MG', name: 'Minas Gerais' },
+  { code: 'PA', name: 'Pará' },
+  { code: 'PB', name: 'Paraíba' },
+  { code: 'PR', name: 'Paraná' },
+  { code: 'PE', name: 'Pernambuco' },
+  { code: 'PI', name: 'Piauí' },
+  { code: 'RJ', name: 'Rio de Janeiro' },
+  { code: 'RN', name: 'Rio Grande do Norte' },
+  { code: 'RS', name: 'Rio Grande do Sul' },
+  { code: 'RO', name: 'Rondônia' },
+  { code: 'RR', name: 'Roraima' },
+  { code: 'SC', name: 'Santa Catarina' },
+  { code: 'SP', name: 'São Paulo' },
+  { code: 'SE', name: 'Sergipe' },
+  { code: 'TO', name: 'Tocantins' },
 ];
 
 const IBGE_STATES_URL = 'https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome';
 const IBGE_CITIES_URL = (uf: string) =>
   `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios?orderBy=nome`;
-
-interface IbgeEstado {
-  sigla: string;
-  nome: string;
-}
 
 export function LocationSelect({
   value,
@@ -85,7 +105,7 @@ export function LocationSelect({
   required?: { pais?: boolean; estado?: boolean; cidade?: boolean };
   disabled?: boolean;
 }) {
-  const [states, setStates] = useState<IbgeEstado[] | null>(null);
+  const [states, setStates] = useState<Array<{ code: string; name: string }> | null>(null);
   const [statesLoading, setStatesLoading] = useState(false);
   const [statesError, setStatesError] = useState(false);
   const [cities, setCities] = useState<string[] | null>(null);
@@ -93,40 +113,52 @@ export function LocationSelect({
   const [citiesError, setCitiesError] = useState(false);
 
   const isBrazil = value.pais === 'Brasil';
+  const countryCode = COUNTRY_CODES[value.pais] ?? '';
 
   useEffect(() => {
-    if (!isBrazil) {
-      setStates(null);
-      setCities(null);
-      return;
-    }
+    if (!isBrazil && !countryCode) return;
     let active = true;
     setStatesLoading(true);
     setStatesError(false);
-    fetch(IBGE_STATES_URL)
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data: IbgeEstado[]) => {
-        if (active) setStates(data.length > 0 ? data : FALLBACK_STATES);
-      })
-      .catch(() => {
-        if (active) {
-          setStates(FALLBACK_STATES);
-          setStatesError(true);
-        }
-      })
-      .finally(() => {
-        if (active) setStatesLoading(false);
-      });
+    setStates(null);
+    setCities(null);
+    if (isBrazil) {
+      fetch(IBGE_STATES_URL)
+        .then((res) => {
+          if (!res.ok) throw new Error();
+          return res.json();
+        })
+        .then((data: Array<{ sigla: string; nome: string }>) => {
+          if (active) setStates(data.length > 0 ? data.map((s) => ({ code: s.sigla, name: s.nome })) : FALLBACK_STATES);
+        })
+        .catch(() => {
+          if (active) {
+            setStates(FALLBACK_STATES);
+            setStatesError(true);
+          }
+        })
+        .finally(() => {
+          if (active) setStatesLoading(false);
+        });
+    } else {
+      getData<{ states: Array<{ code: string; name: string }> }>('/location/states', { country: countryCode })
+        .then((data) => {
+          if (active) setStates(data.states);
+        })
+        .catch(() => {
+          if (active) setStatesError(true);
+        })
+        .finally(() => {
+          if (active) setStatesLoading(false);
+        });
+    }
     return () => {
       active = false;
     };
-  }, [isBrazil]);
+  }, [isBrazil, countryCode]);
 
   useEffect(() => {
-    if (!isBrazil || !value.estado) {
+    if (!value.estado) {
       setCities(null);
       return;
     }
@@ -134,24 +166,37 @@ export function LocationSelect({
     setCitiesLoading(true);
     setCitiesError(false);
     setCities(null);
-    fetch(IBGE_CITIES_URL(value.estado))
-      .then((res) => {
-        if (!res.ok) throw new Error();
-        return res.json();
-      })
-      .then((data: Array<{ nome: string }>) => {
-        if (active) setCities(data.map((c) => c.nome));
-      })
-      .catch(() => {
-        if (active) setCitiesError(true);
-      })
-      .finally(() => {
-        if (active) setCitiesLoading(false);
-      });
+    if (isBrazil) {
+      fetch(IBGE_CITIES_URL(value.estado))
+        .then((res) => {
+          if (!res.ok) throw new Error();
+          return res.json();
+        })
+        .then((data: Array<{ nome: string }>) => {
+          if (active) setCities(data.map((c) => c.nome));
+        })
+        .catch(() => {
+          if (active) setCitiesError(true);
+        })
+        .finally(() => {
+          if (active) setCitiesLoading(false);
+        });
+    } else {
+      getData<{ cities: string[] }>('/location/cities', { country: countryCode, state: value.estado })
+        .then((data) => {
+          if (active) setCities(data.cities);
+        })
+        .catch(() => {
+          if (active) setCitiesError(true);
+        })
+        .finally(() => {
+          if (active) setCitiesLoading(false);
+        });
+    }
     return () => {
       active = false;
     };
-  }, [isBrazil, value.estado]);
+  }, [isBrazil, countryCode, value.estado]);
 
   const handlePais = (pais: string) => {
     onChange({ pais, estado: '', cidade: '' });
@@ -180,93 +225,74 @@ export function LocationSelect({
         </Field>
       </div>
 
-      {isBrazil ? (
-        <>
-          <div className="sm:col-span-1">
-            <Field
-              label="Estado"
-              htmlFor="loc-estado"
-              required={required.estado ?? true}
-              hint={statesError ? 'Lista offline (UFs)' : undefined}
+      <div className="sm:col-span-1">
+        <Field
+          label={isBrazil ? 'Estado' : 'Estado / Região'}
+          htmlFor="loc-estado"
+          required={required.estado ?? true}
+          hint={statesError ? 'Lista indisponível — digite manualmente.' : undefined}
+        >
+          {statesError ? (
+            <Input
+              id="loc-estado"
+              placeholder={isBrazil ? 'Ex.: MT' : 'Ex.: NY'}
+              value={value.estado}
+              onChange={(e) => handleEstado(e.target.value)}
+              disabled={disabled}
+            />
+          ) : (
+            <Select
+              id="loc-estado"
+              value={value.estado}
+              onChange={(e) => handleEstado(e.target.value)}
+              disabled={disabled || statesLoading}
+              loading={statesLoading}
             >
-              <Select
-                id="loc-estado"
-                value={value.estado}
-                onChange={(e) => handleEstado(e.target.value)}
-                disabled={disabled || statesLoading}
-                loading={statesLoading}
-              >
-                <option value="">Selecione o estado...</option>
-                {(states ?? []).map((state) => (
-                  <option key={state.sigla} value={state.sigla}>
-                    {state.sigla} · {state.nome}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-          </div>
+              <option value="">Selecione o estado...</option>
+              {(states ?? []).map((state) => (
+                <option key={state.code} value={state.code}>
+                  {isBrazil ? `${state.code} · ${state.name}` : state.name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
 
-          <div className="sm:col-span-2">
-            <Field label="Cidade" htmlFor="loc-cidade" required={required.cidade}>
-              {citiesError ? (
-                <Input
-                  id="loc-cidade"
-                  placeholder="Digite a cidade..."
-                  value={value.cidade}
-                  onChange={(e) => onChange({ ...value, cidade: e.target.value })}
-                  disabled={disabled}
-                />
-              ) : (
-                <Select
-                  id="loc-cidade"
-                  value={value.cidade}
-                  onChange={(e) => onChange({ ...value, cidade: e.target.value })}
-                  disabled={disabled || !value.estado || citiesLoading}
-                  loading={citiesLoading}
-                >
-                  <option value="">
-                    {!value.estado
-                      ? 'Selecione o estado primeiro'
-                      : citiesLoading
-                        ? 'Carregando cidades...'
-                        : 'Selecione a cidade...'}
-                  </option>
-                  {(cities ?? []).map((city) => (
-                    <option key={city} value={city}>
-                      {city}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </Field>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="sm:col-span-1">
-            <Field label="Estado / Região" htmlFor="loc-intl-estado" required={required.estado}>
-              <Input
-                id="loc-intl-estado"
-                placeholder="Ex: New York"
-                value={value.estado}
-                onChange={(e) => onChange({ ...value, estado: e.target.value })}
-                disabled={disabled}
-              />
-            </Field>
-          </div>
-          <div className="sm:col-span-2">
-            <Field label="Cidade" htmlFor="loc-intl-cidade" required={required.cidade}>
-              <Input
-                id="loc-intl-cidade"
-                placeholder="Digite a cidade..."
-                value={value.cidade}
-                onChange={(e) => onChange({ ...value, cidade: e.target.value })}
-                disabled={disabled}
-              />
-            </Field>
-          </div>
-        </>
-      )}
+      <div className="sm:col-span-2">
+        <Field label="Cidade" htmlFor="loc-cidade" required={required.cidade}>
+          {citiesError ? (
+            <Input
+              id="loc-cidade"
+              placeholder="Digite a cidade..."
+              value={value.cidade}
+              onChange={(e) => onChange({ ...value, cidade: e.target.value })}
+              disabled={disabled}
+            />
+          ) : (
+            <Select
+              id="loc-cidade"
+              value={value.cidade}
+              onChange={(e) => onChange({ ...value, cidade: e.target.value })}
+              disabled={disabled || !value.estado || citiesLoading}
+              loading={citiesLoading}
+            >
+              <option value="">
+                {!value.estado
+                  ? 'Selecione o estado primeiro'
+                  : citiesLoading
+                    ? 'Carregando cidades...'
+                    : 'Selecione a cidade...'}
+              </option>
+              {(cities ?? []).map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
     </div>
   );
 }

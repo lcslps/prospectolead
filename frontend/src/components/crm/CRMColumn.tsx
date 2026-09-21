@@ -1,4 +1,6 @@
 import { useDroppable } from '@dnd-kit/core';
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { CrmLeadFull, CrmStage } from '../../types';
 import { CRM_DOT_COLORS, CRM_STAGE_HEADERS } from '../../lib/utils';
@@ -17,12 +19,24 @@ export function CRMColumn({
 }) {
   const { setNodeRef, isOver: dropOver } = useDroppable({ id: stage });
   const over = isOver || dropOver;
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
+
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const update = () => setHasMoreBelow(content.scrollHeight > content.clientHeight + 2 && content.scrollTop + content.clientHeight < content.scrollHeight - 2);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(content);
+    return () => observer.disconnect();
+  }, [items]);
 
   return (
     <div
       ref={setNodeRef}
       data-crm-stage={stage}
-      className={`crm-pipeline-column flex flex-col border ${
+      className={`crm-pipeline-column relative flex flex-col border ${
         over ? 'border-brand-400 ring-2 ring-brand-500/20' : ''
       }`}
     >
@@ -36,7 +50,10 @@ export function CRMColumn({
         </span>
       </div>
 
-      <div className="crm-column-content flex-1 space-y-2 overflow-y-auto px-2 pb-3 pt-1">
+      <div ref={contentRef} onScroll={() => {
+        const content = contentRef.current;
+        if (content) setHasMoreBelow(content.scrollTop + content.clientHeight < content.scrollHeight - 2);
+      }} className="crm-column-content flex-1 space-y-2 overflow-y-auto px-2 pb-3 pt-1">
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           {items.map((item) => (
             <CRMCard key={item.id} crmLead={item} onOpen={() => onOpenCard(item.id)} />
@@ -48,6 +65,7 @@ export function CRMColumn({
           </div>
         )}
       </div>
+      {hasMoreBelow && <div className="crm-column-scroll-hint" aria-hidden="true"><ChevronDown size={14} />Role para ver mais</div>}
     </div>
   );
 }

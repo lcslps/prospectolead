@@ -11,6 +11,7 @@ import { campaignsRouter } from './routes/campaigns';
 import { templatesRouter } from './routes/templates';
 import { messagesRouter } from './routes/messages';
 import { settingsRouter } from './routes/settings';
+import { locationRouter } from './routes/location';
 import { crmRouter } from './routes/crm';
 import { websitesRouter } from './routes/websites';
 
@@ -63,6 +64,7 @@ export function createApp(): Express {
   app.use('/api/templates', templatesRouter);
   app.use('/api/messages', messagesRouter);
   app.use('/api/settings', settingsRouter);
+  app.use('/api/location', locationRouter);
   app.use('/api/crm', crmRouter);
   app.use('/api/websites', websitesRouter);
 

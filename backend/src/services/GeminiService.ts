@@ -1,6 +1,7 @@
 import { env } from '../config/env';
 import { AppError } from '../utils/apiError';
 import { REPAIR_SYSTEM_INSTRUCTION, SYSTEM_INSTRUCTION } from './SitePrompt';
+import { geminiRequestScheduler } from './GeminiRequestScheduler';
 
 export function requireGemini() {
   if (!env.GEMINI_API_KEY || !env.GEMINI_MODEL) throw new AppError(400, 'Configure GEMINI_API_KEY e GEMINI_MODEL no .env do backend para usar a integraÃ§Ã£o com Gemini.');
@@ -61,7 +62,7 @@ export async function generateJson(
   for (let attempt = 1; attempt <= totalAttempts; attempt++) {
     const request = {
       method: 'POST',
-      signal: AbortSignal.timeout(110000),
+      signal: AbortSignal.timeout(env.GEMINI_REQUEST_TIMEOUT_MS),
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -70,7 +71,7 @@ export async function generateJson(
       }),
     };
     try {
-      response = await fetch(url, request);
+      response = await geminiRequestScheduler.run(() => fetch(url, request));
     } catch (error) {
       const reason = error instanceof Error ? `Falha de conexÃ£o ou timeout na API: ${error.message.slice(0, 180)}` : 'Falha de conexÃ£o ou timeout na API';
       if (attempt === totalAttempts) throw new AppError(502, 'NÃ£o foi possÃ­vel conectar ao Gemini. Tente novamente.');
@@ -84,7 +85,7 @@ export async function generateJson(
     const detail = await response.text().catch(() => '');
     if (attempt === totalAttempts || !RETRYABLE_STATUS.has(status)) {
       const fallback = env.GEMINI_FALLBACK_MODEL.trim();
-      if (status === 503 && !options.model && fallback && fallback !== model) {
+      if ((status === 429 || status === 503) && !options.model && fallback && fallback !== model) {
         console.warn('[Gemini] Modelo principal sobrecarregado; usando fallback configurado.', { model, fallback });
         return generateJson(prompt, schema, systemInstruction, vision, { ...options, model: fallback });
       }
@@ -93,6 +94,7 @@ export async function generateJson(
     }
     const retryAfterSeconds = Number(response.headers.get('retry-after') ?? '') || undefined;
     const waitMs = backoffWait(attempt, retryAfterSeconds);
+    if (status === 429 || status === 503) geminiRequestScheduler.cooldown(waitMs);
     options.onRetry?.({ attempt, status, waitMs, reason: `Resposta ${status} (${RETRY_LABELS[status] ?? 'erro temporÃ¡rio'})` });
     await sleep(waitMs);
   }

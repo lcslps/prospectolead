@@ -65,7 +65,7 @@ export const artefactSchema = z.object({
 export type SiteArtefact = z.infer<typeof artefactSchema>;
 
 export const versionMetaSchema = z.object({
-  source: z.enum(['ai_generation', 'ai_edit', 'restore', 'publish']).default('ai_edit'),
+  source: z.enum(['ai_generation', 'ai_edit', 'manual_edit', 'restore', 'publish']).default('ai_edit'),
   instruction: z.string().max(2000).default(''),
   sizeBytes: z.number().int().nonnegative().default(0),
 });

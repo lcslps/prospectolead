@@ -124,6 +124,19 @@ const crmActivitySchema = z.object({
   }),
 });
 
+const locationStatesQuerySchema = z.object({
+  query: z.object({
+    country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, 'País deve ser um código ISO de 2 letras'),
+  }),
+});
+
+const locationCitiesQuerySchema = z.object({
+  query: z.object({
+    country: z.string().trim().toUpperCase().regex(/^[A-Z]{2}$/, 'País deve ser um código ISO de 2 letras'),
+    state: z.string().trim().toUpperCase().regex(/^[A-Z0-9-]{1,8}$/, 'Estado inválido'),
+  }),
+});
+
 const prospeccaoSchema = z.object({
   body: z.object({
     nicho: z.string().trim().min(2, 'Nicho deve ter pelo menos 2 caracteres').max(80),
@@ -131,7 +144,7 @@ const prospeccaoSchema = z.object({
     estado: z
       .string()
       .trim()
-      .max(8, 'Estado/região deve ter no máximo 8 caracteres')
+      .max(80, 'Estado/região deve ter no máximo 80 caracteres')
       .optional()
       .default('')
       .transform((v) => (v ? v.toUpperCase() : v)),
@@ -262,6 +275,8 @@ const settingsSchema = z.object({
 });
 
 export {
+  locationStatesQuerySchema,
+  locationCitiesQuerySchema,
   prospeccaoSchema,
   leadFiltersSchema,
   leadIdParamsSchema,

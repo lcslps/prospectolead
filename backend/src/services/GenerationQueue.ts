@@ -103,7 +103,7 @@ class GenerationQueue {
         where: {
           generationStatus: { in: ['pending', 'generating'] },
         },
-        select: { id: true, crmLeadId: true, updatedAt: true, generationStatus: true },
+        select: { id: true, crmLeadId: true, updatedAt: true, generationStatus: true, generationNextAttemptAt: true },
       });
       for (const site of stale) {
         if (!site.crmLeadId) continue;
@@ -112,7 +112,10 @@ class GenerationQueue {
         const { websiteService } = await import('./WebsiteService');
         await prisma.website.update({ where: { id: site.id }, data: { generationStatus: 'pending', generationError: null } });
         // Não espera a chamada terminar: uma API externa lenta não pode bloquear a retomada dos demais pendentes.
-        void websiteService.enqueueGenerate(site.crmLeadId, { baseUrl: undefined, resume: true });
+        const waitMs = Math.max(0, (site.generationNextAttemptAt?.getTime() ?? 0) - Date.now());
+        setTimeout(() => {
+          void websiteService.enqueueGenerate(site.crmLeadId!, { baseUrl: undefined, resume: true, wait: false });
+        }, waitMs);
       }
     } catch (error) {
       console.error('[GenerationQueue] Falha ao retomar gerações pendentes:', error);

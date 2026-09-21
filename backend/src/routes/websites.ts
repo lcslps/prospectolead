@@ -5,6 +5,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { ok, okNoContent } from '../utils/respond';
 import { badRequest, notFound } from '../utils/apiError';
 import { websiteService } from '../services/WebsiteService';
+import { artefactFilesSchema } from '../services/siteArtefactSchema';
 import { generationQueue } from '../services/GenerationQueue';
 import { env } from '../config/env';
 import { googlePlacesService } from '../services/GooglePlacesService';
@@ -49,8 +50,8 @@ websitesRouter.get('/public/:id', asyncHandler(async (req, res) => { ok(res, awa
 websitesRouter.get('/lead/:id', asyncHandler(async (req, res) => { ok(res, await websiteService.byLead(String(req.params.id))); }));
 websitesRouter.get('/queue', asyncHandler(async (_req, res) => { ok(res, generationQueue.snapshot()); }));
 websitesRouter.post('/generate', aiLimit, asyncHandler(async (req, res) => {
-  const { crmLeadId, baseUrl } = z.object({ crmLeadId: z.string().min(1).max(100), baseUrl: z.string().optional() }).parse(req.body);
-  ok(res, await websiteService.generate(crmLeadId, baseUrlOf(baseUrl)));
+  const { crmLeadId, baseUrl, template } = z.object({ crmLeadId: z.string().min(1).max(100), baseUrl: z.string().optional(), template: z.enum(['simple', 'animated']).optional() }).parse(req.body);
+  ok(res, await websiteService.generate(crmLeadId, baseUrlOf(baseUrl), template));
 }));
 websitesRouter.get('/:id/versions', asyncHandler(async (req, res) => { ok(res, await websiteService.versions(String(req.params.id))); }));
 websitesRouter.post('/:id/restore', aiLimit, asyncHandler(async (req, res) => {
@@ -60,6 +61,10 @@ websitesRouter.post('/:id/restore', aiLimit, asyncHandler(async (req, res) => {
 websitesRouter.post('/:id/regenerate', aiLimit, asyncHandler(async (req, res) => {
   const { instruction, baseUrl } = z.object({ instruction: z.string().max(2000).optional(), baseUrl: z.string().optional() }).parse(req.body);
   ok(res, await websiteService.regenerate(String(req.params.id), instruction, baseUrlOf(baseUrl)));
+}));
+websitesRouter.put('/:id/content', asyncHandler(async (req, res) => {
+  const { files } = z.object({ files: artefactFilesSchema }).parse(req.body);
+  ok(res, await websiteService.saveContent(String(req.params.id), files));
 }));
 websitesRouter.post('/:id/rewrite', aiLimit, asyncHandler(async (req, res) => {
   const { instruction } = z.object({ instruction: z.string().min(1).max(2000) }).parse(req.body);

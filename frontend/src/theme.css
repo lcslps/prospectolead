@@ -48,7 +48,7 @@ input[type=checkbox], input[type=radio] { accent-color:var(--app-accent); }
 .workspace-shell .project-row:hover { border-color:var(--app-accent-border); }
 .workspace-shell .empty-state-icon { color:var(--app-muted); }
 .workspace-shell .crm-stat-icon { background:var(--app-accent-soft);color:var(--app-accent); }
-.studio { color-scheme:inherit;background:var(--app-canvas);color:var(--app-ink); }
+:root .studio { color-scheme:inherit;background:var(--app-canvas);color:var(--app-ink); }
 .studio .studio-toolbar,.studio .studio-left,.studio .studio-right,.studio .studio-ai-modal { background:var(--app-surface);color:var(--app-ink);border-color:var(--app-border); }
 .studio .studio-center,.studio .studio-section-list,.studio .studio-catalog { background:var(--app-canvas); }
 .studio .studio-panel-heading,.studio .studio-panel-block,.studio .studio-subgroup,.studio .studio-item-editor { border-color:var(--app-border); }
@@ -71,13 +71,54 @@ input[type=checkbox], input[type=radio] { accent-color:var(--app-accent); }
 .studio .studio-device-buttons button.active { color:var(--app-accent); }
 .studio .studio-ai-modal>.studio-error { color:#dc7d70; }
 
+.workspace-crm { height:100dvh; overflow:hidden; }
+.workspace-crm .workspace-body { height:100dvh; min-height:0; }
+.workspace-crm .workspace-content { display:flex; min-height:0; overflow:hidden; padding-bottom:24px; }
 .workspace-crm .workspace-footer { display:none; }
-.crm-page { display:grid; gap:20px; align-content:start; }
+.crm-page { display:flex; flex:1; min-height:0; flex-direction:column; gap:20px; overflow:hidden; }
 .crm-page .workspace-heading { margin-bottom:0; }
-.crm-board-container { height:calc(100dvh - 350px); min-height:460px; }
-.crm-board-grid { display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:12px;height:100%;overflow-x:auto;padding-bottom:12px;align-items:stretch; }
-.crm-pipeline-column { min-width:0;height:100%;max-height:100%;border-radius:12px;border-color:var(--app-border);background:var(--app-raised); }
-.crm-pipeline-column>div:first-child { background:var(--app-surface);border-bottom:1px solid var(--app-border);border-radius:12px 12px 0 0;padding:14px 10px; }
-.crm-column-content { min-height:0;padding-top:10px; }
+.crm-board-container { flex:1; min-height:0; overflow:hidden; }
+.crm-board-grid { display:grid;grid-template-columns:repeat(6,minmax(170px,1fr));gap:12px;height:100%;min-height:0;overflow:hidden;align-items:stretch; }
+.crm-pipeline-column { min-width:0;height:100%;min-height:0;max-height:100%;overflow:hidden;border-radius:12px;border-color:var(--app-border);background:var(--app-raised); }
+.crm-pipeline-column>div:first-child { position:sticky;top:0;z-index:2;flex-shrink:0;background:var(--app-surface);border-bottom:1px solid var(--app-border);border-radius:12px 12px 0 0;padding:14px 10px; }
+.crm-column-content { flex:1 1 0!important;min-height:0!important;height:0;overflow-y:auto!important;overscroll-behavior:contain;padding-top:10px;scrollbar-width:none; }
+.crm-column-content::-webkit-scrollbar { display:none; }
+.crm-column-scroll-hint { position:absolute;z-index:3;right:8px;bottom:8px;left:8px;display:flex;align-items:end;justify-content:center;gap:4px;height:58px;padding-bottom:7px;background:linear-gradient(to bottom,transparent,var(--app-raised) 65%);color:var(--app-muted);font-size:10px;font-weight:600;pointer-events:none; }
 .crm-column-content>div:only-child { min-height:110px; }
-@media(max-width:700px){.crm-board-grid{grid-template-columns:repeat(6,260px)}.crm-board-container{height:65dvh;min-height:420px}}
+@media(max-width:700px){.workspace-crm,.workspace-crm .workspace-body{height:auto;overflow:visible}.workspace-crm .workspace-content{display:block;overflow:visible}.crm-page{overflow:visible}.crm-board-grid{grid-template-columns:repeat(6,260px);overflow-x:auto}.crm-board-container{height:65dvh;min-height:420px;overflow:hidden}}
+
+/* Estúdio no modo escuro: o CSS do estúdio fixa cores claras, então reforçamos o contraste aqui. */
+.dark .studio { color-scheme:dark;background:var(--app-canvas);color:var(--app-ink); }
+.dark .studio-canvas-scroll { background:var(--app-canvas); }
+.dark .studio-canvas-size.device { box-shadow:0 0 0 1px var(--app-border),0 14px 34px rgba(0,0,0,.55); }
+.dark .studio-frame,.dark .studio-frame-empty { background:var(--app-surface);color:var(--app-muted); }
+.dark .studio-generating { background:var(--app-canvas);color:var(--app-muted); }
+.dark .studio-generating-steps li { color:var(--app-muted); }
+.dark .studio-generating-note { color:var(--app-faint); }
+.dark .studio-toolbar>button:first-child { color:var(--app-muted); }
+.dark .studio-facts { color:var(--app-ink); }
+.dark .studio-facts>p { color:var(--app-muted); }
+.dark .studio-facts>p svg { color:var(--app-faint); }
+.dark .studio-facts a { color:var(--app-accent); }
+.dark .studio-fact-main strong { color:var(--app-ink); }
+.dark .studio-fact-main span { color:var(--app-muted); }
+.dark .studio-fact-block span { color:var(--app-faint); }
+.dark .studio-fact-meta { color:var(--app-faint); }
+.dark .studio-asset-label em,.dark .studio-plan-flow>i { background:var(--app-accent-soft);border-color:var(--app-accent-border);color:var(--app-accent); }
+.dark .studio-plan-swatches em { color:var(--app-muted)!important; }
+.dark .studio-version-row { border-color:var(--app-border); }
+.dark .studio-version-row.current { background:var(--app-accent-soft); }
+.dark .studio-version-no { color:var(--app-accent); }
+.dark .studio-version-info strong { color:var(--app-ink); }
+.dark .studio-version-info small { color:var(--app-faint); }
+.dark .studio-tip { background:var(--app-surface);border-color:var(--app-border);color:var(--app-ink)!important; }
+.dark .studio-tip strong { color:var(--app-ink); }
+.dark .studio-tip small { color:var(--app-muted); }
+.dark .studio-tip svg { color:var(--app-accent); }
+.dark .studio-modal-backdrop { background:rgba(0,0,0,.6); }
+.dark .studio-modal-heading h2 { color:var(--app-ink); }
+.dark .studio-modal-heading>button { color:var(--app-muted); }
+.dark .studio-instruction { background:var(--app-surface);color:var(--app-ink);border-color:var(--app-border); }
+.dark .studio-field>span { color:var(--app-ink); }
+.dark .studio-field-hint { color:var(--app-faint); }
+.dark .studio-loading { color:var(--app-muted); }

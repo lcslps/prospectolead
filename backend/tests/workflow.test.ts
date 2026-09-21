@@ -34,6 +34,14 @@ test('ProspecÃƒÂ§ÃƒÂ£o Ã¢â€ â€™ CRM Ã¢â€ â€™ Gemin
     const response = await originalFetch(`http://127.0.0.1:${port}/api${path}`, init);
     return { status: response.status, body: await response.json() as any };
   };
+  const waitForGeneration = async (siteId: string) => {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const current = await request(`/websites/${siteId}`);
+      if (current.body.data.generationStatus === 'completed' || current.body.data.generationStatus === 'failed') return current.body.data;
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
+    throw new Error('A geração assíncrona não foi concluída durante o teste.');
+  };
   const baseline = (await request('/dashboard')).body.data;
   let crmIds: string[] = []; let site: any; let artefact1: string;
   try {
@@ -69,7 +77,7 @@ test('ProspecÃƒÂ§ÃƒÂ£o Ã¢â€ â€™ CRM Ã¢â€ â€™ Gemin
         return originalFetch(input, init);
       };
       const result = await request('/websites/generate', { crmLeadId: crmIds[0] }); assert.equal(result.status, 200);
-      site = result.body.data; assert.equal(site.generationStatus, 'completed');
+      site = await waitForGeneration(result.body.data.id); assert.equal(site.generationStatus, 'completed');
       assert.equal(site.currentDocument.schemaVersion, 2);
       assert.equal(site.legacy, undefined);
       const stored = storedSiteSchema.parse(site.currentDocument);
@@ -117,8 +125,8 @@ test('ProspecÃƒÂ§ÃƒÂ£o Ã¢â€ â€™ CRM Ã¢â€ â€™ Gemin
     });
     await t.test('Resposta incompleta marca falha sem publicar conteÃƒÂºdo', async () => {
       globalThis.fetch = async (input, init) => String(input).startsWith('https://generativelanguage.googleapis.com/') ? new Response(JSON.stringify({ candidates: [{ finishReason: 'MAX_TOKENS' }] })) : originalFetch(input, init);
-      assert.equal((await request('/websites/generate', { crmLeadId: crmIds[1] })).status, 502);
-      const failed = (await request(`/websites/lead/${crmIds[1]}`)).body.data;
+      const queued = await request('/websites/generate', { crmLeadId: crmIds[1] }); assert.equal(queued.status, 200);
+      const failed = await waitForGeneration(queued.body.data.id);
       assert.equal(failed.generationStatus, 'failed'); assert.equal((await request(`/websites/public/${failed.id}`)).status, 404);
     });
     await t.test('Alterar status nos detalhes mantÃƒÂ©m o CRM sincronizado', async () => {

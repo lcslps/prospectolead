@@ -143,6 +143,11 @@ model Website {
   sections         WebsiteSection[]
   status           String @default("DRAFT")
   generationStatus String @default("pending")
+  generationStage  String @default("IDLE")
+  generationRetries Int @default(0)
+  generationStartedAt DateTime?
+  generationNextAttemptAt DateTime?
+  generationMetrics Json?
   generationError  String?
   revision         Int @default(0)
   published        Json?

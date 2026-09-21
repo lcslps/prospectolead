@@ -1,3 +1,5 @@
+export type SiteTemplate = 'simple' | 'animated';
+export const SITE_TEMPLATE_LABELS: Record<SiteTemplate, string> = { simple: 'Simples', animated: 'Com animações' };
 export interface SiteAsset { id: string; url: string; alt: string; credit: string; creditUrl: string; provider: string; kind?: string; usage?: string }
 export interface ArtefactSeo { title: string; description: string; keywords: string }
 export interface SiteArtefact {
@@ -42,7 +44,9 @@ export interface StoredSite {
 }
 export interface Website {
   id: string; crmLeadId: string; name: string; status: 'DRAFT' | 'PUBLISHED';
-  generationStatus: string; generationError: string | null; revision: number;
+  generationStatus: string; generationStage?: string; generationRetries?: number; generationNextAttemptAt?: string | null;
+  generationMetrics?: { model?: string; template?: SiteTemplate; totalDurationMs?: number; inputContextChars?: number; selectedAssets?: number; visionImages?: number; retries?: number } | null;
+  generationError: string | null; revision: number;
   publishedVersion: number | null; publishedAt: string | null; schemaVersion: number;
   currentDocument: StoredSite | null; business: BusinessData; seo: ArtefactSeo;
   legacy?: boolean;
@@ -52,5 +56,5 @@ export interface WebsiteVersion {
   isCurrent: boolean; isPublished: boolean;
 }
 export const VERSION_SOURCE_LABELS: Record<string, string> = {
-  ai_generation: 'Criação com IA', ai_edit: 'Ajuste com IA', restore: 'Restauração', publish: 'Publicação',
+  ai_generation: 'Criação com IA', ai_edit: 'Ajuste com IA', manual_edit: 'Edição manual', restore: 'Restauração', publish: 'Publicação',
 };

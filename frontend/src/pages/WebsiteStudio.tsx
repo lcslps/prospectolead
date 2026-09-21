@@ -1,28 +1,44 @@
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink, Eye, Globe, Hand, Loader2, MapPin, Monitor, MousePointer2, Phone, RefreshCw, Smartphone, Sparkles, Star, Tablet, X } from 'lucide-react';
-import { getData, postData } from '../services/api';
-import { VERSION_SOURCE_LABELS, type Website, type WebsiteVersion } from '../types/website';
+import { ArrowLeft, Check, Copy, ExternalLink, Eye, Globe, Hand, ImagePlus, Loader2, MapPin, Monitor, MousePointer2, Phone, RefreshCw, Save, Search, Smartphone, Sparkles, Star, Tablet, X } from 'lucide-react';
+import { getData, postData, putData } from '../services/api';
+import { VERSION_SOURCE_LABELS, type SiteAsset, type Website, type WebsiteVersion } from '../types/website';
 import { WebsiteFrame } from '../components/WebsiteFrame';
 import { ThemeToggle } from '../components/Theme';
 import './studio.css';
 
 const KB = 1024;
 const DEVICES = [['390', Smartphone, 'Celular'], ['768', Tablet, 'Tablet'], ['1200', Monitor, 'Desktop']] as const;
+const GENERATION_STAGES: Array<[string, string]> = [
+  ['PREPARE', 'Preparando os dados verificados do estabelecimento'],
+  ['ASSET_DISCOVERY', 'Selecionando imagens e referências do negócio'],
+  ['SITE_GENERATION', 'Criando a direção visual e o site'],
+  ['VALIDATING', 'Validando estrutura, imagens e responsividade'],
+];
+const generationStageLabel = (stage?: string) => {
+  if (stage === 'RETRY_WAIT') return 'Gemini indisponível: aguardando a próxima tentativa automática.';
+  if (stage === 'FAILED') return 'A geração foi interrompida.';
+  return GENERATION_STAGES.find(([key]) => key === stage)?.[1] || 'Aguardando a fila de geração.';
+};
 
 export function WebsiteStudioPage() {
   const { id } = useParams(); const navigate = useNavigate();
   const [site, setSite] = useState<Website | null>(null);
   const [versions, setVersions] = useState<WebsiteVersion[]>([]);
   const [error, setError] = useState('');
-  const [width, setWidth] = useState(1200); const [zoom, setZoom] = useState(0.8); const [interactive, setInteractive] = useState(false);
+  const [width, setWidth] = useState(1200); const [zoom, setZoom] = useState(0.8); const [mode, setMode] = useState<'edit' | 'interact'>('edit');
+  const [dirty, setDirty] = useState(false); const [saving, setSaving] = useState(false); const [savedNotice, setSavedNotice] = useState(false);
+  const [imagePicker, setImagePicker] = useState<{ src: string; alt: string } | null>(null);
+  const [photoQuery, setPhotoQuery] = useState(''); const [photos, setPhotos] = useState<SiteAsset[]>([]); const [photoBusy, setPhotoBusy] = useState(false); const [customImage, setCustomImage] = useState('');
   const [aiOpen, setAiOpen] = useState(false); const [aiMode, setAiMode] = useState<'edit' | 'redesign'>('edit'); const [aiInstruction, setAiInstruction] = useState(''); const [aiBusy, setAiBusy] = useState(false); const [aiError, setAiError] = useState(''); const [aiDone, setAiDone] = useState(false);
   const [publishBusy, setPublishBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewport, setViewport] = useState({ w: 0, h: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -45,11 +61,56 @@ export function WebsiteStudioPage() {
     return () => { active = false; };
   }, [load]);
   useEffect(() => {
-    if (site?.generationStatus !== 'generating') return;
+    if (!site || !['pending', 'generating'].includes(site.generationStatus)) return;
     const timer = setInterval(() => { void load().catch(() => {}); }, 4000);
     return () => clearInterval(timer);
   }, [site?.generationStatus, load]);
   useEffect(() => { if (aiInstruction.trim()) setAiDone(false); }, [aiInstruction]);
+  useEffect(() => {
+    if (!aiOpen && !imagePicker) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setImagePicker(null);
+      setAiOpen(false);
+    };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, [aiOpen, imagePicker]);
+
+  const saveSerialized = useCallback(async (payload: { html: string; css: string; js: string }) => {
+    setSaving(true);
+    try {
+      const updated = await putData<Website>(`/websites/${id}/content`, { files: { 'index.html': payload.html, 'styles.css': payload.css, 'script.js': payload.js } });
+      setSite(updated); setDirty(false); setSavedNotice(true);
+      setVersions(await getData<WebsiteVersion[]>(`/websites/${id}/versions`).catch(() => []));
+      setTimeout(() => setSavedNotice(false), 2600);
+    } catch (e) { setError(e instanceof Error ? e.message : 'Erro ao salvar as alterações.'); }
+    finally { setSaving(false); }
+  }, [id]);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { source?: string; type?: string; html?: string; css?: string; js?: string; src?: string; alt?: string } | null;
+      if (!data || data.source !== 'site-edit') return;
+      if (data.type === 'dirty') { setDirty(true); setSavedNotice(false); }
+      else if (data.type === 'select-image') { setImagePicker({ src: data.src || '', alt: data.alt || '' }); setCustomImage(''); setPhotos([]); setPhotoQuery(site?.business?.category || site?.name || ''); }
+      else if (data.type === 'serialized' && typeof data.html === 'string') void saveSerialized({ html: data.html, css: data.css || '', js: data.js || '' });
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [saveSerialized, site?.business?.category, site?.name]);
+
+  useEffect(() => {
+    if (!imagePicker) return;
+    const q = (photoQuery || site?.name || '').trim();
+    if (q.length < 2) return;
+    let active = true; setPhotoBusy(true);
+    getData<{ photos: SiteAsset[] }>('/websites/photos', { q })
+      .then(result => { if (active) setPhotos(result.photos); })
+      .catch(() => { if (active) setPhotos([]); })
+      .finally(() => { if (active) setPhotoBusy(false); });
+    return () => { active = false; };
+  }, [imagePicker]);
 
   const generateAgain = async () => {
     setError(''); setSite(s => s ? { ...s, generationStatus: 'generating', generationError: null } : s);
@@ -88,6 +149,27 @@ export function WebsiteStudioPage() {
   const copyUrl = async () => {
     try { await navigator.clipboard.writeText(`${window.location.origin}/s/${id}`); setCopied(true); setTimeout(() => setCopied(false), 1600); } catch { /* clipboard indisponível */ }
   };
+  const requestSave = () => {
+    setSaving(true); setSavedNotice(false);
+    frameRef.current?.contentWindow?.postMessage({ source: 'site-editor', type: 'serialize' }, '*');
+  };
+  const changeMode = (next: 'edit' | 'interact') => {
+    if (next === mode) return;
+    if (dirty && !window.confirm('Você tem alterações não salvas. Descartar e continuar?')) return;
+    setDirty(false); setSavedNotice(false); setMode(next);
+  };
+  const applyImage = (url: string, alt?: string) => {
+    frameRef.current?.contentWindow?.postMessage({ source: 'site-editor', type: 'set-image', src: url, alt: alt ?? imagePicker?.alt ?? '' }, '*');
+    setDirty(true); setImagePicker(null);
+  };
+  const searchPhotos = async () => {
+    const q = photoQuery.trim();
+    if (q.length < 2) return;
+    setPhotoBusy(true);
+    try { setPhotos((await getData<{ photos: SiteAsset[] }>('/websites/photos', { q })).photos); }
+    catch { setPhotos([]); }
+    finally { setPhotoBusy(false); }
+  };
 
   if (!site) {
     return <div className="studio studio-loading">{error ? <><p role="alert">{error}</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar aos projetos</Button></> : <><Loader2 className="animate-spin" />Carregando site...</>}</div>;
@@ -104,6 +186,7 @@ export function WebsiteStudioPage() {
   const busy = publishBusy || aiBusy;
   const publishedUrl = `${window.location.origin}/s/${id}`;
   const published = site.status === 'PUBLISHED' && Boolean(site.publishedAt);
+  const generationLabel = generationStageLabel(site.generationStage);
   const sizeKb = doc ? Math.round(doc.meta.sizeBytes / KB) : 0;
   const facts = doc?.business;
 
@@ -126,8 +209,10 @@ export function WebsiteStudioPage() {
       <div className="studio-device-buttons">{DEVICES.map(([w, Icon, label]) => <Button variant="unstyled" key={w} className={width === Number(w) ? 'active' : ''} title={label} aria-label={label} onClick={() => setWidth(Number(w))}><Icon size={17} /></Button>)}</div>
       <Select aria-label="Zoom" value={zoom} onChange={e => setZoom(Number(e.target.value))}>{[0.5, 0.65, 0.8, 1].map(z => <option key={z} value={z}>{Math.round(z * 100)}%</option>)}</Select>
       <span className="studio-toolbar-divider" />
-      <Button variant="unstyled" className={!interactive ? 'active' : ''} onClick={() => setInteractive(false)}><MousePointer2 size={15} />Editar direto</Button>
-      <Button variant="unstyled" className={interactive ? 'active' : ''} onClick={() => setInteractive(true)}><Hand size={15} />Interagir</Button>
+      <Button variant="unstyled" className={mode === 'edit' ? 'active' : ''} onClick={() => changeMode('edit')}><MousePointer2 size={15} />Editar direto</Button>
+      <Button variant="unstyled" className={mode === 'interact' ? 'active' : ''} onClick={() => changeMode('interact')}><Hand size={15} />Interagir</Button>
+      {mode === 'edit' && dirty && <Button variant="unstyled" className="studio-publish" disabled={saving} onClick={requestSave}>{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}{saving ? 'Salvando...' : 'Salvar alterações'}</Button>}
+      {savedNotice && <span className="studio-success-inline" role="status"><Check size={13} />Alterações salvas</span>}
       <span className="studio-save-state">{published ? <><Check size={13} />Publicado (v{site.publishedVersion})</> : <span>Rascunho · v{site.revision}</span>}</span>
       <div className="studio-toolbar-divider" />
       <Button variant="unstyled" className="studio-outline" onClick={() => { setAiOpen(true); setAiMode('edit'); setAiDone(false); setAiError(''); }}><Sparkles size={15} />Pedir à IA</Button>
@@ -139,7 +224,7 @@ export function WebsiteStudioPage() {
     {error && <div className="studio-alert" role="alert">{error}<Button variant="unstyled" onClick={() => setError('')} aria-label="Fechar aviso"><X size={15} /></Button></div>}
     {site.generationStatus !== 'completed' && <div className="studio-generating" role="status">
       {site.generationStatus === 'failed' ? <><p role="alert">{site.generationError || 'A geração falhou.'}</p><Button variant="unstyled" className="studio-publish" onClick={() => void generateAgain()}><RefreshCw size={15} />Gerar novamente</Button><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>
-        : <><Loader2 className="animate-spin" /><p><strong>{site.generationStatus === 'pending' ? 'Aguardando o Gemini para retomar a geração automaticamente...' : 'Gerando site com IA para este estabelecimento...'}</strong></p><ul className="studio-generating-steps"><li>Analisando o negócio e o público</li><li>Definindo direção de arte e design system</li><li>Escolhendo os componentes da página</li><li>Escrevendo o código do site</li><li>Validando estrutura e responsividade</li></ul><p className="studio-generating-note">Você não precisa enviar de novo: esta tela atualiza o status automaticamente.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
+        : <><Loader2 className="animate-spin" /><p><strong>{generationLabel}</strong></p><ul className="studio-generating-steps">{GENERATION_STAGES.map(([key, label]) => <li key={key} className={site.generationStage === key ? 'active' : ''}>{site.generationStage === key ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}{label}</li>)}</ul>{site.generationStage === 'RETRY_WAIT' && site.generationNextAttemptAt && <p className="studio-generating-note">Próxima tentativa: {new Date(site.generationNextAttemptAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.</p>}<p className="studio-generating-note">Esta tela consulta o estágio persistido pelo backend a cada poucos segundos.</p><Button variant="unstyled" onClick={() => navigate('/sites')}>Voltar</Button></>}
     </div>}
     <div className="studio-workspace">
       <aside className="studio-left">
@@ -181,10 +266,10 @@ export function WebsiteStudioPage() {
         </div>
       </aside>
       <div className="studio-center">
-        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span></div>
+        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span>{mode === 'edit' && <span className="studio-edit-hint">Clique em um texto para editar, em uma imagem para trocar e use as setas para mover o bloco.</span>}</div>
         <div className="studio-canvas-scroll" ref={canvasRef}>
           <div className={isDesktop ? 'studio-canvas-size desktop' : 'studio-canvas-size device'} style={{ width: frameVisual.w, height: frameVisual.h }}>
-            <div className="studio-stage" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: stageLayout.w, height: stageLayout.h }}><WebsiteFrame artefact={doc?.artefact ?? null} interactive={interactive} /></div>
+            <div className="studio-stage" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: stageLayout.w, height: stageLayout.h }}><WebsiteFrame artefact={doc?.artefact ?? null} interactive={mode === 'interact'} editable={mode === 'edit'} frameRef={frameRef} /></div>
           </div>
         </div>
       </div>
@@ -200,11 +285,12 @@ export function WebsiteStudioPage() {
         <ul className="studio-facts studio-facts-list">
           <li>A IA nunca inventa fatos: só usa os dados verificados do estabelecimento.</li>
           <li>Peça uma coisa por vez para resultados melhores.</li>
-          <li>No modo <strong>Editar direto</strong>, role pelo site sem ativar os links; use <strong>Interagir</strong> para clicar.</li>
+          <li>No modo <strong>Editar direto</strong>, clique em um texto para alterá-lo, em uma imagem para trocá-la e use as setas para mover o bloco. Depois clique em <strong>Salvar alterações</strong>.</li>
+          <li>Use <strong>Interagir</strong> para navegar pelos links e testar o site como um visitante.</li>
         </ul>
       </aside>
     </div>
-    {aiOpen && <div className="studio-modal-backdrop">
+    {aiOpen && <div className="studio-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setAiOpen(false); }}>
       <div className="studio-ai-modal" role="dialog" aria-modal="true" aria-labelledby="ai-title">
         <div className="studio-modal-heading"><h2 id="ai-title"><Sparkles size={20} />Assistente do site</h2><Button variant="unstyled" disabled={aiBusy} aria-label="Fechar" onClick={() => setAiOpen(false)}><X size={19} /></Button></div>
         <label className="studio-field"><span>O que fazer?</span>
@@ -223,6 +309,25 @@ export function WebsiteStudioPage() {
           <Button variant="unstyled" className="studio-outline" disabled={aiBusy} onClick={() => setAiOpen(false)}>Cancelar</Button>
           <Button variant="unstyled" className="studio-publish" disabled={aiBusy || (aiMode === 'edit' && !aiInstruction.trim())} onClick={() => void askAi()}>{aiBusy ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}{aiBusy ? 'Editando com IA...' : 'Gerar e salvar versão'}</Button>
         </div>
+      </div>
+    </div>}
+    {imagePicker && <div className="studio-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setImagePicker(null); }}>
+      <div className="studio-ai-modal" role="dialog" aria-modal="true" aria-labelledby="image-title">
+        <div className="studio-modal-heading"><h2 id="image-title"><ImagePlus size={20} />Trocar imagem</h2><Button variant="unstyled" aria-label="Fechar" onClick={() => setImagePicker(null)}><X size={19} /></Button></div>
+        {imagePicker.src && <img className="studio-image-current" src={imagePicker.src} alt="" />}
+        <label className="studio-field"><span>Buscar imagens</span>
+          <div className="studio-field-row">
+            <Input placeholder="Ex.: fachada, prato, sobremesa" value={photoQuery} onChange={e => setPhotoQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void searchPhotos(); } }} />
+            <Button variant="unstyled" className="studio-outline" disabled={photoBusy} onClick={() => void searchPhotos()}>{photoBusy ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}Buscar</Button>
+          </div>
+        </label>
+        {photos.length > 0 && <div className="studio-photo-grid">{photos.map(photo => <Button variant="unstyled" key={photo.id + photo.url} className="studio-photo-option" title={photo.alt} onClick={() => applyImage(photo.url, photo.alt)}><img src={photo.url} alt={photo.alt} loading="lazy" /><span>{photo.alt || photo.provider}</span></Button>)}</div>}
+        <label className="studio-field" style={{ marginTop: 12 }}><span>Ou cole a URL da imagem</span>
+          <div className="studio-field-row">
+            <Input placeholder="https://..." value={customImage} onChange={e => setCustomImage(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && /^https:\/\//i.test(customImage.trim())) { e.preventDefault(); applyImage(customImage.trim(), imagePicker.alt); } }} />
+            <Button variant="unstyled" className="studio-publish" disabled={!/^https:\/\//i.test(customImage.trim())} onClick={() => applyImage(customImage.trim(), imagePicker.alt)}>Usar</Button>
+          </div>
+        </label>
       </div>
     </div>}
     <Button variant="unstyled" className="studio-ai-button" onClick={() => { setAiOpen(true); setAiError(''); setAiDone(false); }}><Sparkles size={17} />Pedir à IA</Button>

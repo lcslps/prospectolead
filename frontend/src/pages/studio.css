@@ -72,3 +72,10 @@
 .studio-success{display:flex;align-items:center;gap:7px;color:#15803d;font-size:12px;background:#dcfce7;border-radius:8px;padding:9px 11px;margin:8px 0}
 .studio-modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:14px}
 .studio-loading{display:flex!important;align-items:center;justify-content:center;gap:12px;color:#6b7789;font-size:13px}
+
+/* --- Edição inline na prévia --- */
+.studio-field-row{display:flex;gap:8px;align-items:center}
+.studio-field-row>.input{flex:1;min-width:0}
+.studio-image-current{display:block;width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-bottom:14px;border:1px solid var(--app-border,#e3e3e3)}
+.studio-success-inline{display:inline-flex;align-items:center;gap:5px;color:#15803d;font-size:11px;font-weight:600;margin:0 6px}
+.studio-edit-hint{font-size:11px;color:var(--app-muted,#8792a2)}
