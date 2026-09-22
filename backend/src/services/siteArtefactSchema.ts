@@ -30,6 +30,16 @@ export const imageIntentSchema = z.object({
   id: z.string().regex(/^[A-Za-z0-9_-]{1,40}$/),
   intent: z.string().min(3).max(240),
   usage: z.enum(['hero', 'about', 'gallery', 'decor', 'product']).default('hero'),
+  orientation: z.enum(['landscape', 'portrait', 'square']).default('landscape'),
+  direction: z.object({
+    subject: z.string().min(3).max(180),
+    camera: z.string().min(3).max(120),
+    lighting: z.string().min(3).max(120),
+    composition: z.string().min(3).max(180),
+    negativeSpace: z.string().min(3).max(180),
+    palette: z.string().min(3).max(180),
+    avoid: z.array(z.string().min(2).max(100)).min(1).max(8),
+  }).optional(),
 });
 export type ImageIntent = z.infer<typeof imageIntentSchema>;
 
@@ -134,8 +144,14 @@ export const storedSiteSchema = z.object({
     promptVersion: z.string().max(80),
     businessAnalysis: z.record(z.string(), z.unknown()),
     creativeBrief: z.record(z.string(), z.unknown()),
+    artDirectionPlan: z.record(z.string(), z.unknown()).optional(),
     assetManifest: z.record(z.string(), z.unknown()),
     qualityScore: z.number().min(0).max(100),
+    visualQuality: z.object({
+      score: z.number().min(0).max(10),
+      dimensions: z.record(z.string(), z.number().min(0).max(10)),
+      issues: z.array(z.object({ severity: z.enum(['critical', 'warning']), code: z.string(), message: z.string(), recommendation: z.string() })).max(60),
+    }).optional(),
     auditIssues: z.array(z.object({ severity: z.enum(['critical', 'warning']), code: z.string(), message: z.string() })).max(60),
   }).optional(),
   meta: versionMetaSchema.default({}),

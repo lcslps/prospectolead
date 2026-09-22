@@ -4,6 +4,8 @@ import type { ReviewEntry } from './SiteImages';
 import { codemakersSkills, codemakersSystemMethod, professionalSkills, relevantSkills, siteRepairPrompt, siteSystemPrompt } from './PromptLibrary';
 import type { AssetManifest, BusinessAnalysis, CreativeBrief } from './WebsiteStrategy';
 import { strategyPromptBlock } from './WebsiteStrategy';
+import type { ArtDirectionPlan } from './ArtDirection';
+import { artDirectionPromptBlock } from './ArtDirection';
 
 export const SYSTEM_INSTRUCTION = `${siteSystemPrompt()}\n\n${codemakersSystemMethod()}`;
 export const REPAIR_SYSTEM_INSTRUCTION = siteRepairPrompt();
@@ -24,7 +26,8 @@ const OUTPUT_CONTRACT = `OUTPUT CONTRACT:
 - Use no external scripts, frameworks, unsafe protocols, base tag or data URLs.
 - The combined site must stay under 250 KB.
 - Every image must use a supplied {{ASSET_TOKEN}} or declared {{INTENT_id}}. Never type an image URL.
-- A premium site must contain at least one real visual in the hero or first major section. If no supplied asset fits, declare a specific hero imageIntent and render it as <img src="{{INTENT_id}}">. Never render an empty image div, a gradient-only image placeholder, or data-intent-id placeholders.`;
+- A premium site must contain at least one real visual in the hero or first major section. If no supplied asset fits, declare a specific hero imageIntent and render it as <img src="{{INTENT_id}}">. Never render an empty image div, a gradient-only image placeholder, or data-intent-id placeholders.
+- Each imageIntent must express the image direction in structured fields: subject, camera/framing, lighting, composition, negative space, palette, things to avoid, and orientation. The intent must be a precise English visual query that matches those fields.`;
 
 function verifiedFacts(business: BusinessData, notes?: string): string {
   const entries: Array<[string, string | undefined]> = [
@@ -56,11 +59,12 @@ function reviewList(business: BusinessData, reviews?: ReviewEntry[]): string {
 
 function commonBlocks(input: {
   business: BusinessData; assets: SiteAsset[]; profiles: SocialProfiles; notes?: string; summary?: string; reviews?: ReviewEntry[];
-  analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest;
+  analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest; artDirection?: ArtDirectionPlan;
 }): string {
   const strategy = input.analysis && input.brief && input.manifest
     ? strategyPromptBlock(input.analysis, input.brief, input.manifest)
     : '';
+  const artDirection = input.artDirection ? artDirectionPromptBlock(input.artDirection) : '';
   return `${FACT_BOUNDARY}
 
 SPECIALIST SKILLS:
@@ -73,6 +77,8 @@ NICHE GUIDANCE:
 ${relevantSkills(input.business.category || input.business.categories.join(' '))}
 
 ${strategy}
+
+${artDirection}
 
 VERIFIED BUSINESS DATA:
 ${verifiedFacts(input.business, input.notes)}
@@ -111,13 +117,17 @@ const responseShape = `{
     "components": [{ "name": "...", "purpose": "...", "content": "...", "responsive": "..." }],
     "pageFlow": ["..."], "primaryAction": "...", "whatsappStrategy": "...", "contentDecisions": "...", "variationNote": "..."
   },
-  "imageIntents": [{ "id": "short-id", "intent": "specific English visual query", "usage": "hero|about|gallery|decor|product" }],
+  "imageIntents": [{
+    "id": "short-id", "intent": "specific English visual query",
+    "usage": "hero|about|gallery|decor|product", "orientation": "landscape|portrait|square",
+    "direction": { "subject": "...", "camera": "...", "lighting": "...", "composition": "...", "negativeSpace": "...", "palette": "...", "avoid": ["..."] }
+  }],
   "files": { "index.html": "...", "styles.css": "...", "script.js": "..." }
 }`;
 
 export function buildCreatePrompt(input: {
   business: BusinessData; assets: SiteAsset[]; profiles?: SocialProfiles; notes?: string; summary?: string; reviews?: ReviewEntry[];
-  analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest;
+  analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest; artDirection?: ArtDirectionPlan;
 }): string {
   return `Create a complete, original, premium website for this business. Execute the approved strategy before implementation. The result must feel designed by an experienced agency, with a distinctive composition, strong typography, intentional imagery and excellent mobile behavior.
 
@@ -128,7 +138,7 @@ Return only this JSON structure:\n${responseShape}`;
 
 export function buildRegeneratePrompt(input: {
   business: BusinessData; assets: SiteAsset[]; profiles?: SocialProfiles; summary?: string; reviews?: ReviewEntry[];
-  instruction?: string; previousPlan?: DesignPlan; analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest;
+  instruction?: string; previousPlan?: DesignPlan; analysis?: BusinessAnalysis; brief?: CreativeBrief; manifest?: AssetManifest; artDirection?: ArtDirectionPlan;
 }): string {
   const previous = input.previousPlan
     ? `PREVIOUS DESIGN TO AVOID REPEATING:\n- Direction: ${input.previousPlan.creativeDirection || 'unknown'}\n- Flow: ${input.previousPlan.pageFlow.join(' → ') || 'unknown'}\n- Primary color: ${input.previousPlan.designSystem.palette.primary || 'unknown'}`
@@ -174,13 +184,18 @@ Return JSON only: { "files": { "index.html"?: "...", "styles.css"?: "...", "scri
 }
 
 export function buildRepairPrompt(input: {
-  business: BusinessData; files: ArtefactFiles; issues: Array<{ code: string; message: string }>;
+  business: BusinessData; files: ArtefactFiles; issues: Array<{ code: string; message: string; recommendation?: string }>;
+  artDirection?: ArtDirectionPlan; assets?: SiteAsset[];
 }): string {
   const current = Object.entries(input.files).map(([name, content]) => `--- ${name} ---\n${content}`).join('\n\n');
   return `Repair the audited website without changing verified facts or replacing its creative direction. Make the smallest coherent changes that resolve every listed issue.
 
 BUSINESS: ${input.business.name} · ${input.business.category} · ${input.business.city}/${input.business.state}
-AUDIT ISSUES:\n${input.issues.map(issue => `- [${issue.code}] ${issue.message}`).join('\n')}
+AUDIT ISSUES:\n${input.issues.map(issue => `- [${issue.code}] ${issue.message}${issue.recommendation ? ` Fix: ${issue.recommendation}` : ''}`).join('\n')}
+
+${input.artDirection ? artDirectionPromptBlock(input.artDirection) : ''}
+
+${input.assets?.length ? `RESOLVED ASSETS (do not invent URLs):\n${assetList(input.assets)}` : ''}
 
 CURRENT FILES:\n${current}
 

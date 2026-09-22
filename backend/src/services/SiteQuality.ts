@@ -21,6 +21,8 @@ export interface QualityAudit {
 }
 
 const TOKEN_PATTERN = /\{\{[A-Za-z0-9_-]+\}\}/;
+const UNRESOLVED_ASSET_PATTERN = /__SITE_UNRESOLVED_ASSET_[A-Za-z0-9_-]+__/;
+const LEGACY_TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 function rootColor(css: string, names: string[]): string | null {
   const root = /:root\s*\{([\s\S]*?)\}/i.exec(css)?.[1] ?? '';
@@ -80,6 +82,13 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
     issues.push({ severity: 'critical', code: 'unresolved_token', message: 'Restaram tokens de imagem não resolvidos ({{...}}).' });
   }
 
+  if (UNRESOLVED_ASSET_PATTERN.test(combined)) {
+    issues.push({ severity: 'critical', code: 'unresolved_asset_marker', message: 'Restou uma referencia de imagem sem asset resolvido.' });
+  }
+  if (combined.includes(LEGACY_TRANSPARENT_PIXEL)) {
+    issues.push({ severity: 'critical', code: 'transparent_image_fallback', message: 'Foi encontrado um pixel transparente usado como imagem; use um asset valido ou um fallback visual explicito.' });
+  }
+
   if (/\bdata-intent-id\s*=/i.test(html)) {
     issues.push({ severity: 'critical', code: 'unresolved_image_intent', message: 'Restou um placeholder de imagem sem um asset resolvido.' });
   }
@@ -100,7 +109,13 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
     }
   }
 
-  const hasVisual = images.length > 0 || /\bbackground(?:-image)?\s*:\s*[^;]*(?:url\(|gradient\()/i.test(css);
+  const renderableImages = images.filter(img => {
+    const src = /src\s*=\s*["']([^"']*)["']/i.exec(img)?.[1]?.trim() ?? '';
+    return Boolean(src) && src !== LEGACY_TRANSPARENT_PIXEL && !UNRESOLVED_ASSET_PATTERN.test(src) && !TOKEN_PATTERN.test(src);
+  });
+  const hasVisual = renderableImages.length > 0
+    || /\bsite-image-fallback\b/i.test(html)
+    || /\bbackground(?:-image)?\s*:\s*[^;]*(?:url\(|gradient\()/i.test(css);
   if (!hasVisual) {
     issues.push({ severity: 'critical', code: 'missing_visual_asset', message: 'O site não possui nenhum visual renderizável; isso deixa a composição vazia.' });
   }
@@ -163,7 +178,7 @@ export function auditArtifact(files: ArtefactFiles): QualityAudit {
       responsive: dimension(['no_media_queries', 'no_mobile_breakpoint', 'no_fluid_type', 'no_layout_grid']),
       accessibility: dimension(['missing_image_alt', 'no_focus_visible', 'no_reduced_motion', 'unsafe_protocol']),
       visualSystem: dimension(['no_design_tokens', 'excessive_cards']),
-      performance: dimension(['no_lazy_images', 'unresolved_token', 'unresolved_image_intent', 'empty_img_src', 'missing_visual_asset']),
+      performance: dimension(['no_lazy_images', 'unresolved_token', 'unresolved_asset_marker', 'transparent_image_fallback', 'unresolved_image_intent', 'empty_img_src', 'missing_visual_asset']),
     },
   };
 }

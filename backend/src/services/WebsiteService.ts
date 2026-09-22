@@ -3,15 +3,18 @@ import { prisma } from '../lib/prisma';
 import { AppError, notFound } from '../utils/apiError';
 import { generateJson, generateAuxJson, requireGemini, siteCreateGenerationSchema, siteEditGenerationSchema, siteRepairGenerationSchema, type RetryEvent } from './GeminiService';
 import { normalizeBusiness } from './BusinessNormalizer';
-import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, type ArtefactFiles, type DesignPlan, type StoredSite } from './siteArtefactSchema';
+import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, type ArtefactFiles, type DesignPlan, type SiteAsset, type StoredSite } from './siteArtefactSchema';
 import { buildCreatePrompt, buildEditPrompt, buildRegeneratePrompt, buildRepairPrompt, SYSTEM_INSTRUCTION } from './SitePrompt';
 import { sanitizeFiles, artefactSize } from './SiteSanitizer';
-import { collectLeadImages, collectImageBytes, resolveSiteImages, type LeadImageCollection } from './SiteImages';
-import { auditArtifact, type QualityAudit, type QualityIssue } from './SiteQuality';
+import { collectLeadImages, collectImageBytes, enforceResolvedImages, resolveSiteImages, type LeadImageCollection } from './SiteImages';
+import { auditArtifact, type QualityAudit } from './SiteQuality';
 import { WEBSITE_PROMPT_VERSION, analyzeBusinessForWebsite, buildAssetManifest, buildWebsiteGenerationContext, createCreativeBrief } from './WebsiteStrategy';
 import { generationQueue, type GenerationJob } from './GenerationQueue';
 import { env } from '../config/env';
 import { compactGenerationContext } from './GenerationContext';
+import { createArtDirectionPlan, type ArtDirectionPlan } from './ArtDirection';
+import { assessVisualQuality, type VisualQualityReport } from './VisualQuality';
+import { browserVisualIssues, critiqueScreenshots, renderForVisualQA } from './VisualRenderQA';
 
 const asJson = (value: unknown) => value as Prisma.InputJsonValue;
 const emptySeo = { title: '', description: '', keywords: '' };
@@ -19,6 +22,19 @@ const legacyStored = (value: unknown): boolean => Boolean(value && typeof value 
 type SiteTemplate = 'simple' | 'animated';
 const templateOf = (theme: unknown): SiteTemplate => (theme && typeof theme === 'object' && (theme as Record<string, unknown>).template === 'animated' ? 'animated' : 'simple');
 const STALE_GENERATION_MS = Math.max(150_000, env.GEMINI_REQUEST_TIMEOUT_MS + 60_000);
+
+async function reviewVisualQuality(files: ArtefactFiles, plan: ArtDirectionPlan, assets: SiteAsset[]): Promise<VisualQualityReport> {
+  const staticReport = assessVisualQuality(files, plan, assets);
+  const rendered = await renderForVisualQA(files);
+  const browserIssues = browserVisualIssues(rendered);
+  const critique = await critiqueScreenshots(rendered, plan);
+  const criticIssues = critique?.issues ?? [];
+  const issues = [...staticReport.issues, ...browserIssues, ...criticIssues];
+  const reportedScore = critique ? Math.round(((staticReport.score * 0.55) + (critique.score * 0.45)) * 10) / 10 : staticReport.score;
+  const critical = issues.some(issue => issue.severity === 'critical');
+  const criticBelowTarget = critique ? critique.heroQuality < plan.qualityTargets.heroQuality || critique.imageQuality < plan.qualityTargets.imageQuality || critique.responsiveQuality < plan.qualityTargets.responsiveQuality : false;
+  return { ...staticReport, score: reportedScore, issues, needsRefinement: staticReport.needsRefinement || critical || criticBelowTarget };
+}
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -126,36 +142,42 @@ export class WebsiteService {
     const context = buildWebsiteGenerationContext(business, input, opts.notes);
     const analysis = analyzeBusinessForWebsite(context);
     const brief = createCreativeBrief(context, analysis);
+    const artDirection = createArtDirectionPlan(context, analysis);
     const manifest = buildAssetManifest(context);
     const compact = compactGenerationContext({ business, assets, summary, reviews, notes: opts.notes });
     const prompt = creativeDirection
-      ? buildRegeneratePrompt({ business: compact.business, instruction: creativeDirection, assets: compact.assets, profiles, summary: compact.summary, reviews: compact.reviews, previousPlan, analysis, brief, manifest })
-      : buildCreatePrompt({ business: compact.business, assets: compact.assets, profiles, notes: compact.notes, summary: compact.summary, reviews: compact.reviews, analysis, brief, manifest });
+      ? buildRegeneratePrompt({ business: compact.business, instruction: creativeDirection, assets: compact.assets, profiles, summary: compact.summary, reviews: compact.reviews, previousPlan, analysis, brief, manifest, artDirection })
+      : buildCreatePrompt({ business: compact.business, assets: compact.assets, profiles, notes: compact.notes, summary: compact.summary, reviews: compact.reviews, analysis, brief, manifest, artDirection });
     const visionAssets = compact.assets.filter(asset => asset.isBusinessAsset || asset.sourceType === 'business' || asset.sourceType === 'social').slice(0, 3);
     const vision = env.GEMINI_SEND_IMAGES ? await collectImageBytes(visionAssets, business) : [];
     const raw = await generateJson(prompt, siteCreateGenerationSchema, SYSTEM_INSTRUCTION, vision, { onRetry });
     const parsed = siteCreateSchema.parse(raw);
     const resolved = await resolveSiteImages(parsed.files, business, assets, parsed.imageIntents ?? []);
-    return { parsed, resolved, analysis, brief, manifest, metrics: { promptVersion: WEBSITE_PROMPT_VERSION, inputContextChars: compact.estimatedChars, selectedAssets: compact.assets.length, realAssets: manifest.realAssetCount, visionImages: vision.length } };
+    return { parsed, resolved, analysis, brief, artDirection, manifest, metrics: { promptVersion: WEBSITE_PROMPT_VERSION, inputContextChars: compact.estimatedChars, selectedAssets: compact.assets.length, realAssets: manifest.realAssetCount, visionImages: vision.length, archetype: artDirection.primaryArchetype, heroArchetype: artDirection.hero.archetype } };
   }
 
-  private async settleFiles(files: ArtefactFiles, business: StoredSite['business'], seoTitle: string, onRetry?: (event: RetryEvent) => void): Promise<{ files: ArtefactFiles; audit: QualityAudit; repairPasses: number }> {
+  private async settleFiles(files: ArtefactFiles, business: StoredSite['business'], seoTitle: string, onRetry?: (event: RetryEvent) => void, artDirection?: ArtDirectionPlan, assets: SiteAsset[] = []): Promise<{ files: ArtefactFiles; audit: QualityAudit; visual: VisualQualityReport; repairPasses: number }> {
     const prepare = (input: ArtefactFiles) => {
-      const sanitized = sanitizeFiles(input).files;
+      // Repairs replace complete files. Reapply the backend asset manifest so
+      // model output cannot add made-up image URLs or old transparent pixels.
+      const resolved = enforceResolvedImages(input, assets);
+      const sanitized = sanitizeFiles(resolved).files;
       return ensureTitle(sanitized, seoTitle || '', business.name);
     };
     let current = prepare(files);
     for (let attempt = 0; attempt <= env.MAX_SITE_REFINEMENT_ITERATIONS; attempt += 1) {
       const audit = auditArtifact(current);
-      if (!audit.needsRepair) return { files: current, audit, repairPasses: attempt };
+      const visual = artDirection ? await reviewVisualQuality(current, artDirection, assets) : { score: 10, dimensions: {}, issues: [], needsRefinement: false } as unknown as VisualQualityReport;
+      const repairIssues = [...audit.issues, ...visual.issues];
+      if (!audit.needsRepair && !visual.needsRefinement) return { files: current, audit, visual, repairPasses: attempt };
       if (attempt === env.MAX_SITE_REFINEMENT_ITERATIONS) {
         if (audit.issues.some(issue => issue.severity === 'critical')) {
           throw new AppError(502, `O site não passou na validação estrutural após ${attempt} revisão(ões): ${audit.issues.filter(issue => issue.severity === 'critical').map(issue => issue.message).join(' ')}`);
         }
-        return { files: current, audit, repairPasses: attempt };
+        return { files: current, audit, visual, repairPasses: attempt };
       }
       const repair = await generateAuxJson(
-        buildRepairPrompt({ business, files: current, issues: audit.issues as QualityIssue[] }),
+        buildRepairPrompt({ business, files: current, issues: repairIssues, artDirection, assets }),
         siteRepairGenerationSchema,
         { onRetry },
       );
@@ -166,14 +188,16 @@ export class WebsiteService {
         'script.js': patch.files['script.js'] ?? current['script.js'],
       });
     }
-    return { files: current, audit: auditArtifact(current), repairPasses: env.MAX_SITE_REFINEMENT_ITERATIONS };
+    const audit = auditArtifact(current);
+    const visual = artDirection ? await reviewVisualQuality(current, artDirection, assets) : { score: 10, dimensions: {}, issues: [], needsRefinement: false } as unknown as VisualQualityReport;
+    return { files: current, audit, visual, repairPasses: env.MAX_SITE_REFINEMENT_ITERATIONS };
   }
 
   private async createStoredSite(business: StoredSite['business'], opts: { notes?: string | null; baseUrl?: string }, creativeDirection?: string, previousPlan?: DesignPlan, onRetry?: (event: RetryEvent) => void, onStage?: (stage: 'SITE_GENERATION') => Promise<void>) {
     const input = await collectLeadImages(business, opts.baseUrl);
     await onStage?.('SITE_GENERATION');
-    const { parsed, resolved, analysis, brief, manifest, metrics } = await this.generateArtifact(business, input, { notes: opts.notes }, creativeDirection, previousPlan, onRetry);
-    const settled = await this.settleFiles(resolved.files, business, parsed.seo.title, onRetry);
+    const { parsed, resolved, analysis, brief, artDirection, manifest, metrics } = await this.generateArtifact(business, input, { notes: opts.notes }, creativeDirection, previousPlan, onRetry);
+    const settled = await this.settleFiles(resolved.files, business, parsed.seo.title, onRetry, artDirection, resolved.assets);
     const files = settled.files;
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo: parsed.seo });
     const stored = storedSiteSchema.parse({
@@ -183,7 +207,7 @@ export class WebsiteService {
       imageMap: resolved.imageMap,
       assets: resolved.assets,
       designPlan: parsed.designPlan,
-      generation: { promptVersion: WEBSITE_PROMPT_VERSION, businessAnalysis: analysis, creativeBrief: brief, assetManifest: manifest, qualityScore: settled.audit.score, auditIssues: settled.audit.issues },
+      generation: { promptVersion: WEBSITE_PROMPT_VERSION, businessAnalysis: analysis, creativeBrief: brief, artDirectionPlan: artDirection, assetManifest: manifest, qualityScore: settled.audit.score, visualQuality: settled.visual, auditIssues: settled.audit.issues },
       meta: { source: 'ai_generation', instruction: creativeDirection || '', sizeBytes: artefactSize(files) },
     });
     if (env.NODE_ENV !== 'production') {
@@ -194,11 +218,14 @@ export class WebsiteService {
         realAssets: manifest.realAssetCount,
         totalAssets: resolved.assets.length,
         qualityScore: settled.audit.score,
+        visualScore: settled.visual.score,
+        archetype: artDirection.primaryArchetype,
+        heroArchetype: artDirection.hero.archetype,
         repairPasses: settled.repairPasses,
         issues: settled.audit.issues.map(issue => issue.code),
       });
     }
-    return { stored, metrics: { ...metrics, qualityScore: settled.audit.score, auditIssues: settled.audit.issues.length, repairPasses: settled.repairPasses } };
+    return { stored, metrics: { ...metrics, qualityScore: settled.audit.score, visualScore: settled.visual.score, auditIssues: settled.audit.issues.length, visualIssues: settled.visual.issues.length, repairPasses: settled.repairPasses } };
   }
 
   private async commit({ site, crmLeadId, stored, source, instruction }: {
@@ -391,7 +418,10 @@ export class WebsiteService {
       'script.js': edit.files['script.js'] ?? current.artefact.files['script.js'],
     };
     const seo = edit.seo ?? current.artefact.seo;
-    const files = (await this.settleFiles(merged, current.business, seo.title)).files;
+    // A rewrite is still model output. Preserve the current backend-resolved
+    // asset manifest as the only source from which its images may be rendered.
+    const rewriteAssets = current.assets.length ? current.assets : Object.values(current.imageMap);
+    const files = (await this.settleFiles(merged, current.business, seo.title, undefined, undefined, rewriteAssets)).files;
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo });
     const stored = storedSiteSchema.parse({
       ...current,

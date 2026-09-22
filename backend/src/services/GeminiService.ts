@@ -161,7 +161,22 @@ export const siteCreateGenerationSchema = {
     designPlan: designPlanSchema,
     imageIntents: {
       type: 'array', maxItems: 12,
-      items: { type: 'object', required: ['id', 'intent'], properties: { id: str, intent: str, usage: { type: 'string', enum: ['hero', 'about', 'gallery', 'decor', 'product'] } } },
+      items: {
+        type: 'object', required: ['id', 'intent'], properties: {
+          id: str,
+          intent: str,
+          usage: { type: 'string', enum: ['hero', 'about', 'gallery', 'decor', 'product'] },
+          orientation: { type: 'string', enum: ['landscape', 'portrait', 'square'] },
+          direction: {
+            type: 'object',
+            properties: {
+              subject: str, camera: str, lighting: str, composition: str,
+              negativeSpace: str, palette: str,
+              avoid: { type: 'array', maxItems: 8, items: str },
+            },
+          },
+        },
+      },
     },
     files: {
       type: 'object',

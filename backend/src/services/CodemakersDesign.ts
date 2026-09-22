@@ -6,19 +6,21 @@ const designRoot = join(process.cwd(), 'site-generator', 'skills', 'codex', 'cod
 const maxReferenceCharacters = 2_400;
 let pythonUnavailable = false;
 
-const referenceFiles = [
-  'art-direction.md',
-  'color-typography.md',
-  'layout-recipes.md',
-  'component-cookbook.md',
-  'product-playbooks.md',
-  'asset-direction.md',
-  'interaction-accessibility.md',
-  'responsive-adaptation.md',
-  'motion-choreography.md',
-  'implementation-recipes.md',
-  'quality-review.md',
-] as const;
+const referenceFiles = {
+  artDirection: 'art-direction.md',
+  colorTypography: 'color-typography.md',
+  layout: 'layout-recipes.md',
+  components: 'component-cookbook.md',
+  localServices: 'product-playbooks.md',
+  assets: 'asset-direction.md',
+  accessibility: 'interaction-accessibility.md',
+  responsive: 'responsive-adaptation.md',
+  motion: 'motion-choreography.md',
+  implementation: 'implementation-recipes.md',
+  quality: 'quality-review.md',
+} as const;
+
+type ReferenceKey = keyof typeof referenceFiles;
 
 function read(file: string): string {
   const path = join(designRoot, file);
@@ -30,35 +32,78 @@ function excerpt(value: string, max = maxReferenceCharacters): string {
   return value.length <= max ? value : `${value.slice(0, max)}\n[Reference excerpt truncated; apply its principles without inventing facts.]`;
 }
 
+function normalized(category: string): string {
+  return category.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function matches(value: string, expression: RegExp): boolean {
+  return expression.test(value);
+}
+
+/**
+ * The previous integration sent every long design reference on every request.
+ * This returns a compact subset chosen for the business category. The core method
+ * remains in the system instruction and these excerpts add only the relevant craft.
+ */
+export function selectedCodemakersReferenceFiles(category: string): readonly string[] {
+  const value = normalized(category || '');
+  const selected = new Set<ReferenceKey>(['artDirection', 'layout', 'assets', 'responsive', 'quality']);
+  const food = matches(value, /restaurante|pizz|cafe|cafeteria|bar|hotel|pousada|padaria|confeit|aliment|burger|hamburg|sushi|acai/);
+  const care = matches(value, /clinica|dent|medic|saude|estet|beleza|veterin|pet/);
+  const technical = matches(value, /solar|energia|seguranca|camera|monitoramento|logistic|transport|frete|carga|frota|saas|software|tecnolog|industrial|engenh|eletric|motor|maquina/);
+  const property = matches(value, /imobili|real estate|arquitet|construtora|condominio/);
+
+  if (food || care || technical || property) selected.add('colorTypography');
+  if (technical) {
+    selected.add('components');
+    selected.add('implementation');
+  }
+  if (care) selected.add('accessibility');
+  if (food || technical) selected.add('motion');
+  if (matches(value, /servic|consult|advoc|contabil|loja|varejo|comerc/)) selected.add('localServices');
+
+  return [...selected].map(key => referenceFiles[key]);
+}
+
 export function codemakersCoreSkill(): string {
   return read('SKILL.md');
 }
 
-/**
- * Returns only the references required to make a complete local-business site.
- * The brand studies remain intentionally excluded: they are optional inspiration,
- * never a source of copy, facts, or tokens to reproduce.
- */
+/** Returns only selected visual/UX references. The core method is loaded separately. */
 export function codemakersDesignGuidance(category: string): string {
-  const selected = referenceFiles
+  const selected = selectedCodemakersReferenceFiles(category)
     .map(file => {
       const content = read(join('references', file));
       return content ? `CODEMAKERS REFERENCE: ${file}\n${excerpt(content)}` : '';
     })
     .filter(Boolean);
   const segment = category.trim() || 'local business';
-  return `CODEMAKERS DESIGN METHOD\n${excerpt(codemakersCoreSkill(), 4_000)}\n\nDESIGN TASK: Create a bespoke website for a ${segment}. The references below define visual and UX craft only. They never override verified facts, asset rules, or data-integrity constraints.\n\n${selected.join('\n\n')}`;
+  return `CODEMAKERS SELECTED DESIGN REFERENCES\nDESIGN TASK: Create a bespoke website for a ${segment}. The references below define visual and UX craft only. They never override verified facts, asset rules, or data-integrity constraints.\n\n${selected.join('\n\n')}`;
 }
 
 interface SearchResult { domain: string; records: unknown[]; source: 'script' | 'library-fallback'; }
 
 function queryFor(category: string): string {
-  const value = category.toLowerCase();
-  if (/restaurante|pizz|bar|cafe|padaria|aliment/.test(value)) return 'gastronomia ambiente';
+  const value = normalized(category);
+  if (/solar|fotovolta|energia/.test(value)) return 'energia tecnica';
+  if (/seguranca|camera|monitoramento|alarme/.test(value)) return 'tecnico escuro';
+  if (/logistic|transport|frete|carga|frota/.test(value)) return 'movimento tecnico';
+  if (/restaurante|pizz|bar|cafe|padaria|aliment|burger|hamburg|sushi|acai/.test(value)) return 'gastronomia ambiente';
+  if (/veterin|pet/.test(value)) return 'cuidado acolhedor';
   if (/clinica|dent|medic|saude|estet|beleza/.test(value)) return 'cuidado clareza';
-  if (/marmor|constru|engenh|industri|oficina|solar|eletric|metal/.test(value)) return 'materialidade precisao';
+  if (/marmor|constru|engenh|industri|oficina|eletric|metal/.test(value)) return 'materialidade precisao';
+  if (/imobili|arquitet|luxo/.test(value)) return 'arquitetura luxo';
+  if (/saas|software|tecnolog|consult/.test(value)) return 'tecnico dados';
   if (/loja|varejo|comerc|servic/.test(value)) return 'comercio atendimento';
   return category || 'servico local';
+}
+
+function selectedCandidateDomains(category: string): readonly string[] {
+  const value = normalized(category);
+  if (/restaurante|pizz|bar|cafe|padaria|aliment|burger|hamburg|sushi|acai|solar|seguranca|camera|monitoramento|logistic|transport|saas|software|tecnolog/.test(value)) {
+    return ['styles', 'palettes', 'typography', 'patterns'];
+  }
+  return ['styles', 'palettes', 'typography'];
 }
 
 function fallbackSearch(domain: string, query: string): SearchResult {
@@ -96,7 +141,7 @@ function runSearch(domain: string, query: string): SearchResult {
 /** Executes the package search script where Python is available, with an offline JSON fallback. */
 export function codemakersDesignCandidates(category: string): string {
   const query = queryFor(category);
-  const results = ['styles', 'palettes', 'typography', 'patterns'].map(domain => runSearch(domain, query));
+  const results = selectedCandidateDomains(category).map(domain => runSearch(domain, query));
   return JSON.stringify({ query, results }, null, 2);
 }
 

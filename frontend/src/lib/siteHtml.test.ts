@@ -84,6 +84,57 @@ describe('runtimes embarcados', () => {
     };
     expect(buildSiteDoc(withState, { interactive: true })).toContain('__site_editor_state');
   });
+
+  it('carrega somente fontes conhecidas e injeta a resiliência de imagens', () => {
+    const withPremiumFonts = buildSiteDoc({
+      ...ARTEFACT,
+      files: {
+        ...ARTEFACT.files,
+        'styles.css': ':root{font-family:"DM Sans",sans-serif}.hero h1{font-family:"Playfair Display",serif}',
+      },
+    }, { interactive: true });
+    expect(withPremiumFonts).toContain('id="__site_fonts"');
+    expect(withPremiumFonts).toContain('DM+Sans');
+    expect(withPremiumFonts).toContain('Playfair+Display');
+    expect(withPremiumFonts).toContain('id="__site_image_resilience"');
+    expect(withPremiumFonts).toContain('id="__site_message_gate"');
+
+    const unknownFont = buildSiteDoc({
+      ...ARTEFACT,
+      files: {
+        ...ARTEFACT.files,
+        'index.html': ARTEFACT.files['index.html'].replace('</head>', '<link rel="stylesheet" href="https://example.com/fonts.css"></head>'),
+        'styles.css': '.hero{font-family:"Fonte Não Permitida"}',
+      },
+    });
+    expect(unknownFont).not.toContain('id="__site_fonts"');
+    expect(unknownFont).not.toContain('rel="stylesheet" href="https://example.com/fonts.css"');
+  });
+
+  it('remove runtimes de uma serialização anterior antes de injetar a versão atual', () => {
+    const once = buildSiteDoc(ARTEFACT, { editable: true });
+    const twice = buildSiteDoc({
+      ...ARTEFACT,
+      files: { ...ARTEFACT.files, 'index.html': once.replace(/^<!doctype html>\n/i, '') },
+    }, { editable: true });
+    expect(twice.match(/id="__site_edit_script"/g)?.length).toBe(1);
+    expect(twice.match(/id="__site_image_resilience"/g)?.length).toBe(1);
+    expect(twice.match(/id="__site_message_gate"/g)?.length).toBe(1);
+  });
+
+  it('substitui uma imagem sem src por fallback local no iframe', async () => {
+    const dom = new JSDOM(buildSiteDoc({
+      ...ARTEFACT,
+      files: {
+        ...ARTEFACT.files,
+        'index.html': ARTEFACT.files['index.html'].replace('</section>', '<img class="broken-photo" src="" alt="Ambiente do negócio"></section>'),
+      },
+    }), { url: 'http://localhost/', runScripts: 'dangerously', pretendToBeVisual: true });
+    await new Promise<void>(resolve => dom.window.setTimeout(resolve, 0));
+    const image = dom.window.document.querySelector('.broken-photo') as HTMLImageElement;
+    expect(image.dataset.siteImageFallback).toBe('1');
+    expect(image.getAttribute('src')).toMatch(/^data:image\/svg\+xml,/);
+  });
 });
 
 describe('pipeline ponta a ponta no bundle real (item 43/44)', () => {

@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { BusinessData, SiteAsset } from './siteArtefactSchema';
 import type { LeadImageCollection, ReviewEntry } from './SiteImages';
 
-export const WEBSITE_PROMPT_VERSION = 'premium-site-v3';
+export const WEBSITE_PROMPT_VERSION = 'premium-art-direction-v4';
 
 const fact = z.string().max(500).default('');
 export const businessAnalysisSchema = z.object({
