@@ -130,6 +130,14 @@ export const storedSiteSchema = z.object({
   imageMap: z.record(z.string(), siteAssetSchema).default({}),
   assets: z.array(siteAssetSchema).default([]),
   designPlan: designPlanSchema,
+  generation: z.object({
+    promptVersion: z.string().max(80),
+    businessAnalysis: z.record(z.string(), z.unknown()),
+    creativeBrief: z.record(z.string(), z.unknown()),
+    assetManifest: z.record(z.string(), z.unknown()),
+    qualityScore: z.number().min(0).max(100),
+    auditIssues: z.array(z.object({ severity: z.enum(['critical', 'warning']), code: z.string(), message: z.string() })).max(60),
+  }).optional(),
   meta: versionMetaSchema.default({}),
 });
 export type StoredSite = z.infer<typeof storedSiteSchema>;

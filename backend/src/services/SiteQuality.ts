@@ -6,6 +6,19 @@ export interface QualityIssue {
   message: string;
 }
 
+export interface QualityAudit {
+  score: number;
+  issues: QualityIssue[];
+  needsRepair: boolean;
+  dimensions: {
+    structure: number;
+    responsive: number;
+    accessibility: number;
+    visualSystem: number;
+    performance: number;
+  };
+}
+
 const TOKEN_PATTERN = /\{\{[A-Za-z0-9_-]+\}\}/;
 
 export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
@@ -38,6 +51,10 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
       issues.push({ severity: 'critical', code: 'unresolved_token', message: 'Existe <img> com token de imagem não resolvido.' });
       break;
     }
+    if (!/\balt\s*=\s*["'][^"']+["']/i.test(img)) {
+      issues.push({ severity: 'warning', code: 'missing_image_alt', message: 'Existe imagem sem texto alternativo descritivo.' });
+      break;
+    }
   }
 
   if (!/@media/i.test(css)) {
@@ -61,8 +78,46 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
   if (/\b(?:javascript|vbscript)\s*:/i.test(combined)) {
     issues.push({ severity: 'critical', code: 'unsafe_protocol', message: 'Foi encontrado protocolo inseguro.' });
   }
+  if (!/:focus-visible/i.test(css)) {
+    issues.push({ severity: 'warning', code: 'no_focus_visible', message: 'Não há estado de foco visível para navegação por teclado.' });
+  }
+  if (!/prefers-reduced-motion/i.test(css) && /animation|transition/i.test(css)) {
+    issues.push({ severity: 'warning', code: 'no_reduced_motion', message: 'Há movimento sem tratamento para prefers-reduced-motion.' });
+  }
+  if (!/clamp\(/i.test(css)) {
+    issues.push({ severity: 'warning', code: 'no_fluid_type', message: 'A tipografia não usa escala fluida com clamp().' });
+  }
+  if (!/grid-template-columns|display\s*:\s*grid/i.test(css)) {
+    issues.push({ severity: 'warning', code: 'no_layout_grid', message: 'Não foi encontrada uma grade responsiva explícita.' });
+  }
+  if ((html.match(/class\s*=\s*["'][^"']*(?:card|box)[^"']*["']/gi) ?? []).length > 12) {
+    issues.push({ severity: 'warning', code: 'excessive_cards', message: 'O layout usa caixas demais e pode parecer um template genérico.' });
+  }
+  if (!/<nav\b/i.test(html) || !/<footer\b/i.test(html)) {
+    issues.push({ severity: 'warning', code: 'incomplete_landmarks', message: 'A página precisa de navegação e rodapé semânticos.' });
+  }
 
   return issues;
+}
+
+export function auditArtifact(files: ArtefactFiles): QualityAudit {
+  const issues = inspectArtifact(files);
+  const penalty = issues.reduce((sum, issue) => sum + (issue.severity === 'critical' ? 18 : 4), 0);
+  const codes = new Set(issues.map(issue => issue.code));
+  const dimension = (relevant: string[]) => Math.max(0, 100 - relevant.filter(code => codes.has(code)).length * 20);
+  const score = Math.max(0, Math.min(100, 100 - penalty));
+  return {
+    score,
+    issues,
+    needsRepair: issues.some(issue => issue.severity === 'critical') || score < 72,
+    dimensions: {
+      structure: dimension(['missing_html_root', 'missing_title', 'missing_viewport', 'missing_main', 'missing_h1', 'incomplete_landmarks']),
+      responsive: dimension(['no_media_queries', 'no_mobile_breakpoint', 'no_fluid_type', 'no_layout_grid']),
+      accessibility: dimension(['missing_image_alt', 'no_focus_visible', 'no_reduced_motion', 'unsafe_protocol']),
+      visualSystem: dimension(['no_design_tokens', 'excessive_cards']),
+      performance: dimension(['no_lazy_images', 'unresolved_token', 'empty_img_src']),
+    },
+  };
 }
 
 export function criticalIssues(issues: QualityIssue[]): QualityIssue[] {

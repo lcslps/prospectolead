@@ -36,3 +36,14 @@ export function relevantSkills(category: string, max = 2): string {
   }
   return selected.map(file => `SKILL: ${file}\n${read(`skills/${file}`)}`).join('\n\n');
 }
+
+const professionalSkillFiles = [
+  'frontend-design.md', 'typography.md', 'images.md', 'animations.md', 'copywriting.md',
+  'conversion.md', 'responsive.md', 'accessibility.md', 'local-seo.md', 'data-integrity.md',
+] as const;
+
+export function professionalSkills(): string {
+  return professionalSkillFiles
+    .map(file => `SKILL: ${file}\n${read(`skills/${file}`)}`)
+    .join('\n\n');
+}

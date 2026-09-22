@@ -212,16 +212,32 @@ export async function resolveSiteImages(
     imageMap[`INTENT_${id}`] = asset;
   }
 
-  const filesOut: ArtefactFiles = {
+  const replaced: ArtefactFiles = {
     'index.html': replaceTokens(files['index.html'], imageMap),
     'styles.css': replaceTokens(files['styles.css'] || '', imageMap),
     'script.js': replaceTokens(files['script.js'] || '', imageMap),
   };
+  const filesOut = enforceResolvedImages(replaced, Object.values(imageMap));
   return {
     files: filesOut,
     imageMap,
     assets: rankAssets(Object.values(imageMap), 20),
   };
+}
+
+/** Restricts model-produced image sources to the assets resolved by the backend. */
+export function enforceResolvedImages(files: ArtefactFiles, assets: SiteAsset[]): ArtefactFiles {
+  const allowed = new Set(assets.map(asset => asset.url));
+  const fallback = assets.find(asset => asset.isBusinessAsset)?.url || assets[0]?.url || TRANSPARENT_PIXEL;
+  const html = files['index.html'].replace(/(<img\b[^>]*\bsrc\s*=\s*["'])([^"']+)(["'])/gi, (whole, before: string, src: string, after: string) => {
+    if (allowed.has(src) || src === TRANSPARENT_PIXEL) return whole;
+    return `${before}${fallback}${after}`;
+  });
+  const css = files['styles.css'].replace(/url\(\s*(["']?)(https?:\/\/[^)'"\s]+)\1\s*\)/gi, (whole, quote: string, url: string) => {
+    if (allowed.has(url)) return whole;
+    return `url(${quote}${fallback}${quote})`;
+  });
+  return { ...files, 'index.html': html, 'styles.css': css };
 }
 
 export function replaceTokens(content: string, imageMap: Record<string, SiteAsset>): string {

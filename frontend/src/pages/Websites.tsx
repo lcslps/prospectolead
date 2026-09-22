@@ -2,11 +2,11 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, RefreshCw, ArrowUpRight, Pencil, Eye, Loader2, X, Trash2, Sparkles } from 'lucide-react';
+import { Plus, Search, RefreshCw, ArrowUpRight, Pencil, Eye, Loader2, Trash2, Sparkles } from 'lucide-react';
 import { getData, deleteData, postData } from '../services/api';
 import { LeadWebsite } from '../components/LeadWebsite';
 import { EmptyState, PageLoader } from '../components/UI';
-import { ConfirmDialog } from '../components/Modal';
+import { ConfirmDialog, Modal } from '../components/Modal';
 import { useToast } from '../components/Toast';
 import type { CrmLeadFull } from '../types';
 import { SITE_TEMPLATE_LABELS, type SiteTemplate } from '../types/website';
@@ -52,14 +52,6 @@ export function WebsitesPage() {
     if (!projects.some(p => p.generationStatus === 'generating')) return;
     const timer = setInterval(() => void load(), 5000); return () => clearInterval(timer);
   }, [projects, load]);
-  useEffect(() => {
-    if (!creating) return;
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { setCreating(false); void load(); }
-    };
-    window.addEventListener('keydown', dismiss);
-    return () => window.removeEventListener('keydown', dismiss);
-  }, [creating, load]);
   const openCreate = async () => {
     setCreating(true); setLoadingLeads(true); setSelected(''); setCreateError(''); setSiteTemplate('simple'); setLeadQuery('');
     try { const result = await getData<{ leads: CrmLeadFull[] }>('/crm'); setLeads(result.leads.filter(l => l.website?.generationStatus !== 'completed')); }
@@ -106,7 +98,7 @@ export function WebsitesPage() {
         {!ready && <div className="project-generation flex items-center justify-between gap-2"><LeadWebsite crmLeadId={project.crmLead.id} />{deleteButton(project)}</div>}
       </article>;
     })}</div>}
-    {creating && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" onMouseDown={event => { if (event.target === event.currentTarget) { setCreating(false); void load(); } }}><section role="dialog" aria-modal="true" aria-labelledby="new-project-title" className="panel max-h-[90vh] w-full max-w-lg space-y-5 overflow-y-auto !p-7"><div className="flex items-center justify-between"><h2 id="new-project-title" className="text-lg font-semibold text-slate-900 dark:text-white">Novo projeto</h2><Button variant="unstyled" className="btn-ghost !px-2" aria-label="Fechar" onClick={() => { setCreating(false); void load(); }}><X size={18} /></Button></div><p className="text-sm leading-relaxed text-slate-500">Para qual estabelecimento vamos criar um site?</p>{createError && <p role="alert" className="text-sm text-red-600">{createError}</p>}{loadingLeads ? <Loader2 size={22} className="animate-spin" /> : leads.length ? <>
+    {creating && <Modal open={creating} onClose={() => { setCreating(false); void load(); }} title="Novo projeto" size="md"><div className="max-h-[72vh] space-y-5 overflow-y-auto pr-1"><p className="text-sm leading-relaxed text-slate-500">Para qual estabelecimento vamos criar um site?</p>{createError && <p role="alert" className="text-sm text-red-600">{createError}</p>}{loadingLeads ? <Loader2 size={22} className="animate-spin" /> : leads.length ? <>
       <label className="projects-search !w-full"><Search size={15} /><Input unstyled className="input" aria-label="Buscar lead por nome ou cidade" placeholder="Buscar lead por nome ou cidade..." value={leadQuery} onChange={e => setLeadQuery(e.target.value)} /></label>
       <div className="max-h-64 space-y-1.5 overflow-y-auto pr-1" role="listbox" aria-label="Estabelecimentos">{visibleLeads.length ? visibleLeads.map(l => {
         const active = selected === l.id;
@@ -117,7 +109,7 @@ export function WebsitesPage() {
         return <Button variant="unstyled" key={t} aria-pressed={active} className={`rounded-lg border px-3 py-3 text-left transition ${active ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600'}`} onClick={() => setSiteTemplate(t)}><span className="block text-sm font-semibold text-slate-800 dark:text-white">{SITE_TEMPLATE_LABELS[t]}</span><span className="mt-1 block text-xs text-slate-500">{templateHints[t]}</span></Button>;
       })}</div></div>
       <Button variant="unstyled" className="btn-primary w-full" disabled={!selected || createBusy} onClick={() => void generate()}>{createBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles size={16} />}Gerar</Button>
-    </> : !createError && <div className="space-y-4"><p className="text-sm leading-relaxed text-slate-500">Adicione uma empresa ao CRM para começar um novo projeto. Os leads que já têm site continuam disponíveis na sua lista de projetos.</p><div className="flex flex-wrap gap-2"><Link className="btn-primary" to="/crm">Abrir CRM</Link><Link className="btn-secondary" to="/prospeccao">Pesquisar empresas</Link></div></div>}</section></div>}
+    </> : !createError && <div className="space-y-4"><p className="text-sm leading-relaxed text-slate-500">Adicione uma empresa ao CRM para começar um novo projeto. Os leads que já têm site continuam disponíveis na sua lista de projetos.</p><div className="flex flex-wrap gap-2"><Link className="btn-primary" to="/crm">Abrir CRM</Link><Link className="btn-secondary" to="/prospeccao">Pesquisar empresas</Link></div></div>}</div></Modal>}
     <ConfirmDialog open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)} onConfirm={() => void handleDelete()} title="Excluir projeto" confirmLabel="Excluir" description={confirmDelete ? `O site "${confirmDelete.name}" será excluído permanentemente, junto com todas as seções e o site publicado. Esta ação não pode ser desfeita.` : undefined} />
   </div>;
 }

@@ -7,7 +7,8 @@ import { artefactSchema, siteCreateSchema, siteEditSchema, storedSiteSchema, typ
 import { buildCreatePrompt, buildEditPrompt, buildRegeneratePrompt, buildRepairPrompt, SYSTEM_INSTRUCTION } from './SitePrompt';
 import { sanitizeFiles, artefactSize } from './SiteSanitizer';
 import { collectLeadImages, collectImageBytes, resolveSiteImages, type LeadImageCollection } from './SiteImages';
-import { inspectArtifact, criticalIssues, type QualityIssue } from './SiteQuality';
+import { auditArtifact, type QualityAudit, type QualityIssue } from './SiteQuality';
+import { WEBSITE_PROMPT_VERSION, analyzeBusinessForWebsite, buildAssetManifest, buildWebsiteGenerationContext, createCreativeBrief } from './WebsiteStrategy';
 import { generationQueue, type GenerationJob } from './GenerationQueue';
 import { env } from '../config/env';
 import { compactGenerationContext } from './GenerationContext';
@@ -17,6 +18,7 @@ const emptySeo = { title: '', description: '', keywords: '' };
 const legacyStored = (value: unknown): boolean => Boolean(value && typeof value === 'object' && (value as Record<string, unknown>).schemaVersion !== 2);
 type SiteTemplate = 'simple' | 'animated';
 const templateOf = (theme: unknown): SiteTemplate => (theme && typeof theme === 'object' && (theme as Record<string, unknown>).template === 'animated' ? 'animated' : 'simple');
+const STALE_GENERATION_MS = Math.max(150_000, env.GEMINI_REQUEST_TIMEOUT_MS + 60_000);
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -32,6 +34,33 @@ function ensureTitle(files: ArtefactFiles, seoTitle: string, fallbackName: strin
 }
 
 export class WebsiteService {
+  private async recoverStaleGeneration(site: { id: string; generationStatus: string; updatedAt: Date }): Promise<void> {
+    if (site.generationStatus !== 'generating') return;
+    const cutoff = new Date(Date.now() - STALE_GENERATION_MS);
+    if (site.updatedAt >= cutoff) return;
+    const recovered = await prisma.website.updateMany({
+      where: { id: site.id, generationStatus: 'generating', updatedAt: { lt: cutoff } },
+      data: {
+        generationStatus: 'failed',
+        generationStage: 'FAILED',
+        generationNextAttemptAt: null,
+        generationError: 'A geração foi interrompida antes de receber resposta do Gemini. Clique em “Gerar novamente” para retomar.',
+        generationMetrics: asJson({ model: env.GEMINI_MODEL, status: 'orphaned', recoveredAt: new Date().toISOString() }),
+      },
+    });
+    if (recovered.count) console.warn('[Website generation recovered]', { websiteId: site.id });
+  }
+
+  private startGenerationHeartbeat(siteId: string, getStage: () => string): () => void {
+    const timer = setInterval(() => {
+      void prisma.website.updateMany({
+        where: { id: siteId, generationStatus: 'generating' },
+        data: { generationStage: getStage() },
+      }).catch(error => console.warn('[Website generation heartbeat]', { websiteId: siteId, detail: error instanceof Error ? error.message : 'erro desconhecido' }));
+    }, 20_000);
+    return () => clearInterval(timer);
+  }
+
   private transientGenerationError(error: unknown): boolean {
     if (!(error instanceof AppError)) return false;
     return /sobrecarregado|limite de uso|nÃ£o foi possÃ­vel conectar/i.test(error.message);
@@ -70,7 +99,10 @@ export class WebsiteService {
   }
 
   async get(id: string) {
-    const site = await prisma.website.findUnique({ where: { id } });
+    let site = await prisma.website.findUnique({ where: { id } });
+    if (!site) throw notFound('Site nÃ£o encontrado');
+    await this.recoverStaleGeneration(site);
+    site = await prisma.website.findUnique({ where: { id } });
     if (!site) throw notFound('Site nÃ£o encontrado');
     const { published: _published, ...draft } = site;
     if (site.schemaVersion !== 2) {
@@ -80,7 +112,10 @@ export class WebsiteService {
   }
 
   async byLead(leadId: string) {
-    const website = await prisma.website.findUnique({ where: { crmLeadId: leadId }, select: { id: true, generationStatus: true, generationStage: true, generationRetries: true, generationNextAttemptAt: true, generationError: true, status: true, schemaVersion: true } });
+    let website = await prisma.website.findUnique({ where: { crmLeadId: leadId }, select: { id: true, generationStatus: true, generationStage: true, generationRetries: true, generationNextAttemptAt: true, generationError: true, status: true, schemaVersion: true, updatedAt: true } });
+    if (!website) return null;
+    await this.recoverStaleGeneration(website);
+    website = await prisma.website.findUnique({ where: { crmLeadId: leadId }, select: { id: true, generationStatus: true, generationStage: true, generationRetries: true, generationNextAttemptAt: true, generationError: true, status: true, schemaVersion: true, updatedAt: true } });
     if (!website) return null;
     if (website.schemaVersion !== 2) return null;
     return website;
@@ -88,32 +123,39 @@ export class WebsiteService {
 
   private async generateArtifact(business: StoredSite['business'], input: LeadImageCollection, opts: { notes?: string | null }, creativeDirection?: string, previousPlan?: DesignPlan, onRetry?: (event: RetryEvent) => void) {
     const { assets, profiles, summary, reviews } = input;
+    const context = buildWebsiteGenerationContext(business, input, opts.notes);
+    const analysis = analyzeBusinessForWebsite(context);
+    const brief = createCreativeBrief(context, analysis);
+    const manifest = buildAssetManifest(context);
     const compact = compactGenerationContext({ business, assets, summary, reviews, notes: opts.notes });
     const prompt = creativeDirection
-      ? buildRegeneratePrompt({ business: compact.business, instruction: creativeDirection, assets: compact.assets, profiles, summary: compact.summary, reviews: compact.reviews, previousPlan })
-      : buildCreatePrompt({ business: compact.business, assets: compact.assets, profiles, notes: compact.notes, summary: compact.summary, reviews: compact.reviews });
+      ? buildRegeneratePrompt({ business: compact.business, instruction: creativeDirection, assets: compact.assets, profiles, summary: compact.summary, reviews: compact.reviews, previousPlan, analysis, brief, manifest })
+      : buildCreatePrompt({ business: compact.business, assets: compact.assets, profiles, notes: compact.notes, summary: compact.summary, reviews: compact.reviews, analysis, brief, manifest });
     const visionAssets = compact.assets.filter(asset => asset.isBusinessAsset || asset.sourceType === 'business' || asset.sourceType === 'social').slice(0, 3);
     const vision = env.GEMINI_SEND_IMAGES ? await collectImageBytes(visionAssets, business) : [];
     const raw = await generateJson(prompt, siteCreateGenerationSchema, SYSTEM_INSTRUCTION, vision, { onRetry });
     const parsed = siteCreateSchema.parse(raw);
     const resolved = await resolveSiteImages(parsed.files, business, assets, parsed.imageIntents ?? []);
-    return { parsed, resolved, metrics: { inputContextChars: compact.estimatedChars, selectedAssets: compact.assets.length, visionImages: vision.length } };
+    return { parsed, resolved, analysis, brief, manifest, metrics: { promptVersion: WEBSITE_PROMPT_VERSION, inputContextChars: compact.estimatedChars, selectedAssets: compact.assets.length, realAssets: manifest.realAssetCount, visionImages: vision.length } };
   }
 
-  private async settleFiles(files: ArtefactFiles, business: StoredSite['business'], seoTitle: string, onRetry?: (event: RetryEvent) => void): Promise<ArtefactFiles> {
+  private async settleFiles(files: ArtefactFiles, business: StoredSite['business'], seoTitle: string, onRetry?: (event: RetryEvent) => void): Promise<{ files: ArtefactFiles; audit: QualityAudit; repairPasses: number }> {
     const prepare = (input: ArtefactFiles) => {
       const sanitized = sanitizeFiles(input).files;
       return ensureTitle(sanitized, seoTitle || '', business.name);
     };
     let current = prepare(files);
     for (let attempt = 0; attempt <= env.MAX_SITE_REFINEMENT_ITERATIONS; attempt += 1) {
-      const critical = criticalIssues(inspectArtifact(current));
-      if (!critical.length) return current;
+      const audit = auditArtifact(current);
+      if (!audit.needsRepair) return { files: current, audit, repairPasses: attempt };
       if (attempt === env.MAX_SITE_REFINEMENT_ITERATIONS) {
-        throw new AppError(502, `O site nÃ£o passou na validaÃ§Ã£o estrutural apÃ³s ${attempt} revisÃ£o(Ãµes): ${critical.map(issue => issue.message).join(' ')}`);
+        if (audit.issues.some(issue => issue.severity === 'critical')) {
+          throw new AppError(502, `O site não passou na validação estrutural após ${attempt} revisão(ões): ${audit.issues.filter(issue => issue.severity === 'critical').map(issue => issue.message).join(' ')}`);
+        }
+        return { files: current, audit, repairPasses: attempt };
       }
       const repair = await generateAuxJson(
-        buildRepairPrompt({ business, files: current, issues: critical as QualityIssue[] }),
+        buildRepairPrompt({ business, files: current, issues: audit.issues as QualityIssue[] }),
         siteRepairGenerationSchema,
         { onRetry },
       );
@@ -124,14 +166,15 @@ export class WebsiteService {
         'script.js': patch.files['script.js'] ?? current['script.js'],
       });
     }
-    return current;
+    return { files: current, audit: auditArtifact(current), repairPasses: env.MAX_SITE_REFINEMENT_ITERATIONS };
   }
 
   private async createStoredSite(business: StoredSite['business'], opts: { notes?: string | null; baseUrl?: string }, creativeDirection?: string, previousPlan?: DesignPlan, onRetry?: (event: RetryEvent) => void, onStage?: (stage: 'SITE_GENERATION') => Promise<void>) {
     const input = await collectLeadImages(business, opts.baseUrl);
     await onStage?.('SITE_GENERATION');
-    const { parsed, resolved, metrics } = await this.generateArtifact(business, input, { notes: opts.notes }, creativeDirection, previousPlan, onRetry);
-    const files = await this.settleFiles(resolved.files, business, parsed.seo.title, onRetry);
+    const { parsed, resolved, analysis, brief, manifest, metrics } = await this.generateArtifact(business, input, { notes: opts.notes }, creativeDirection, previousPlan, onRetry);
+    const settled = await this.settleFiles(resolved.files, business, parsed.seo.title, onRetry);
+    const files = settled.files;
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo: parsed.seo });
     const stored = storedSiteSchema.parse({
       schemaVersion: 2,
@@ -140,9 +183,22 @@ export class WebsiteService {
       imageMap: resolved.imageMap,
       assets: resolved.assets,
       designPlan: parsed.designPlan,
+      generation: { promptVersion: WEBSITE_PROMPT_VERSION, businessAnalysis: analysis, creativeBrief: brief, assetManifest: manifest, qualityScore: settled.audit.score, auditIssues: settled.audit.issues },
       meta: { source: 'ai_generation', instruction: creativeDirection || '', sizeBytes: artefactSize(files) },
     });
-    return { stored, metrics };
+    if (env.NODE_ENV !== 'production') {
+      console.info('[Website generation audit]', {
+        promptVersion: WEBSITE_PROMPT_VERSION,
+        business: business.name,
+        category: business.category,
+        realAssets: manifest.realAssetCount,
+        totalAssets: resolved.assets.length,
+        qualityScore: settled.audit.score,
+        repairPasses: settled.repairPasses,
+        issues: settled.audit.issues.map(issue => issue.code),
+      });
+    }
+    return { stored, metrics: { ...metrics, qualityScore: settled.audit.score, auditIssues: settled.audit.issues.length, repairPasses: settled.repairPasses } };
   }
 
   private async commit({ site, crmLeadId, stored, source, instruction }: {
@@ -223,12 +279,15 @@ export class WebsiteService {
     const lock = await prisma.website.updateMany({ where: { id: site.id, OR: [{ generationStatus: { in: ['pending', 'failed'] } }, { generationStatus: 'generating', updatedAt: { lt: new Date(Date.now() - 150000) } }] }, data: { generationStatus: 'generating', generationStage: 'ASSET_DISCOVERY', generationError: null, generationNextAttemptAt: null } });
     if (!lock.count) return;
     const onRetry = () => generationQueue.setRetrying(job);
+    let liveStage = 'ASSET_DISCOVERY';
+    const stopHeartbeat = this.startGenerationHeartbeat(site.id, () => liveStage);
     try {
       const crm = await prisma.crmLead.findUnique({ where: { id: crmLeadId }, include: { lead: true } });
       if (!crm) throw notFound('Lead do CRM nÃ£o encontrado.');
       const business = normalizeBusiness(crm.lead);
       const startedAt = Date.now();
       const result = await this.createStoredSite(business, { notes: crm.notes, baseUrl }, undefined, undefined, onRetry, async stage => {
+        liveStage = stage;
         await prisma.website.update({ where: { id: site.id }, data: { generationStage: stage } });
       });
       const stored = result.stored;
@@ -249,6 +308,8 @@ export class WebsiteService {
         model: env.GEMINI_MODEL, status: 'failed', completedAt: new Date().toISOString(), retries: job.attempts,
       }) } });
       throw new AppError(502, message);
+    } finally {
+      stopHeartbeat();
     }
   }
 
@@ -277,6 +338,8 @@ export class WebsiteService {
     const lock = await prisma.website.updateMany({ where: { id, generationStatus: { not: 'generating' } }, data: { generationStatus: 'generating', generationStage: 'ASSET_DISCOVERY', generationError: null, generationNextAttemptAt: null } });
     if (!lock.count) return;
     const onRetry = () => generationQueue.setRetrying(job);
+    let liveStage = 'ASSET_DISCOVERY';
+    const stopHeartbeat = this.startGenerationHeartbeat(site.id, () => liveStage);
     try {
       const business = normalizeBusiness(site.crmLead.lead);
       let previousPlan: DesignPlan | undefined;
@@ -285,6 +348,7 @@ export class WebsiteService {
       } catch { /* site sem documento anterior */ }
       const startedAt = Date.now();
       const result = await this.createStoredSite(business, { notes: site.crmLead.notes, baseUrl }, instruction, previousPlan, onRetry, async stage => {
+        liveStage = stage;
         await prisma.website.update({ where: { id }, data: { generationStage: stage } });
       });
       const stored = result.stored;
@@ -302,6 +366,8 @@ export class WebsiteService {
         model: env.GEMINI_MODEL, status: 'failed', completedAt: new Date().toISOString(), retries: job.attempts,
       }) } });
       throw new AppError(502, message);
+    } finally {
+      stopHeartbeat();
     }
   }
 
@@ -325,7 +391,7 @@ export class WebsiteService {
       'script.js': edit.files['script.js'] ?? current.artefact.files['script.js'],
     };
     const seo = edit.seo ?? current.artefact.seo;
-    const files = await this.settleFiles(merged, current.business, seo.title);
+    const files = (await this.settleFiles(merged, current.business, seo.title)).files;
     const artefact = artefactSchema.parse({ format: 'html-standalone', files, seo });
     const stored = storedSiteSchema.parse({
       ...current,
