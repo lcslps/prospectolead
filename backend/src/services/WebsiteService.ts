@@ -405,7 +405,9 @@ export class WebsiteService {
   async saveContent(id: string, files: ArtefactFiles) {
     const site = await prisma.website.findUnique({ where: { id } });
     if (!site) throw notFound('Site nÃ£o encontrado');
-    if (site.generationStatus !== 'completed' || legacyStored(site.currentDocument)) throw new AppError(400, 'Gere o site antes de editar.');
+    // A failed regeneration keeps the last valid document. Do not lock that document
+    // out of a deterministic repair in the editor.
+    if (site.generationStatus === 'generating' || legacyStored(site.currentDocument)) throw new AppError(400, 'Gere o site antes de editar.');
     const current = storedSiteSchema.parse(site.currentDocument);
     const files2 = ensureTitle(sanitizeFiles(files).files, current.artefact.seo.title, current.business.name);
     const artefact = artefactSchema.parse({ format: 'html-standalone', files: files2, seo: current.artefact.seo });

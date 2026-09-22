@@ -1,4 +1,5 @@
 import type { ArtefactFiles } from './siteArtefactSchema';
+import { checkContrast } from './CodemakersDesign';
 
 export interface QualityIssue {
   severity: 'critical' | 'warning';
@@ -21,11 +22,50 @@ export interface QualityAudit {
 
 const TOKEN_PATTERN = /\{\{[A-Za-z0-9_-]+\}\}/;
 
+function rootColor(css: string, names: string[]): string | null {
+  const root = /:root\s*\{([\s\S]*?)\}/i.exec(css)?.[1] ?? '';
+  for (const name of names) {
+    const match = new RegExp(`--(?:[\\w-]*${name}[\\w-]*)\\s*:\\s*(#[a-f\\d]{3,6})\\b`, 'i').exec(root);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+function contrastIssues(css: string): QualityIssue[] {
+  const background = rootColor(css, ['background', 'bg']);
+  const surface = rootColor(css, ['surface', 'card']);
+  const text = rootColor(css, ['text', 'foreground', 'ink']);
+  const muted = rootColor(css, ['muted']);
+  const pairs: Array<[string | null, string | null, string]> = [
+    [text, background, 'texto principal/fundo'],
+    [text, surface, 'texto principal/superfície'],
+    [muted, background, 'texto secundário/fundo'],
+  ];
+  for (const [foreground, backdrop, label] of pairs) {
+    if (!foreground || !backdrop) continue;
+    const result = checkContrast(foreground, backdrop);
+    if (result && !result.passes) {
+      return [{ severity: 'critical', code: 'contrast_aa_failure', message: `O contraste ${label} (${result.ratio.toFixed(2)}:1) não atende AA para texto normal.` }];
+    }
+  }
+  return [];
+}
+
 export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
   const issues: QualityIssue[] = [];
   const html = files['index.html'] || '';
   const css = files['styles.css'] || '';
   const combined = `${html}\n${css}`;
+
+  if (html.length < 900) {
+    issues.push({ severity: 'critical', code: 'undersized_html', message: 'O HTML está curto demais para um site profissional completo; faltam estrutura e conteúdo visual.' });
+  }
+  if (css.length < 600) {
+    issues.push({ severity: 'critical', code: 'undersized_css', message: 'A folha de estilos está curta demais para garantir uma composição visual profissional e responsiva.' });
+  }
+  if (/<link\b[^>]*\brel\s*=\s*["']?stylesheet["']?[^>]*\bhref\s*=\s*["']\s*["']/i.test(html)) {
+    issues.push({ severity: 'critical', code: 'empty_stylesheet_link', message: 'Há uma folha de estilos com href vazio, o que deixa o site sem apresentação visual.' });
+  }
 
   if (!/<html[\s>]/i.test(html)) {
     issues.push({ severity: 'critical', code: 'missing_html_root', message: 'Documento sem raiz <html>: o cabeçalho pode não ser processado corretamente.' });
@@ -40,6 +80,9 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
     issues.push({ severity: 'critical', code: 'unresolved_token', message: 'Restaram tokens de imagem não resolvidos ({{...}}).' });
   }
 
+  if (/\bdata-intent-id\s*=/i.test(html)) {
+    issues.push({ severity: 'critical', code: 'unresolved_image_intent', message: 'Restou um placeholder de imagem sem um asset resolvido.' });
+  }
   const images = html.match(/<img\b[^>]*>/gi) ?? [];
   for (const img of images) {
     const src = /src\s*=\s*["']([^"']*)["']/i.exec(img)?.[1] ?? '';
@@ -57,6 +100,10 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
     }
   }
 
+  const hasVisual = images.length > 0 || /\bbackground(?:-image)?\s*:\s*[^;]*(?:url\(|gradient\()/i.test(css);
+  if (!hasVisual) {
+    issues.push({ severity: 'critical', code: 'missing_visual_asset', message: 'O site não possui nenhum visual renderizável; isso deixa a composição vazia.' });
+  }
   if (!/@media/i.test(css)) {
     issues.push({ severity: 'warning', code: 'no_media_queries', message: 'Nenhuma media query encontrada: a responsividade pode estar comprometida.' });
   }
@@ -97,6 +144,7 @@ export function inspectArtifact(files: ArtefactFiles): QualityIssue[] {
     issues.push({ severity: 'warning', code: 'incomplete_landmarks', message: 'A página precisa de navegação e rodapé semânticos.' });
   }
 
+  issues.push(...contrastIssues(css));
   return issues;
 }
 
@@ -115,7 +163,7 @@ export function auditArtifact(files: ArtefactFiles): QualityAudit {
       responsive: dimension(['no_media_queries', 'no_mobile_breakpoint', 'no_fluid_type', 'no_layout_grid']),
       accessibility: dimension(['missing_image_alt', 'no_focus_visible', 'no_reduced_motion', 'unsafe_protocol']),
       visualSystem: dimension(['no_design_tokens', 'excessive_cards']),
-      performance: dimension(['no_lazy_images', 'unresolved_token', 'empty_img_src']),
+      performance: dimension(['no_lazy_images', 'unresolved_token', 'unresolved_image_intent', 'empty_img_src', 'missing_visual_asset']),
     },
   };
 }

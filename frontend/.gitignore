@@ -28,3 +28,6 @@ Thumbs.db
 # Vite / cache
 .vite/
 *.tsbuildinfo
+
+# Fixture gerada do smoke test do editor (ver npm run test:smoke)
+tests/fixtures/editor-smoke.html

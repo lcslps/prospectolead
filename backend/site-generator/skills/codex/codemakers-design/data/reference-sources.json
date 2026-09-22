@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "apple",
+      "title": "Apple (España)",
+      "source_file": "references/source-material/apple.txt",
+      "sha256": "9e9e4b5f7cc2b568f40d86615f1623f3e529158b4ee07c84abd4c42d4aa863d0",
+      "bytes": 24414,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    },
+    {
+      "id": "bmw",
+      "title": "BMW.com",
+      "source_file": "references/source-material/bmw.txt",
+      "sha256": "de99fe12979c9741f59f89d36b1df886bd58f6e9f0cbd713f0247899b9226108",
+      "bytes": 15952,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    },
+    {
+      "id": "flying-papers",
+      "title": "Flying Papers",
+      "source_file": "references/source-material/flying-papers.txt",
+      "sha256": "cf634ab88903ff22037b5a80b5ec09575023ca8bf95723d86f9c55d71a127781",
+      "bytes": 20918,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    },
+    {
+      "id": "lunch",
+      "title": "LUNCH",
+      "source_file": "references/source-material/lunch.txt",
+      "sha256": "90606e5cbc05259201184482260a8c3f0f41080dfc9ef95d37facfe9965c19b1",
+      "bytes": 15853,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    },
+    {
+      "id": "slush",
+      "title": "Slush",
+      "source_file": "references/source-material/slush.txt",
+      "sha256": "f27f3dd72cf6564a7b92e8f8325c179d459ecb2caf71b10aa6e8aaa791aae656",
+      "bytes": 20798,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    },
+    {
+      "id": "air",
+      "title": "Air",
+      "source_file": "references/source-material/air.txt",
+      "sha256": "e291eb0557f208fd35d056dec4d31f55c835740396df3f9e1aaa8ab4636f5e52",
+      "bytes": 16526,
+      "provenance": "Documento fornecido pelo usuário; não verificado como guideline oficial da marca."
+    }
+  ],
+  "contrast_checks": [
+    {
+      "study": "apple",
+      "purpose": "action",
+      "foreground": "#FFFFFF",
+      "background": "#0071E3",
+      "ratio": 4.69666146009005,
+      "normal_text_aa": true,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "bmw",
+      "purpose": "muted-on-white",
+      "foreground": "#BBBBBB",
+      "background": "#FFFFFF",
+      "ratio": 1.9197964092167106,
+      "normal_text_aa": false,
+      "large_text_aa": false,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "bmw",
+      "purpose": "muted-on-carbon",
+      "foreground": "#BBBBBB",
+      "background": "#262626",
+      "ratio": 7.882882443281817,
+      "normal_text_aa": true,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "flying-papers",
+      "purpose": "yellow-on-violet",
+      "foreground": "#F4ED36",
+      "background": "#8584BD",
+      "ratio": 2.8202518627862965,
+      "normal_text_aa": false,
+      "large_text_aa": false,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "flying-papers",
+      "purpose": "cream-on-violet",
+      "foreground": "#F9F5F2",
+      "background": "#8584BD",
+      "ratio": 3.2110441791903703,
+      "normal_text_aa": false,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "flying-papers",
+      "purpose": "ink-on-violet",
+      "foreground": "#1A1A1A",
+      "background": "#8584BD",
+      "ratio": 4.9997157738991564,
+      "normal_text_aa": true,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "lunch",
+      "purpose": "sold-out-on-parchment",
+      "foreground": "#B8AAD0",
+      "background": "#F4F1E4",
+      "ratio": 1.9125126012937843,
+      "normal_text_aa": false,
+      "large_text_aa": false,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "lunch",
+      "purpose": "proposed-status-ink",
+      "foreground": "#675376",
+      "background": "#F4F1E4",
+      "ratio": 6.030993845825974,
+      "normal_text_aa": true,
+      "large_text_aa": true,
+      "origin": "Adaptação proposta pela Code Makers"
+    },
+    {
+      "study": "air",
+      "purpose": "twilight-on-black",
+      "foreground": "#426188",
+      "background": "#000000",
+      "ratio": 3.2970425251446747,
+      "normal_text_aa": false,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "air",
+      "purpose": "signal-on-haze",
+      "foreground": "#2B7FFF",
+      "background": "#F5F5F5",
+      "ratio": 3.450440998746679,
+      "normal_text_aa": false,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "slush",
+      "purpose": "white-on-electric-blue",
+      "foreground": "#FFFFFF",
+      "background": "#4DA2FF",
+      "ratio": 2.6489437125591184,
+      "normal_text_aa": false,
+      "large_text_aa": false,
+      "origin": "Par extraído do documento fornecido"
+    },
+    {
+      "study": "slush",
+      "purpose": "white-on-violet",
+      "foreground": "#FFFFFF",
+      "background": "#5C4ADE",
+      "ratio": 6.018296853592123,
+      "normal_text_aa": true,
+      "large_text_aa": true,
+      "origin": "Par extraído do documento fornecido"
+    }
+  ],
+  "scope": "Cópias originais preservadas. Medições de pares sRGB opacos não certificam uma interface."
+}

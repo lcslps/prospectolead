@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "author": "Code Makers",
+  "kind": "typography",
+  "records": [
+    {
+      "id": "literario",
+      "name": "Literário legível",
+      "tags": [
+        "editorial",
+        "leitura"
+      ],
+      "display": "Source Serif 4",
+      "body": "Source Sans 3",
+      "recipe": "Serif na leitura e sans em metadados e controles.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "arquivo",
+      "name": "Arquivo contemporâneo",
+      "tags": [
+        "arquivo",
+        "cultura"
+      ],
+      "display": "Bodoni Moda",
+      "body": "IBM Plex Sans",
+      "recipe": "Display com contraste; corpo de interface contido e robusto.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "oficina",
+      "name": "Oficina humana",
+      "tags": [
+        "artesanal",
+        "material"
+      ],
+      "display": "Fraunces",
+      "body": "Work Sans",
+      "recipe": "Display expressivo em títulos curtos; corpo simples em fichas.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "operacional",
+      "name": "Operação precisa",
+      "tags": [
+        "dashboard",
+        "dados"
+      ],
+      "display": "IBM Plex Sans",
+      "body": "IBM Plex Sans",
+      "recipe": "Uma família; avaliar números tabulares e densidade por papel.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "galeria",
+      "name": "Galeria de imagem",
+      "tags": [
+        "portfolio",
+        "fotografia"
+      ],
+      "display": "DM Sans",
+      "body": "DM Sans",
+      "recipe": "Tipo discreto para preservar a imagem como elemento principal.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "civico",
+      "name": "Serviço direto",
+      "tags": [
+        "publico",
+        "formulario"
+      ],
+      "display": "Public Sans",
+      "body": "Public Sans",
+      "recipe": "Hierarquia por peso e espaço; nomes claros antes de expressividade.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "produto",
+      "name": "Produto calmo",
+      "tags": [
+        "saas",
+        "produtividade"
+      ],
+      "display": "Manrope",
+      "body": "Source Sans 3",
+      "recipe": "Título com personalidade moderada e leitura de UI consistente.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "festival",
+      "name": "Festival condensado",
+      "tags": [
+        "evento",
+        "expressivo"
+      ],
+      "display": "Barlow Condensed",
+      "body": "Barlow",
+      "recipe": "Display condensado; usar variante não condensada para informação.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "esporte",
+      "name": "Esporte e agenda",
+      "tags": [
+        "esporte",
+        "energia"
+      ],
+      "display": "Oswald",
+      "body": "Source Sans 3",
+      "recipe": "Condensada em manchetes; horários e instruções em corpo aberto.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "hospitalidade",
+      "name": "Hospitalidade editorial",
+      "tags": [
+        "hotel",
+        "viagem"
+      ],
+      "display": "Cormorant Garamond",
+      "body": "Lato",
+      "recipe": "Display com escala suficiente; detalhes de reserva na sans.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "comercio",
+      "name": "Comércio claro",
+      "tags": [
+        "ecommerce",
+        "produto"
+      ],
+      "display": "Montserrat",
+      "body": "Source Sans 3",
+      "recipe": "Geometria no título; corpo funcional para preço e especificação.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "laboratorio",
+      "name": "Pesquisa e evidência",
+      "tags": [
+        "ciencia",
+        "dados"
+      ],
+      "display": "IBM Plex Serif",
+      "body": "IBM Plex Sans",
+      "recipe": "Papéis relacionados por superfamília; tabelas em sans.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "ludico",
+      "name": "Lúdico contido",
+      "tags": [
+        "educacao",
+        "criativo"
+      ],
+      "display": "Fredoka",
+      "body": "Nunito Sans",
+      "recipe": "Display lúdico com corpo menos expressivo; evitar tudo arredondado.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "botanico",
+      "name": "Botânico documental",
+      "tags": [
+        "natureza",
+        "catalogo"
+      ],
+      "display": "Lora",
+      "body": "Source Sans 3",
+      "recipe": "Serif em títulos e observações; metadados organizados em sans.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "mapa",
+      "name": "Mapa e contexto",
+      "tags": [
+        "mapa",
+        "geografia"
+      ],
+      "display": "Noto Sans",
+      "body": "Noto Sans",
+      "recipe": "Priorizar cobertura do idioma e legibilidade de labels.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "musica",
+      "name": "Música gráfica",
+      "tags": [
+        "musica",
+        "cultura"
+      ],
+      "display": "Space Grotesk",
+      "body": "DM Sans",
+      "recipe": "Display geométrico moderado; metadados e controles simples.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "industrial",
+      "name": "Técnico industrial",
+      "tags": [
+        "industria",
+        "tecnico"
+      ],
+      "display": "Barlow",
+      "body": "IBM Plex Sans",
+      "recipe": "Títulos compactos e texto funcional; mono só onde ajudar código.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "luxo",
+      "name": "Luxo de proporção",
+      "tags": [
+        "luxo",
+        "moda"
+      ],
+      "display": "Bodoni Moda",
+      "body": "Jost",
+      "recipe": "Contraste de display com sans geométrica; testar pesos finos.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "retro",
+      "name": "Retrô com leitura",
+      "tags": [
+        "retro",
+        "jogo"
+      ],
+      "display": "Press Start 2P",
+      "body": "Atkinson Hyperlegible",
+      "recipe": "Pixel restrito a poucas palavras; conteúdo principal legível.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "grafico",
+      "name": "Gráfico de impacto",
+      "tags": [
+        "brutalismo",
+        "expressivo"
+      ],
+      "display": "Archivo Black",
+      "body": "Archivo",
+      "recipe": "Peso alto em poucas áreas; hierarquia pelos pesos da família.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "vidro",
+      "name": "Camadas claras",
+      "tags": [
+        "glass",
+        "imersivo"
+      ],
+      "display": "Sora",
+      "body": "Inter",
+      "recipe": "Geometria no display e corpo funcional sobre superfície controlada.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "noturno",
+      "name": "Noturno utilitário",
+      "tags": [
+        "dark",
+        "escuro",
+        "dados"
+      ],
+      "display": "Inter",
+      "body": "Inter",
+      "recipe": "Priorizar peso e contraste; fonte conhecida não é defeito estético.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "documentacao",
+      "name": "Documentação aberta",
+      "tags": [
+        "docs",
+        "codigo"
+      ],
+      "display": "Atkinson Hyperlegible",
+      "body": "Atkinson Hyperlegible",
+      "recipe": "Corpo legível; adicionar mono do projeto apenas a código.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    },
+    {
+      "id": "sistema",
+      "name": "Sistema sem download",
+      "tags": [
+        "offline",
+        "sistema",
+        "utilitario"
+      ],
+      "display": "system-ui",
+      "body": "system-ui",
+      "recipe": "Sem dependência de fonte externa; métricas variam entre plataformas.",
+      "verification": "Confirmar origem oficial, licença, pesos, glyphs e carregamento. Fontes não incluídas."
+    }
+  ]
+}

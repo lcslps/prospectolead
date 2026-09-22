@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "author": "Code Makers",
+  "kind": "studies",
+  "records": [
+    {
+      "id": "apple",
+      "name": "Apple (España) — estudo de referência",
+      "tags": [
+        "apple",
+        "produto",
+        "espaco",
+        "branco",
+        "tipografia",
+        "minimal"
+      ],
+      "thesis": "Produto como protagonista; escala tipográfica forte e superfícies claras com pouca decoração.",
+      "when": "Vitrines de produto com mídia real, narrativa de benefícios e comparação de variantes.",
+      "recipe": "Converter espaço em hierarquia; separar cor da mídia de cor de ação; usar título expressivo com corpo calmo.",
+      "cautions": [
+        "Não copiar o hexadecimal inválido #5a7e2.",
+        "numr não significa algarismos tabulares.",
+        "Entrelinhas 16/25/100 no snippet precisam de unidade ou normalização."
+      ],
+      "guide": "references/study-apple.md",
+      "source_file": "references/source-material/apple.txt",
+      "source_sha256": "9e9e4b5f7cc2b568f40d86615f1623f3e529158b4ee07c84abd4c42d4aa863d0",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    },
+    {
+      "id": "bmw",
+      "name": "BMW.com — estudo de referência",
+      "tags": [
+        "bmw",
+        "automotivo",
+        "fotografia",
+        "leve",
+        "luxo",
+        "galeria"
+      ],
+      "thesis": "Fotografia escultórica e display leve em uma moldura branca/carvão de geometria angular.",
+      "when": "Portfólios de objetos, arquitetura e produtos que se beneficiam de fotografia expressiva.",
+      "recipe": "Separar fotografia imersiva de áreas legíveis; criar contraste por polaridade e peso tipográfico.",
+      "cautions": [
+        "#BBBBBB sobre branco não serve a texto informativo normal.",
+        "A narrativa pede raio zero, mas o @theme traz raios diferentes.",
+        "Não generalizar ausência de estados ou marcação de idioma como boa prática."
+      ],
+      "guide": "references/study-bmw.md",
+      "source_file": "references/source-material/bmw.txt",
+      "source_sha256": "de99fe12979c9741f59f89d36b1df886bd58f6e9f0cbd713f0247899b9226108",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    },
+    {
+      "id": "flying-papers",
+      "name": "Flying Papers — estudo de referência",
+      "tags": [
+        "flying",
+        "papers",
+        "cartaz",
+        "mascote",
+        "violeta",
+        "ilustracao"
+      ],
+      "thesis": "Um cartaz por cena: tipografia pesada, personagem bidimensional e cores chapadas sobre violeta.",
+      "when": "Marcas expressivas, campanhas culturais e projetos com ilustração autoral pertinente.",
+      "recipe": "Compor texto e personagem como conjunto; preservar controles e corpo legíveis em uma camada estável.",
+      "cautions": [
+        "Amarelo sobre violeta fica abaixo de 3:1 no par fornecido.",
+        "Creme sobre violeta não atinge 4.5:1 para texto normal.",
+        "A proibição genérica de botão preenchido contradiz o botão creme descrito."
+      ],
+      "guide": "references/study-flying-papers.md",
+      "source_file": "references/source-material/flying-papers.txt",
+      "source_sha256": "cf634ab88903ff22037b5a80b5ec09575023ca8bf95723d86f9c55d71a127781",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    },
+    {
+      "id": "lunch",
+      "name": "LUNCH — estudo de referência",
+      "tags": [
+        "lunch",
+        "moda",
+        "editorial",
+        "catalogo",
+        "pergaminho",
+        "cromado"
+      ],
+      "thesis": "Abertura fotográfica dramática seguida de catálogo calmo; uma assinatura cromada e lilás pontual.",
+      "when": "Moda, coleções e portfólios em que descoberta editorial e comparação precisam coexistir.",
+      "recipe": "Distribuir intensidade no tempo; uma assinatura forte na abertura, metadados claros na compra.",
+      "cautions": [
+        "Lilás #B8AAD0 sobre pergaminho não aprova texto normal de disponibilidade.",
+        "Wordmark 3D não se reproduz apenas declarando uma família CSS.",
+        "Não transplantar banner de cookies sem necessidade real do produto."
+      ],
+      "guide": "references/study-lunch.md",
+      "source_file": "references/source-material/lunch.txt",
+      "source_sha256": "90606e5cbc05259201184482260a8c3f0f41080dfc9ef95d37facfe9965c19b1",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    },
+    {
+      "id": "slush",
+      "name": "Slush — estudo de referência",
+      "tags": [
+        "slush",
+        "adesivo",
+        "colagem",
+        "3d",
+        "pastel",
+        "inflavel"
+      ],
+      "thesis": "Tipografia escultórica e fitas infláveis em um universo de adesivos sobre papel pastel.",
+      "when": "Experiências lúdicas e campanhas com assets de volume e identidade gráfica coerente.",
+      "recipe": "Manter um motivo recorrente, uma camada de controles estável e cor de ação separada da paleta decorativa.",
+      "cautions": [
+        "O guia descreve CTA preto, mas um prompt depois o chama de branco.",
+        "640px é escala observada, não mínimo de fonte em qualquer viewport.",
+        "3D descrito como render estático não exige WebGL ou animação."
+      ],
+      "guide": "references/study-slush.md",
+      "source_file": "references/source-material/slush.txt",
+      "source_sha256": "f27f3dd72cf6564a7b92e8f8325c179d459ecb2caf71b10aa6e8aaa791aae656",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    },
+    {
+      "id": "air",
+      "name": "Air — estudo de referência",
+      "tags": [
+        "air",
+        "dark",
+        "escuro",
+        "atmosfera",
+        "vidro",
+        "cursiva"
+      ],
+      "thesis": "Fotografia atmosférica escura, objeto translúcido e contraste entre voz neutra, comprimida e cursiva.",
+      "when": "Produtos criativos com demonstração real em superfícies claras e narrativa atmosférica.",
+      "recipe": "Usar a atmosfera como fundo da narrativa e ilhas sólidas para tarefas; limitar a ruptura cursiva.",
+      "cautions": [
+        "Azul Twilight sobre preto não atinge contraste de texto normal.",
+        "Signal Blue sobre Haze não aprova texto normal no par medido.",
+        "Texto preto em toggle escuro translúcido precisa de contexto e composição reais."
+      ],
+      "guide": "references/study-air.md",
+      "source_file": "references/source-material/air.txt",
+      "source_sha256": "e291eb0557f208fd35d056dec4d31f55c835740396df3f9e1aaa8ab4636f5e52",
+      "scope": "Interpretação do MD fornecido, não auditoria atual do site nem endosso da marca."
+    }
+  ]
+}

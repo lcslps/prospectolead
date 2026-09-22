@@ -54,6 +54,9 @@ function sanitizeScript(script: string): string {
 
 function sanitizeHtml(html: string): string {
   let out = sanitizeAttributeUrls(html);
+  // The generated site is rendered with its stored styles.css. A blank external
+  // stylesheet link is never useful and can leave a document looking unstyled.
+  out = out.replace(/<link\b(?=[^>]*\brel\s*=\s*["']?stylesheet["']?)(?=[^>]*\bhref\s*=\s*["']\s*["'])[^>]*>/gi, '');
   out = out.replace(/<base\b[^>]*>/gi, '');
   out = out.replace(/<meta\b[^>]*http-equiv\s*=\s*["']?refresh["']?[^>]*>/gi, '');
   out = out.replace(/<iframe\b[^>]*>/gi, tag => {

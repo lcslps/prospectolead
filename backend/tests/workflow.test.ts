@@ -12,8 +12,8 @@ const SAMPLE_SITE = {
   seo: { title: 'Espetaria de teste', description: 'DescriÃƒÂ§ÃƒÂ£o de teste.', keywords: 'espetaria, teste' },
   imageIntents: [],
   files: {
-    'index.html': '<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"><title>Antes</title></head><body><header><nav><a href="#hero">h</a></nav></header><main><section id="hero"><h1>TÃƒÂ­tulo</h1></section></main><footer>rodapÃƒÂ©</footer><script src="script.js" defer></script></body></html>',
-    'styles.css': 'body{font-family:sans-serif;color:#172033}',
+    'index.html': '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Espetaria de teste</title></head><body><header><nav aria-label="Principal"><a href="#hero">Inicio</a><a href="#sobre">Sobre</a><a href="#contato">Contato</a></nav></header><main><section id="hero" class="hero"><div><p class="eyebrow">Teste local</p><h1>Sabores preparados para bons encontros</h1><p>Uma experiencia acolhedora para conhecer em nossa cidade.</p><a class="button" href="#contato">Falar conosco</a></div><img src="https://images.example.test/hero.jpg" alt="Prato da espetaria" loading="lazy"></section><section id="sobre"><h2>Uma experiencia pensada nos detalhes</h2><p>Informacoes claras, atendimento direto e um convite para visitar.</p></section><section id="contato"><h2>Entre em contato</h2><p>Escolha o melhor canal para conversar.</p></section></main><footer><p>Espetaria de teste</p></footer><script src="script.js" defer></script></body></html>',
+    'styles.css': ':root{--background:#fffaf5;--surface:#ffffff;--text:#172033;--muted:#536070;--primary:#9b3b24}*{box-sizing:border-box}body{margin:0;background:var(--background);color:var(--text);font-family:system-ui,sans-serif;line-height:1.6}a{color:inherit}.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(2rem,6vw,6rem);align-items:center;max-width:72rem;margin:0 auto;padding:clamp(4rem,10vw,9rem) 1.5rem}section:not(.hero){max-width:72rem;margin:0 auto;padding:clamp(3rem,7vw,6rem) 1.5rem}.hero img{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:1rem}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:.75rem;color:var(--primary)}h1{font-size:clamp(2.5rem,6vw,5.5rem);line-height:1.02;margin:.5rem 0 1rem}h2{font-size:clamp(1.7rem,4vw,3rem);line-height:1.1}.button{display:inline-block;background:var(--primary);color:#fff;padding:.8rem 1.2rem;border-radius:.5rem;text-decoration:none}a:focus-visible{outline:3px solid #172033;outline-offset:3px}@media (max-width:700px){.hero{grid-template-columns:1fr;padding-block:3rem}nav{display:flex;gap:.75rem;flex-wrap:wrap}}@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto;transition:none!important}}footer{padding:2rem 1.5rem;background:var(--text);color:#fff}',
     'script.js': 'console.log("ok");',
   },
 };
@@ -93,12 +93,13 @@ test('ProspecÃƒÂ§ÃƒÂ£o Ã¢â€ â€™ CRM Ã¢â€ â€™ Gemin
     });
     await t.test('Pedir ÃƒÂ  IA altera apenas os arquivos retornados e cria nova versÃƒÂ£o', async () => {
       globalThis.fetch = async (input, init) => String(input).startsWith('https://generativelanguage.googleapis.com/')
-        ? new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ files: { 'styles.css': 'body{font-family:serif}' } }) }] } }] }), { status: 200 })
+        ? new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({ files: { 'styles.css': ':root{--background:#fff;--text:#172033;--primary:#7c2d12}body{font-family:serif;background:var(--background);color:var(--text);min-height:100vh}main{max-width:72rem;margin:auto;padding:clamp(2rem,5vw,5rem)}.hero{display:grid;grid-template-columns:1fr 1fr;gap:2rem}.button{background:var(--primary);color:#fff;padding:.8rem 1rem;border-radius:.5rem}a:focus-visible{outline:3px solid var(--text)}@media (max-width:700px){.hero{grid-template-columns:1fr;padding:1.5rem}}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}footer{padding:2rem;background:var(--text);color:#fff}' } }) }] } }] }), { status: 200 })
         : originalFetch(input, init);
       const result = await request(`/websites/${site.id}/rewrite`, { instruction: 'Deixe mais elegante' }); assert.equal(result.status, 200);
       site = result.body.data;
       const stored = storedSiteSchema.parse(site.currentDocument);
-      assert.equal(stored.artefact.files['styles.css'], 'body{font-family:serif}');
+      assert.match(stored.artefact.files['styles.css'], /font-family:serif/);
+      assert.match(stored.artefact.files['styles.css'], /@media/);
       assert.equal(stored.artefact.files['index.html'], artefact1);
       assert.equal(stored.meta.instruction, 'Deixe mais elegante');
       const versions = (await request(`/websites/${site.id}/versions`)).body.data;

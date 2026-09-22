@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import { analyzeBusinessForWebsite, buildAssetManifest, buildWebsiteGenerationContext, createCreativeBrief } from '../src/services/WebsiteStrategy';
 import { auditArtifact } from '../src/services/SiteQuality';
 import { enforceResolvedImages } from '../src/services/SiteImages';
+import { checkContrast, codemakersDesignCandidates } from '../src/services/CodemakersDesign';
 
 const business = {
   googlePlaceId: 'place-1', name: 'Mundo dos Granitos', category: 'Marmoraria', categories: ['Marmoraria'],
@@ -38,4 +39,21 @@ test('premium audit catches responsive and accessibility omissions', () => {
   assert.ok(audit.score < 84);
   assert.ok(audit.issues.some(issue => issue.code === 'missing_image_alt'));
   assert.ok(audit.dimensions.accessibility < 100);
+});
+
+test('design library has an offline fallback and contrast checking enforces AA', () => {
+  const candidates = JSON.parse(codemakersDesignCandidates('Restaurante')) as { results: Array<{ domain: string; records: unknown[] }> };
+  assert.equal(candidates.results.length, 4);
+  assert.ok(candidates.results.some(result => result.domain === 'styles'));
+  assert.equal(checkContrast('#1f2937', '#ffffff')?.passes, true);
+  assert.equal(checkContrast('#777777', '#ffffff')?.passes, false);
+});
+
+test('audit blocks a palette with insufficient primary text contrast', () => {
+  const audit = auditArtifact({
+    'index.html': '<html><head><title>X</title><meta name="viewport" content="width=device-width"></head><body><nav></nav><main><h1>X</h1></main><footer></footer></body></html>',
+    'styles.css': ':root{--background:#ffffff;--text:#999999}.page{display:grid}@media(max-width:600px){.page{display:block}}:focus-visible{outline:2px solid #000}',
+    'script.js': '',
+  });
+  assert.ok(audit.issues.some(issue => issue.code === 'contrast_aa_failure'));
 });

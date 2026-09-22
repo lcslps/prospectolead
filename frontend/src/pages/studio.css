@@ -75,6 +75,8 @@
   color: var(--s-ink);
 }
 .studio-save-state { font-size: 11px; display: flex; gap: 5px; align-items: center; color: var(--s-muted); margin: 0 6px; font-weight: 500; }
+.studio-unsaved { font-size: 11px; display: inline-flex; gap: 6px; align-items: center; color: #b45309; font-weight: 600; white-space: nowrap; }
+.studio-unsaved i { width: 8px; height: 8px; border-radius: 999px; background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .18); font-style: normal; }
 .studio-toolbar-divider { height: 22px; width: 1px; background: var(--s-border); margin: 0 4px; }
 .studio-publish {
   display: inline-flex;

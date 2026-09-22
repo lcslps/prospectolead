@@ -3,7 +3,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Copy, ExternalLink, Eye, Globe, Hand, ImagePlus, Loader2, MapPin, Monitor, MousePointer2, Phone, RefreshCw, Save, Search, Smartphone, Sparkles, Star, Tablet, X } from 'lucide-react';
+import { ArrowLeft, Check, Copy, ExternalLink, Eye, Globe, Hand, ImagePlus, Loader2, MapPin, Monitor, MousePointer2, Phone, Redo2, RefreshCw, Save, Search, Smartphone, Sparkles, Star, Tablet, Undo2, X } from 'lucide-react';
 import { getData, postData, putData } from '../services/api';
 import { VERSION_SOURCE_LABELS, type SiteAsset, type Website, type WebsiteVersion } from '../types/website';
 import { WebsiteFrame } from '../components/WebsiteFrame';
@@ -31,7 +31,8 @@ export function WebsiteStudioPage() {
   const [error, setError] = useState('');
   const [width, setWidth] = useState(1200); const [zoom, setZoom] = useState(0.8); const [mode, setMode] = useState<'edit' | 'interact'>('edit');
   const [dirty, setDirty] = useState(false); const [saving, setSaving] = useState(false); const [savedNotice, setSavedNotice] = useState(false);
-  const [imagePicker, setImagePicker] = useState<{ src: string; alt: string } | null>(null);
+  const [canUndo, setCanUndo] = useState(false); const [canRedo, setCanRedo] = useState(false);
+  const [imagePicker, setImagePicker] = useState<{ src: string; alt: string; targetId?: string } | null>(null);
   const [photoQuery, setPhotoQuery] = useState(''); const [photos, setPhotos] = useState<SiteAsset[]>([]); const [photoBusy, setPhotoBusy] = useState(false); const [customImage, setCustomImage] = useState('');
   const [aiOpen, setAiOpen] = useState(false); const [aiMode, setAiMode] = useState<'edit' | 'redesign'>('edit'); const [aiInstruction, setAiInstruction] = useState(''); const [aiBusy, setAiBusy] = useState(false); const [aiError, setAiError] = useState(''); const [aiDone, setAiDone] = useState(false);
   const [publishBusy, setPublishBusy] = useState(false);
@@ -88,17 +89,53 @@ export function WebsiteStudioPage() {
     finally { setSaving(false); }
   }, [id]);
 
+  const breakpoint = width >= 1024 ? 'desktop' : width >= 640 ? 'tablet' : 'mobile';
+  const postToFrame = useCallback((msg: Record<string, unknown>) => {
+    frameRef.current?.contentWindow?.postMessage({ source: 'site-editor', ...msg }, '*');
+  }, []);
+  const postViewport = useCallback(() => {
+    postToFrame({ type: 'viewport', zoom, breakpoint });
+  }, [postToFrame, zoom, breakpoint]);
+  const viewportRef = useRef({ zoom, breakpoint });
+  viewportRef.current = { zoom, breakpoint };
+
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      const data = event.data as { source?: string; type?: string; html?: string; css?: string; js?: string; src?: string; alt?: string } | null;
+      const data = event.data as { source?: string; type?: string; html?: string; css?: string; js?: string; src?: string; alt?: string; targetId?: string; canUndo?: boolean; canRedo?: boolean } | null;
       if (!data || data.source !== 'site-edit') return;
       if (data.type === 'dirty') { setDirty(true); setSavedNotice(false); }
-      else if (data.type === 'select-image') { setImagePicker({ src: data.src || '', alt: data.alt || '' }); setCustomImage(''); setPhotos([]); setPhotoQuery(site?.business?.category || site?.name || ''); }
+      else if (data.type === 'ready') {
+        const current = viewportRef.current;
+        frameRef.current?.contentWindow?.postMessage({ source: 'site-editor', type: 'viewport', zoom: current.zoom, breakpoint: current.breakpoint }, '*');
+      }
+      else if (data.type === 'history-state') { setCanUndo(Boolean(data.canUndo)); setCanRedo(Boolean(data.canRedo)); }
+      else if (data.type === 'select-image') { setImagePicker({ src: data.src || '', alt: data.alt || '', targetId: data.targetId }); setCustomImage(''); setPhotos([]); setPhotoQuery(site?.business?.category || site?.name || ''); }
       else if (data.type === 'serialized' && typeof data.html === 'string') void saveSerialized({ html: data.html, css: data.css || '', js: data.js || '' });
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [saveSerialized, site?.business?.category, site?.name]);
+
+  // Mantém o iframe ciente do zoom/dispositivo atual (drag compensa o zoom;
+  // posições são gravadas por breakpoint).
+  useEffect(() => {
+    if (mode === 'edit') postViewport();
+  }, [postViewport, mode, site?.currentDocument]);
+
+  // Atalhos globais do editor: Ctrl/Cmd+Z desfaz, Ctrl/Cmd+Shift+Z e Ctrl+Y refazem.
+  useEffect(() => {
+    if (mode !== 'edit') return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+      if (!event.ctrlKey && !event.metaKey) return;
+      const key = event.key.toLowerCase();
+      if (key === 'z' && !event.shiftKey) { event.preventDefault(); postToFrame({ type: 'undo' }); }
+      else if ((key === 'z' && event.shiftKey) || key === 'y') { event.preventDefault(); postToFrame({ type: 'redo' }); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [mode, postToFrame]);
 
   useEffect(() => {
     if (!imagePicker) return;
@@ -159,7 +196,7 @@ export function WebsiteStudioPage() {
     setDirty(false); setSavedNotice(false); setMode(next);
   };
   const applyImage = (url: string, alt?: string) => {
-    frameRef.current?.contentWindow?.postMessage({ source: 'site-editor', type: 'set-image', src: url, alt: alt ?? imagePicker?.alt ?? '' }, '*');
+    postToFrame({ type: 'set-image', targetId: imagePicker?.targetId, src: url, alt: alt ?? imagePicker?.alt ?? '' });
     setDirty(true); setImagePicker(null);
   };
   const searchPhotos = async () => {
@@ -212,7 +249,10 @@ export function WebsiteStudioPage() {
       <span className="studio-toolbar-divider" />
       <Button variant="unstyled" className={mode === 'edit' ? 'active' : ''} onClick={() => changeMode('edit')}><MousePointer2 size={15} />Editar direto</Button>
       <Button variant="unstyled" className={mode === 'interact' ? 'active' : ''} onClick={() => changeMode('interact')}><Hand size={15} />Interagir</Button>
-      {mode === 'edit' && dirty && <Button variant="unstyled" className="studio-publish" disabled={saving} onClick={requestSave}>{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}{saving ? 'Salvando...' : 'Salvar alterações'}</Button>}
+      {mode === 'edit' && <><Button variant="unstyled" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled={!canUndo} onClick={() => postToFrame({ type: 'undo' })}><Undo2 size={15} /></Button>
+      <Button variant="unstyled" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled={!canRedo} onClick={() => postToFrame({ type: 'redo' })}><Redo2 size={15} /></Button>
+      <span className="studio-toolbar-divider" /></>}
+      {mode === 'edit' && dirty && <><span className="studio-unsaved" role="status"><i />Alterações não salvas</span><Button variant="unstyled" className="studio-publish" disabled={saving} onClick={requestSave}>{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}{saving ? 'Salvando...' : 'Salvar alterações'}</Button></>}
       {savedNotice && <span className="studio-success-inline" role="status"><Check size={13} />Alterações salvas</span>}
       <span className="studio-save-state">{published ? <><Check size={13} />Publicado (v{site.publishedVersion})</> : <span>Rascunho · v{site.revision}</span>}</span>
       <div className="studio-toolbar-divider" />
@@ -274,7 +314,7 @@ export function WebsiteStudioPage() {
         </div>
       </aside>
       <div className="studio-center">
-        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span>{mode === 'edit' && <span className="studio-edit-hint">Clique em um texto para editar, em uma imagem para trocar e arraste o bloco selecionado para movê-lo (ou use as setas da barra).</span>}</div>
+        <div className="studio-viewport-toolbar"><span className="studio-draft-label">{published ? `Publicado como v${site.publishedVersion} · ${site.revision} no rascunho` : `Rascunho v${site.revision}${published ? ' · publicação anterior disponível' : ''}`}</span>        {mode === 'edit' && <span className="studio-edit-hint">Clique para selecionar, arraste para mover só aquele elemento (ou use as setas; Alt+clique seleciona o bloco).</span>}</div>
         <div className="studio-canvas-scroll" ref={canvasRef}>
           <div className={isDesktop ? 'studio-canvas-size desktop' : 'studio-canvas-size device'} style={{ width: frameVisual.w, height: frameVisual.h }}>
             <div className="studio-stage" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left', width: stageLayout.w, height: stageLayout.h }}><WebsiteFrame artefact={doc?.artefact ?? null} interactive={mode === 'interact'} editable={mode === 'edit'} frameRef={frameRef} /></div>
@@ -293,7 +333,7 @@ export function WebsiteStudioPage() {
         <ul className="studio-facts studio-facts-list">
           <li>A IA nunca inventa fatos: só usa os dados verificados do estabelecimento.</li>
           <li>Peça uma coisa por vez para resultados melhores.</li>
-          <li>No modo <strong>Editar direto</strong>, clique em um texto para alterá-lo, em uma imagem para trocá-la e arraste o bloco selecionado para movê-lo para onde quiser. Depois clique em <strong>Salvar alterações</strong>.</li>
+          <li>No modo <strong>Editar direto</strong>, clique em um texto para alterá-lo, em uma imagem para trocá-la e arraste um elemento para movê-lo sozinho — os vizinhos ficam imóveis. <strong>Ctrl+Z</strong> desfaz, <strong>Ctrl+Shift+Z</strong> refaz. Depois clique em <strong>Salvar alterações</strong>.</li>
           <li>Use <strong>Interagir</strong> para navegar pelos links e testar o site como um visitante.</li>
         </ul>
       </aside>

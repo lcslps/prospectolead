@@ -1,0 +1,293 @@
+{
+  "schema_version": 1,
+  "author": "Code Makers",
+  "kind": "patterns",
+  "records": [
+    {
+      "id": "lista-detalhe",
+      "name": "Lista e detalhe",
+      "tags": [
+        "inbox",
+        "crm",
+        "lista"
+      ],
+      "when": "Comparar objetos e trabalhar em um sem perder a lista.",
+      "recipe": "Seleção clara, retorno preservado e rotas úteis.",
+      "avoid": "No mobile, separar telas quando dois painéis ficarem estreitos."
+    },
+    {
+      "id": "filtros-resultados",
+      "name": "Filtros e resultados",
+      "tags": [
+        "dashboard",
+        "busca",
+        "tabela"
+      ],
+      "when": "Explorar um conjunto por restrições.",
+      "recipe": "Consulta e filtros ativos visíveis; limpar, vazio e erro distintos.",
+      "avoid": "Resultados antigos não podem sobrescrever consulta nova."
+    },
+    {
+      "id": "revisao-envio",
+      "name": "Revisão antes do envio",
+      "tags": [
+        "formulario",
+        "checkout",
+        "confirmar"
+      ],
+      "when": "Conferir dados antes de uma consequência.",
+      "recipe": "Resumo editável, destino e efeito explícitos.",
+      "avoid": "Confirmação não pode fingir integração inexistente."
+    },
+    {
+      "id": "autosave-revisao",
+      "name": "Autosave por revisão",
+      "tags": [
+        "editor",
+        "autosave",
+        "dados"
+      ],
+      "when": "Salvar trabalho frequente sem interromper.",
+      "recipe": "Alterado, salvando, salvo, falhou e conflito quando aplicável.",
+      "avoid": "Resposta antiga não marca edição nova como salva."
+    },
+    {
+      "id": "upload-fila",
+      "name": "Fila de upload",
+      "tags": [
+        "upload",
+        "arquivo",
+        "progresso"
+      ],
+      "when": "Enviar e acompanhar vários arquivos.",
+      "recipe": "Estado individual, cancelamento, retry e formatos permitidos.",
+      "avoid": "Falha de um arquivo não deve apagar os demais."
+    },
+    {
+      "id": "etapas-ramificadas",
+      "name": "Etapas ramificadas",
+      "tags": [
+        "formulario",
+        "onboarding",
+        "etapas"
+      ],
+      "when": "Reduzir complexidade de decisões dependentes.",
+      "recipe": "Voltar preserva dados; progresso corresponde ao caminho.",
+      "avoid": "Campos ocultos incompatíveis não devem ser enviados."
+    },
+    {
+      "id": "selecao-lote",
+      "name": "Seleção em lote",
+      "tags": [
+        "tabela",
+        "lote",
+        "selecao"
+      ],
+      "when": "Aplicar operação ao conjunto escolhido.",
+      "recipe": "Escopo da seleção, quantidade e resultado claros.",
+      "avoid": "Distinguir página atual de todos os resultados."
+    },
+    {
+      "id": "comparacao-planos",
+      "name": "Comparação de planos",
+      "tags": [
+        "preco",
+        "saas",
+        "ecommerce"
+      ],
+      "when": "Entender diferenças entre opções.",
+      "recipe": "Características alinhadas, período e limites explícitos.",
+      "avoid": "Não inventar selo de popularidade ou desconto."
+    },
+    {
+      "id": "agenda-lista",
+      "name": "Agenda e calendário",
+      "tags": [
+        "agenda",
+        "data",
+        "reserva"
+      ],
+      "when": "Encontrar eventos por tempo.",
+      "recipe": "Datas, fuso relevante, sobreposição e visão em lista.",
+      "avoid": "Grade semanal comprimida não é mobile resolvido."
+    },
+    {
+      "id": "busca-sugestoes",
+      "name": "Busca com sugestões",
+      "tags": [
+        "busca",
+        "autocomplete"
+      ],
+      "when": "Ajudar a encontrar entidades existentes.",
+      "recipe": "Consulta, item ativo, seleção e nenhum resultado.",
+      "avoid": "Não confundir sugestão com valor confirmado."
+    },
+    {
+      "id": "config-imediata",
+      "name": "Configuração imediata",
+      "tags": [
+        "switch",
+        "configuracao"
+      ],
+      "when": "Alterar preferência com efeito imediato.",
+      "recipe": "Pendente, confirmado e falha com restauração.",
+      "avoid": "Toggle visual não significa persistência concluída."
+    },
+    {
+      "id": "desfazer-real",
+      "name": "Desfazer real",
+      "tags": [
+        "undo",
+        "excluir",
+        "recuperar"
+      ],
+      "when": "Recuperar ação reversível.",
+      "recipe": "Consequence clara e operação inversa real.",
+      "avoid": "Toast com Desfazer sem capacidade de reversão é falso."
+    },
+    {
+      "id": "offline-estado",
+      "name": "Estado offline",
+      "tags": [
+        "offline",
+        "rede",
+        "sincronizar"
+      ],
+      "when": "Continuar ou recuperar sob falta de conexão.",
+      "recipe": "Distinguir local, sincronizando, sincronizado e conflito.",
+      "avoid": "Não afirmar sincronizado antes de confirmação."
+    },
+    {
+      "id": "streaming-controle",
+      "name": "Streaming com controle",
+      "tags": [
+        "ia",
+        "chat",
+        "streaming"
+      ],
+      "when": "Ler resultado progressivo e interromper.",
+      "recipe": "Parcial, concluído, parado, erro; scroll respeita leitura.",
+      "avoid": "Não anunciar cada token nem inventar progresso percentual."
+    },
+    {
+      "id": "evidencia-detalhe",
+      "name": "Evidência e detalhe",
+      "tags": [
+        "analise",
+        "pesquisa",
+        "dados"
+      ],
+      "when": "Entender conclusão e examinar base.",
+      "recipe": "Resposta, unidade, período, fonte e detalhe pertinente.",
+      "avoid": "Não chamar correlação de causa."
+    },
+    {
+      "id": "variante-compra",
+      "name": "Variante e compra",
+      "tags": [
+        "ecommerce",
+        "variante",
+        "carrinho"
+      ],
+      "when": "Escolher opção disponível e comprar.",
+      "recipe": "Preço, disponibilidade e imagem coerentes com variante.",
+      "avoid": "Preço antigo não pode persistir após mudar variante."
+    },
+    {
+      "id": "importacao-mapeada",
+      "name": "Importação com mapeamento",
+      "tags": [
+        "importar",
+        "csv",
+        "tabela"
+      ],
+      "when": "Trazer dados com colunas diferentes.",
+      "recipe": "Preview, mapeamento, erros por linha e resumo.",
+      "avoid": "Não afirmar importação completa se houve falhas parciais."
+    },
+    {
+      "id": "permissao-contextual",
+      "name": "Permissão contextual",
+      "tags": [
+        "permissao",
+        "acesso",
+        "equipe"
+      ],
+      "when": "Entender por que uma ação está indisponível.",
+      "recipe": "Motivo e caminho legítimo para obter acesso.",
+      "avoid": "Não simular autorização removendo apenas o disabled."
+    },
+    {
+      "id": "primeiro-objeto",
+      "name": "Primeiro objeto útil",
+      "tags": [
+        "onboarding",
+        "vazio",
+        "criar"
+      ],
+      "when": "Levar ao primeiro resultado do produto.",
+      "recipe": "Estado vazio orienta criação ou importação necessária.",
+      "avoid": "Tour de componentes não substitui resultado."
+    },
+    {
+      "id": "edicao-concorrente",
+      "name": "Edição concorrente",
+      "tags": [
+        "conflito",
+        "editor",
+        "equipe"
+      ],
+      "when": "Preservar trabalho de múltiplas pessoas.",
+      "recipe": "Versão, conflito, comparação e recuperação suportadas.",
+      "avoid": "Não sobrescrever mudança recente silenciosamente."
+    },
+    {
+      "id": "drilldown-contexto",
+      "name": "Drilldown com contexto",
+      "tags": [
+        "dashboard",
+        "analise",
+        "detalhe"
+      ],
+      "when": "Ir de resumo a componentes do valor.",
+      "recipe": "Filtro e período preservados; caminho de volta.",
+      "avoid": "Detalhe com outro período invalida a comparação."
+    },
+    {
+      "id": "comando-descoberta",
+      "name": "Comandos descobríveis",
+      "tags": [
+        "command",
+        "palette",
+        "atalho"
+      ],
+      "when": "Acelerar trabalho frequente.",
+      "recipe": "Busca, agrupamento e navegação normal como alternativa.",
+      "avoid": "Atalho não pode ser única forma de achar a função."
+    },
+    {
+      "id": "exportacao-estado",
+      "name": "Exportação acompanhada",
+      "tags": [
+        "exportar",
+        "download",
+        "relatorio"
+      ],
+      "when": "Gerar arquivo possivelmente demorado.",
+      "recipe": "Escopo, período, formato, preparando e pronto.",
+      "avoid": "Não baixar arquivo vazio como sucesso."
+    },
+    {
+      "id": "reautenticacao-retorno",
+      "name": "Reautenticação com retorno",
+      "tags": [
+        "sessao",
+        "login",
+        "formulario"
+      ],
+      "when": "Retomar tarefa após sessão expirada.",
+      "recipe": "Preservar trabalho permitido e retornar ao contexto.",
+      "avoid": "Login não deve apagar a edição sem explicação."
+    }
+  ]
+}

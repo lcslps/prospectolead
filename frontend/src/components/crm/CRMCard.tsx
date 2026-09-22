@@ -11,7 +11,7 @@ export function CRMCard({
   crmLead: CrmLeadFull;
   onOpen: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: crmLead.id,
     data: { crmLead },
   });
@@ -30,7 +30,6 @@ export function CRMCard({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      {...listeners}
       onClick={onOpen}
       className={`group cursor-pointer rounded-xl border bg-white p-3 shadow-sm transition hover:shadow-md dark:bg-slate-800/80 ${
         isDragging
@@ -60,7 +59,17 @@ export function CRMCard({
               <Phone className="h-3.5 w-3.5" />
             </a>
           )}
-          <GripVertical className="h-3.5 w-3.5 text-slate-300 opacity-0 transition group-hover:opacity-100 dark:text-slate-600" />
+          <button
+            ref={setActivatorNodeRef}
+            type="button"
+            {...listeners}
+            onClick={(event) => event.stopPropagation()}
+            className="flex h-7 w-7 cursor-grab touch-none items-center justify-center rounded-md text-slate-400 opacity-0 transition hover:bg-slate-100 hover:text-slate-700 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 active:cursor-grabbing group-hover:opacity-100 dark:text-slate-500 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+            aria-label={`Arrastar ${lead.nome}`}
+            title="Arraste para mover este lead"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
         </div>
       </div>
 

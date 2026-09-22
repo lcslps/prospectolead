@@ -1,0 +1,457 @@
+{
+  "schema_version": 1,
+  "author": "Code Makers",
+  "kind": "styles",
+  "records": [
+    {
+      "id": "editorial-literario",
+      "name": "Editorial literário",
+      "tags": [
+        "leitura",
+        "editorial",
+        "serif",
+        "publicação"
+      ],
+      "recipe": "Coluna de leitura, display serif contido e notas próximas da evidência.",
+      "when": "Ensaio, publicação e conteúdo longo.",
+      "avoid": "Evitar manchetes enormes que atrasam o início da leitura.",
+      "implementation": "Medida de 60–70ch como hipótese; separar título, corpo e notas."
+    },
+    {
+      "id": "arquivo-cultural",
+      "name": "Arquivo cultural",
+      "tags": [
+        "acervo",
+        "cultura",
+        "catalogo",
+        "indice"
+      ],
+      "recipe": "Grade rigorosa com metadados que identificam objetos reais.",
+      "when": "Museus, coleções e catálogos documentais.",
+      "avoid": "Não inventar códigos de catálogo como decoração.",
+      "implementation": "Imagem, identificação e proveniência formam uma unidade; filtros discretos."
+    },
+    {
+      "id": "oficina-material",
+      "name": "Oficina material",
+      "tags": [
+        "artesanal",
+        "textura",
+        "madeira",
+        "processo"
+      ],
+      "recipe": "Fotografia de processo e relação entre matéria, detalhe e peça final.",
+      "when": "Mobiliário, cerâmica e produção autoral.",
+      "avoid": "Textura atrás de texto pode destruir legibilidade.",
+      "implementation": "Alternar planos amplos e detalhes; neutros derivados do material."
+    },
+    {
+      "id": "painel-operacional",
+      "name": "Painel operacional",
+      "tags": [
+        "dashboard",
+        "painel",
+        "dados",
+        "denso",
+        "logistica"
+      ],
+      "recipe": "Eixos fortes, números comparáveis e status inequívocos.",
+      "when": "Operação frequente e decisões rápidas.",
+      "avoid": "Não transformar todos os números em cards destacados.",
+      "implementation": "Priorizar exceções, manter filtros próximos e reduzir cromatismo decorativo."
+    },
+    {
+      "id": "galeria-fotografica",
+      "name": "Galeria fotográfica",
+      "tags": [
+        "portfolio",
+        "imagem",
+        "fotografia",
+        "arte"
+      ],
+      "recipe": "Imagem conduz ritmo, com identificação e navegação estáveis.",
+      "when": "Portfólios e obras com mídia de qualidade.",
+      "avoid": "Evitar títulos essenciais revelados só no hover.",
+      "implementation": "Proporções respeitadas; sequência intencional e detalhes acessíveis por toque."
+    },
+    {
+      "id": "servico-civico",
+      "name": "Serviço cívico",
+      "tags": [
+        "publico",
+        "governo",
+        "formulario",
+        "acessivel"
+      ],
+      "recipe": "Hierarquia direta, linguagem reconhecível e navegação previsível.",
+      "when": "Serviços públicos e tarefas amplas.",
+      "avoid": "Originalidade não pode esconder a próxima ação.",
+      "implementation": "Formulários legíveis, passos reais e informação documental próxima."
+    },
+    {
+      "id": "produto-silencioso",
+      "name": "Produto silencioso",
+      "tags": [
+        "saas",
+        "produtividade",
+        "minimal",
+        "claro"
+      ],
+      "recipe": "Poucas superfícies e precisão de espaço, tipo e estados.",
+      "when": "Ferramentas de trabalho e configurações.",
+      "avoid": "Minimalismo não significa controles invisíveis.",
+      "implementation": "Cor de ação concentrada; densidade ajustada à frequência de uso."
+    },
+    {
+      "id": "festival-tipografico",
+      "name": "Festival tipográfico",
+      "tags": [
+        "evento",
+        "cultura",
+        "expressivo",
+        "tipografia"
+      ],
+      "recipe": "Tipo em grande escala associado à programação real.",
+      "when": "Festivais, lançamentos e eventos culturais.",
+      "avoid": "Não sacrificar horário e local pela composição.",
+      "implementation": "Uma assinatura gráfica, agenda clara e alternativa estática ao movimento."
+    },
+    {
+      "id": "esporte-cinetico",
+      "name": "Esporte cinético",
+      "tags": [
+        "esporte",
+        "movimento",
+        "condensada",
+        "energia"
+      ],
+      "recipe": "Recortes direcionais, tipo compacto e sequência temporal.",
+      "when": "Esporte e campanhas com ação visual.",
+      "avoid": "Movimento não deve mover alvos de clique.",
+      "implementation": "Destaque de um momento; entorno estável e dados de evento legíveis."
+    },
+    {
+      "id": "hospitalidade-ambiental",
+      "name": "Hospitalidade ambiental",
+      "tags": [
+        "hotel",
+        "viagem",
+        "restaurante",
+        "fotografia"
+      ],
+      "recipe": "Imagens de lugar com ritmo pausado e serviço fácil de localizar.",
+      "when": "Hospedagem, gastronomia e experiências.",
+      "avoid": "Não afastar reserva da informação necessária.",
+      "implementation": "Recortes por viewport, disponibilidade e condições junto à ação."
+    },
+    {
+      "id": "comercio-demonstrativo",
+      "name": "Comércio demonstrativo",
+      "tags": [
+        "ecommerce",
+        "produto",
+        "compra",
+        "comparacao"
+      ],
+      "recipe": "Produto em uso, detalhe e escala humana sustentam a decisão.",
+      "when": "Produtos físicos e benefícios visuais.",
+      "avoid": "Não substituir especificações por slogan.",
+      "implementation": "Galeria, variante, preço e compra em relação direta."
+    },
+    {
+      "id": "laboratorio-explicativo",
+      "name": "Laboratório explicativo",
+      "tags": [
+        "ciencia",
+        "pesquisa",
+        "graficos",
+        "evidencia"
+      ],
+      "recipe": "Anotações, unidades e fontes junto a dados e diagramas.",
+      "when": "Pesquisa e análise que exigem compreensão.",
+      "avoid": "Aparência científica não prova confiabilidade.",
+      "implementation": "Resposta, evidência e método em camadas de detalhe."
+    },
+    {
+      "id": "ludico-modular",
+      "name": "Lúdico modular",
+      "tags": [
+        "educacao",
+        "infantil",
+        "criativo",
+        "modular"
+      ],
+      "recipe": "Geometria simples, blocos combináveis e feedback expressivo.",
+      "when": "Aprendizado e ferramentas criativas.",
+      "avoid": "Não usar som e movimento em tudo.",
+      "implementation": "Cor organiza categorias; controles mantêm affordances conhecidas."
+    },
+    {
+      "id": "botanico-documental",
+      "name": "Botânico documental",
+      "tags": [
+        "natureza",
+        "jardim",
+        "botanica",
+        "catalogo"
+      ],
+      "recipe": "Fotografias e desenhos documentais com nomenclatura clara.",
+      "when": "Jardins, acervos naturais e produtos ligados a cultivo.",
+      "avoid": "Evitar verde obrigatório em todos os componentes.",
+      "implementation": "Estrutura de ficha, escala e sazonalidade quando relevantes."
+    },
+    {
+      "id": "cartografico",
+      "name": "Cartográfico",
+      "tags": [
+        "mapa",
+        "territorio",
+        "rota",
+        "geografia"
+      ],
+      "recipe": "Orientação por localização e relações espaciais reais.",
+      "when": "Rotas, turismo e exploração territorial.",
+      "avoid": "Mapa não é melhor que lista para toda comparação.",
+      "implementation": "Combinar mapa, lista e detalhe sincronizados sem depender só de arrastar."
+    },
+    {
+      "id": "musical-ritmico",
+      "name": "Musical rítmico",
+      "tags": [
+        "musica",
+        "audio",
+        "agenda",
+        "ritmo"
+      ],
+      "recipe": "Ritmo visual derivado de programação, faixas ou compasso.",
+      "when": "Artistas, festivais e ferramentas de áudio.",
+      "avoid": "Não inventar uma waveform para fingir áudio real.",
+      "implementation": "Sequência legível, controles estáveis e metadados de mídia."
+    },
+    {
+      "id": "industrial-preciso",
+      "name": "Industrial preciso",
+      "tags": [
+        "industria",
+        "tecnico",
+        "engenharia",
+        "catalogo"
+      ],
+      "recipe": "Tipografia de interface, alinhamento técnico e fotografia funcional.",
+      "when": "Equipamentos e especificações.",
+      "avoid": "Não usar linhas de HUD sem informação.",
+      "implementation": "Dimensões, compatibilidade e fichas comparáveis."
+    },
+    {
+      "id": "luxo-contido",
+      "name": "Luxo contido",
+      "tags": [
+        "luxo",
+        "premium",
+        "joias",
+        "moda"
+      ],
+      "recipe": "Proporção, mídia de qualidade e poucos gestos gráficos.",
+      "when": "Objetos com identidade e assets refinados.",
+      "avoid": "Luxo não se resume a dourado, serif e texto pequeno.",
+      "implementation": "Amplie espaço útil; preserve preço e condições sem constrangimento."
+    },
+    {
+      "id": "retro-digital",
+      "name": "Retrô digital",
+      "tags": [
+        "retro",
+        "pixel",
+        "jogo",
+        "nostalgia"
+      ],
+      "recipe": "Vocabulário de interfaces antigas reinterpretado com legibilidade atual.",
+      "when": "Jogos e marcas com referência histórica explícita.",
+      "avoid": "Não reproduzir baixa usabilidade como fidelidade estética.",
+      "implementation": "Pixels em elementos selecionados; texto e foco continuam funcionais."
+    },
+    {
+      "id": "neo-brutal-funcional",
+      "name": "Gráfico de contorno",
+      "tags": [
+        "brutalismo",
+        "contorno",
+        "grafico",
+        "contraste"
+      ],
+      "recipe": "Blocos contrastantes, bordas visíveis e tipo direto.",
+      "when": "Marcas expressivas e ferramentas criativas.",
+      "avoid": "Contornos iguais em tudo enfraquecem hierarquia.",
+      "implementation": "Use peso de borda e offset em poucas famílias de superfície."
+    },
+    {
+      "id": "vidro-contextual",
+      "name": "Vidro contextual",
+      "tags": [
+        "glass",
+        "transparencia",
+        "camadas",
+        "imersivo"
+      ],
+      "recipe": "Transparência comunica profundidade sobre fundo controlado.",
+      "when": "Experiências visuais e painéis sobre mídia.",
+      "avoid": "Blur caro e contraste variável requerem fallback opaco.",
+      "implementation": "Poucas camadas, fundo previsível e superfície sólida para conteúdo denso."
+    },
+    {
+      "id": "cromatico-imersivo",
+      "name": "Cromático imersivo",
+      "tags": [
+        "gradiente",
+        "cor",
+        "imersivo",
+        "marca"
+      ],
+      "recipe": "Grandes campos de cor com tipos e controles ancorados.",
+      "when": "Campanhas e experiências com paleta marcante.",
+      "avoid": "Gradiente não pode ser única prova de identidade.",
+      "implementation": "Defina pares em cada região e limite variação atrás de texto."
+    },
+    {
+      "id": "monocromatico-expressivo",
+      "name": "Monocromático expressivo",
+      "tags": [
+        "preto",
+        "branco",
+        "monocromatico",
+        "expressivo"
+      ],
+      "recipe": "Contraste de escala, peso e mídia produz personalidade.",
+      "when": "Portfólio, moda e estúdio.",
+      "avoid": "Ausência de cor não compensa composição fraca.",
+      "implementation": "Estabeleça hierarquia por massa e espaço; status tem texto e forma."
+    },
+    {
+      "id": "noturno-instrumental",
+      "name": "Noturno instrumental",
+      "tags": [
+        "dark",
+        "escuro",
+        "dados",
+        "monitoramento"
+      ],
+      "recipe": "Superfícies escuras separadas por tom, informação e estados.",
+      "when": "Monitoramento ou preferência explícita por tema escuro.",
+      "avoid": "Neon em tudo reduz leitura e prioridade.",
+      "implementation": "Texto secundário também contrastante; sombras substituídas por limites úteis."
+    },
+    {
+      "id": "papel-anotado",
+      "name": "Papel anotado",
+      "tags": [
+        "educacao",
+        "anotacao",
+        "leitura",
+        "estudo"
+      ],
+      "recipe": "Notas e marcações explicam relações dentro do conteúdo.",
+      "when": "Estudo e apresentação de processo.",
+      "avoid": "Rascunho visual não autoriza desorganização.",
+      "implementation": "Margens para notas, destaque textual pontual e sem excesso de stickers."
+    },
+    {
+      "id": "saude-acolhedora",
+      "name": "Cuidado acolhedor",
+      "tags": [
+        "saude",
+        "cuidado",
+        "agendamento",
+        "suporte"
+      ],
+      "recipe": "Linguagem simples, superfícies claras e informação de serviço.",
+      "when": "Agendamento e orientação de cuidado.",
+      "avoid": "Não usar identidade para inventar autoridade médica.",
+      "implementation": "Profissionais, horários e condições reais; próximo passo explícito."
+    },
+    {
+      "id": "financas-transparentes",
+      "name": "Finanças transparentes",
+      "tags": [
+        "financeiro",
+        "conta",
+        "dinheiro",
+        "comparacao"
+      ],
+      "recipe": "Valores, taxas, períodos e consequências em primeiro plano.",
+      "when": "Finanças pessoais e comparação de serviços.",
+      "avoid": "A estética não pode ocultar riscos, taxas ou incerteza.",
+      "implementation": "Dados tabulares, unidades e diferença entre saldo, previsão e disponível."
+    },
+    {
+      "id": "social-editorial",
+      "name": "Social editorial",
+      "tags": [
+        "comunidade",
+        "social",
+        "feed",
+        "pessoas"
+      ],
+      "recipe": "Conteúdo de pessoas com contexto, autoria e interação proporcionais.",
+      "when": "Comunidades e publicações colaborativas.",
+      "avoid": "Não competir com o conteúdo usando gamificação sem propósito.",
+      "implementation": "Identidade e leitura estáveis; moderação e privacidade conforme produto."
+    },
+    {
+      "id": "gastronomia-de-origem",
+      "name": "Gastronomia de origem",
+      "tags": [
+        "comida",
+        "restaurante",
+        "origem",
+        "cardapio"
+      ],
+      "recipe": "Ingrediente, processo e prato em sequência concreta.",
+      "when": "Restaurantes e produtores.",
+      "avoid": "Fotografia não substitui ingredientes e restrições relevantes.",
+      "implementation": "Cardápio legível, disponibilidade verdadeira e caminho para pedido/reserva."
+    },
+    {
+      "id": "geometrico-sistemico",
+      "name": "Geométrico sistêmico",
+      "tags": [
+        "geometria",
+        "modular",
+        "design",
+        "system",
+        "marca"
+      ],
+      "recipe": "Uma regra geométrica consistente organiza módulos e mídia.",
+      "when": "Produtos com identidade modular.",
+      "avoid": "Não forçar conteúdo em formas incompatíveis.",
+      "implementation": "Escolher unidade, recorte e ritmo; preservar leitura fora da geometria."
+    },
+    {
+      "id": "espacial-demonstrativo",
+      "name": "Espacial demonstrativo",
+      "tags": [
+        "3d",
+        "produto",
+        "imersivo",
+        "configurador"
+      ],
+      "recipe": "Volume ajuda a mostrar objeto, montagem ou variação.",
+      "when": "Configuradores e demonstrações com benefício espacial.",
+      "avoid": "3D ornamental pode custar mais que informa.",
+      "implementation": "Imagem estática de fallback; interação por botões além de gestos."
+    },
+    {
+      "id": "tipografico-utilitario",
+      "name": "Tipográfico utilitário",
+      "tags": [
+        "docs",
+        "documentacao",
+        "codigo",
+        "utilitario"
+      ],
+      "recipe": "Nomes, exemplos e navegação com alta escaneabilidade.",
+      "when": "Documentação e ferramentas técnicas.",
+      "avoid": "Não usar mono em longos textos sem avaliar leitura.",
+      "implementation": "Código copiável, sumário útil e hierarquia entre conceito e referência."
+    }
+  ]
+}

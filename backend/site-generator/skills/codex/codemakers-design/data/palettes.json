@@ -1,0 +1,823 @@
+{
+  "schema_version": 1,
+  "author": "Code Makers",
+  "kind": "palettes",
+  "records": [
+    {
+      "id": "oceano-claro",
+      "name": "Oceano claro",
+      "tags": [
+        "saas",
+        "claro",
+        "tecnico"
+      ],
+      "colors": {
+        "background": "#F5FAFC",
+        "surface": "#FFFFFF",
+        "text": "#17212B",
+        "action": "#155E75",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.488436386390804
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.293495425950333
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.266842816941486
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "floresta-papel",
+      "name": "Floresta e papel",
+      "tags": [
+        "natureza",
+        "artesanal",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F8FAF5",
+        "surface": "#FFFFFF",
+        "text": "#1C2B21",
+        "action": "#166534",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 14.104192570806395
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.821222854169527
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.130310076434003
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "ameixa-editorial",
+      "name": "Ameixa editorial",
+      "tags": [
+        "editorial",
+        "cultura",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FCF7FB",
+        "surface": "#FFFFFF",
+        "text": "#2C1930",
+        "action": "#701A75",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.39105228964616
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.29388724393318
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 10.030676835618998
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "terracota-oficina",
+      "name": "Terracota oficina",
+      "tags": [
+        "artesanal",
+        "material",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FAF6F2",
+        "surface": "#FFFFFF",
+        "text": "#32251F",
+        "action": "#9A3412",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 13.752666712690866
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.788369045564737
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.3070519776298735
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "cobalto-direto",
+      "name": "Cobalto direto",
+      "tags": [
+        "publico",
+        "servico",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F8FAFC",
+        "surface": "#FFFFFF",
+        "text": "#172033",
+        "action": "#1D4ED8",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.548940498393227
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.268480224545662
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 6.701618401398807
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "vinho-cultural",
+      "name": "Vinho cultural",
+      "tags": [
+        "cultura",
+        "gastronomia",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FCF7F7",
+        "surface": "#FFFFFF",
+        "text": "#321F26",
+        "action": "#9F1239",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 14.553109287752317
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 15.445666415007278
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 8.015910591562179
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "petroleo-preciso",
+      "name": "Petróleo preciso",
+      "tags": [
+        "tecnico",
+        "dados",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F3F8F8",
+        "surface": "#FFFFFF",
+        "text": "#173337",
+        "action": "#115E59",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 12.518684139604701
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.417421260180499
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.583501565900062
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "grafite-neutro",
+      "name": "Grafite neutro",
+      "tags": [
+        "minimal",
+        "monocromatico",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F7F7F8",
+        "surface": "#FFFFFF",
+        "text": "#242428",
+        "action": "#3F3F46",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 14.44369390832811
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 15.46386789484898
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 10.443633928552316
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "violeta-produto",
+      "name": "Violeta produto",
+      "tags": [
+        "saas",
+        "marca",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FAF8FF",
+        "surface": "#FFFFFF",
+        "text": "#251C39",
+        "action": "#6D28D9",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.289964318688776
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 16.10619615377662
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.104892978519159
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "azul-arquivo",
+      "name": "Azul arquivo",
+      "tags": [
+        "arquivo",
+        "catalogo",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F6F8FC",
+        "surface": "#FFFFFF",
+        "text": "#202A3C",
+        "action": "#1E40AF",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 13.548159082460149
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.404775616921102
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 8.722410784954462
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "musgo-material",
+      "name": "Musgo material",
+      "tags": [
+        "jardim",
+        "material",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F8F9F2",
+        "surface": "#FFFFFF",
+        "text": "#293022",
+        "action": "#3F6212",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 12.871186909660716
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.634920764614405
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.077475159111222
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "cobre-servico",
+      "name": "Cobre serviço",
+      "tags": [
+        "hotel",
+        "servico",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FFF8F1",
+        "surface": "#FFFFFF",
+        "text": "#35261C",
+        "action": "#92400E",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 13.80190338748204
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.528949015157007
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.090048300172369
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "rosa-expressivo",
+      "name": "Rosa expressivo",
+      "tags": [
+        "festival",
+        "expressivo",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FFF7FC",
+        "surface": "#FFFFFF",
+        "text": "#39152E",
+        "action": "#9D174D",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.11480873825006
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 15.900791910906488
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 7.88482877584797
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "indigo-estudo",
+      "name": "Índigo estudo",
+      "tags": [
+        "educacao",
+        "docs",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F8F8FF",
+        "surface": "#FFFFFF",
+        "text": "#24243E",
+        "action": "#3730A3",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 14.218561085237956
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 15.033027328349704
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 9.933329874512658
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "turquesa-cuidado",
+      "name": "Turquesa cuidado",
+      "tags": [
+        "saude",
+        "cuidado",
+        "claro"
+      ],
+      "colors": {
+        "background": "#F3FBFA",
+        "surface": "#FFFFFF",
+        "text": "#16352F",
+        "action": "#0F766E",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 12.616887609811972
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.254203419722058
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 5.473250081210842
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "vermelho-grafico",
+      "name": "Vermelho gráfico",
+      "tags": [
+        "evento",
+        "grafico",
+        "claro"
+      ],
+      "colors": {
+        "background": "#FFF8F7",
+        "surface": "#FFFFFF",
+        "text": "#351F1D",
+        "action": "#B91C1C",
+        "on_action": "#FFFFFF"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 14.666946710992573
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 15.38334103603242
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 6.4700447145121895
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "ambar-noturno",
+      "name": "Âmbar noturno",
+      "tags": [
+        "dark",
+        "escuro",
+        "tecnico"
+      ],
+      "colors": {
+        "background": "#111827",
+        "surface": "#1F2937",
+        "text": "#F9FAFB",
+        "action": "#FBBF24",
+        "on_action": "#111827"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 16.97538624440406
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.046656202460271
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 10.626632465425244
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "menta-noturna",
+      "name": "Menta noturna",
+      "tags": [
+        "dark",
+        "escuro",
+        "monitoramento"
+      ],
+      "colors": {
+        "background": "#102321",
+        "surface": "#18342F",
+        "text": "#EFFBF7",
+        "action": "#6EE7B7",
+        "on_action": "#102321"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.425109123595087
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 12.610480529294986
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 10.72647479716148
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "lavanda-noturna",
+      "name": "Lavanda noturna",
+      "tags": [
+        "dark",
+        "escuro",
+        "criativo"
+      ],
+      "colors": {
+        "background": "#20172C",
+        "surface": "#30223F",
+        "text": "#FAF5FF",
+        "action": "#D8B4FE",
+        "on_action": "#20172C"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 16.03627301561776
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.721005795457382
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 9.734505477916459
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "gelo-noturno",
+      "name": "Gelo noturno",
+      "tags": [
+        "dark",
+        "escuro",
+        "saas"
+      ],
+      "colors": {
+        "background": "#0F1B2D",
+        "surface": "#1E3047",
+        "text": "#EFF6FF",
+        "action": "#93C5FD",
+        "on_action": "#0F1B2D"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.882152100677832
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 12.298791956504864
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 9.584937349460434
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "coral-noturno",
+      "name": "Coral noturno",
+      "tags": [
+        "dark",
+        "escuro",
+        "cultura"
+      ],
+      "colors": {
+        "background": "#281A1A",
+        "surface": "#3B2726",
+        "text": "#FFF7F5",
+        "action": "#FDBA9E",
+        "on_action": "#281A1A"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.863088224657112
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 13.21326106238692
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 10.131569567484322
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "lima-noturna",
+      "name": "Lima noturna",
+      "tags": [
+        "dark",
+        "escuro",
+        "energia"
+      ],
+      "colors": {
+        "background": "#1B2114",
+        "surface": "#2D3523",
+        "text": "#F7FEE7",
+        "action": "#BEF264",
+        "on_action": "#1B2114"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.919575675361079
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 12.330921548895814
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 12.614753069951577
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "rosa-noturno",
+      "name": "Rosa noturno",
+      "tags": [
+        "dark",
+        "escuro",
+        "festival"
+      ],
+      "colors": {
+        "background": "#291626",
+        "surface": "#3E233A",
+        "text": "#FDF2F8",
+        "action": "#F9A8D4",
+        "on_action": "#291626"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 15.54753105723545
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 12.76795571804835
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 9.360843555030513
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    },
+    {
+      "id": "prata-noturna",
+      "name": "Prata noturna",
+      "tags": [
+        "dark",
+        "escuro",
+        "monocromatico"
+      ],
+      "colors": {
+        "background": "#18181B",
+        "surface": "#27272A",
+        "text": "#FAFAFA",
+        "action": "#E4E4E7",
+        "on_action": "#18181B"
+      },
+      "verified_pairs": [
+        {
+          "foreground": "text",
+          "background": "background",
+          "ratio": 16.973898642198105
+        },
+        {
+          "foreground": "text",
+          "background": "surface",
+          "ratio": 14.270056301028621
+        },
+        {
+          "foreground": "on_action",
+          "background": "action",
+          "ratio": 13.962550023958098
+        }
+      ],
+      "note": "Três pares opacos >=4.5:1. Outros pares, estados, foco e temas exigem avaliação no contexto."
+    }
+  ]
+}

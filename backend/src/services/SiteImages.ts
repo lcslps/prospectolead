@@ -197,14 +197,56 @@ async function resolveIntents(intents: ImageIntent[], usedUrls: Set<string>): Pr
   return resolved;
 }
 
+function automaticHeroIntent(business: BusinessData): ImageIntent {
+  const category = `${business.category} ${business.categories.join(' ')}`.toLowerCase();
+  const query = /restaurante|pizz|bar|cafe|aliment/.test(category)
+    ? 'premium brazilian restaurant food and dining atmosphere editorial photography'
+    : /clinica|dent|medic|saude|estet/.test(category)
+      ? 'modern welcoming healthcare clinic interior editorial photography'
+      : /marmor|constru|engenh|industri|oficina|solar|eletric|metal/.test(category)
+        ? 'premium craftsmanship workshop materials architectural editorial photography'
+        : 'professional local business atmosphere editorial photography';
+  return { id: 'automatic-hero', intent: query, usage: 'hero' };
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Converts only explicit model image-intent placeholders into backend-resolved images. */
+export function replaceResolvedIntentPlaceholders(html: string, imageMap: Record<string, SiteAsset>): string {
+  return html.replace(/<div\b([^>]*\bdata-intent-id\s*=\s*["']([^"']+)["'][^>]*)>[\s\S]*?<\/div>/gi, (whole, attributes: string, intentId: string) => {
+    if (!/\bintent-placeholder\b/i.test(attributes)) return whole;
+    const asset = imageMap[intentId] ?? imageMap[`INTENT_${intentId}`];
+    if (!asset) return whole;
+    return `<img src="${escapeAttribute(asset.url)}" alt="${escapeAttribute(asset.alt || 'Imagem ilustrativa')}" loading="lazy" decoding="async">`;
+  });
+}
+
+function hasRenderableImage(files: ArtefactFiles): boolean {
+  return /<img\b[^>]*\bsrc\s*=\s*["'](?!["'])/i.test(files['index.html']) || /url\(\s*["']?https:\/\//i.test(files['styles.css']);
+}
+
+function injectResolvedVisualFallback(files: ArtefactFiles, asset: SiteAsset | undefined): ArtefactFiles {
+  if (hasRenderableImage(files) || !asset) return files;
+  const figure = `<figure class="site-resolver-image"><img src="${escapeAttribute(asset.url)}" alt="${escapeAttribute(asset.alt || 'Imagem ilustrativa')}" loading="lazy" decoding="async"></figure>`;
+  const html = /<main\b[^>]*>/i.test(files['index.html'])
+    ? files['index.html'].replace(/<main\b[^>]*>/i, match => `${match}${figure}`)
+    : files['index.html'].replace(/<body\b[^>]*>/i, match => `${match}${figure}`);
+  const css = `${files['styles.css'] || ''}\n.site-resolver-image{width:min(100% - 2rem,72rem);margin:clamp(2rem,6vw,6rem) auto;overflow:hidden;border-radius:1.25rem;background:#e5e7eb}.site-resolver-image img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}`;
+  return { ...files, 'index.html': html, 'styles.css': css };
+}
+
 export async function resolveSiteImages(
   files: ArtefactFiles,
-  _business: BusinessData,
+  business: BusinessData,
   assets: SiteAsset[],
   intents: ImageIntent[],
 ): Promise<ImageResolution> {
   const usedUrls = new Set<string>(assets.map(asset => asset.url));
-  const intentsMap = await resolveIntents(intents, usedUrls);
+  const shouldGuaranteeVisual = !hasRenderableImage(files) || /\bdata-intent-id\s*=/i.test(files['index.html']);
+  const requestedIntents = intents.length || !shouldGuaranteeVisual ? intents : [...intents, automaticHeroIntent(business)];
+  const intentsMap = await resolveIntents(requestedIntents, usedUrls);
   const imageMap: Record<string, SiteAsset> = {};
   for (const asset of assets) if (asset.id) imageMap[asset.id] = asset;
   for (const [id, asset] of intentsMap) {
@@ -213,15 +255,16 @@ export async function resolveSiteImages(
   }
 
   const replaced: ArtefactFiles = {
-    'index.html': replaceTokens(files['index.html'], imageMap),
+    'index.html': replaceResolvedIntentPlaceholders(replaceTokens(files['index.html'], imageMap), imageMap),
     'styles.css': replaceTokens(files['styles.css'] || '', imageMap),
     'script.js': replaceTokens(files['script.js'] || '', imageMap),
   };
-  const filesOut = enforceResolvedImages(replaced, Object.values(imageMap));
+  const ranked = rankAssets(Object.values(imageMap), 20);
+  const filesOut = injectResolvedVisualFallback(enforceResolvedImages(replaced, ranked), ranked[0]);
   return {
     files: filesOut,
     imageMap,
-    assets: rankAssets(Object.values(imageMap), 20),
+    assets: ranked,
   };
 }
 

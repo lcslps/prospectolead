@@ -16,10 +16,10 @@ import type { CrmLeadFull, CrmStage } from '../../types';
 import { CRM_PIPELINE_STAGES as CRM_STAGE_ORDER } from '../../lib/utils';
 import { CRMColumn } from './CRMColumn';
 
-function CardPreview({ crmLead }: { crmLead: CrmLeadFull }) {
+function CardPreview({ crmLead, width }: { crmLead: CrmLeadFull; width?: number }) {
   const lead = crmLead.lead;
   return (
-    <div className="w-72 cursor-grabbing rounded-xl border border-brand-400 bg-white p-3 shadow-xl dark:bg-slate-800">
+    <div style={width ? { width } : undefined} className="cursor-grabbing rounded-xl border border-brand-400 bg-white p-3 shadow-xl dark:bg-slate-800">
       <h4 className="truncate text-[13px] font-bold text-slate-800 dark:text-slate-100">{lead.nome}</h4>
       <p className="flex items-center gap-1 truncate text-[11px] text-slate-500">
         <Building2 className="h-3 w-3" />
@@ -48,6 +48,7 @@ export function CRMBoard({
   onOpenCard: (id: string) => void;
 }) {
   const [activeItem, setActiveItem] = useState<CrmLeadFull | null>(null);
+  const [activeWidth, setActiveWidth] = useState<number | undefined>();
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -82,10 +83,12 @@ export function CRMBoard({
       const found = groups[stage].find((i) => i.id === id);
       if (found) {
         setActiveItem(found);
+        setActiveWidth(event.active.rect.current.initial?.width);
         return;
       }
     }
     setActiveItem(null);
+    setActiveWidth(undefined);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -133,7 +136,7 @@ export function CRMBoard({
   };
 
   return (
-    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveItem(null)}>
+    <DndContext sensors={sensors} collisionDetection={collisionDetection} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => { setActiveItem(null); setActiveWidth(undefined); }}>
       <div className="crm-board-grid">
         {CRM_STAGE_ORDER.map((stage) => (
           <CRMColumn
@@ -145,8 +148,8 @@ export function CRMBoard({
           />
         ))}
       </div>
-      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
-        {activeItem ? <CardPreview crmLead={activeItem} /> : null}
+      <DragOverlay adjustScale={false} dropAnimation={{ duration: 160, easing: 'ease-out' }}>
+        {activeItem ? <CardPreview crmLead={activeItem} width={activeWidth} /> : null}
       </DragOverlay>
     </DndContext>
   );

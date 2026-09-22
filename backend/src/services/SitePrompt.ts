@@ -1,11 +1,11 @@
 import type { ArtefactFiles, BusinessData, DesignPlan, SiteAsset } from './siteArtefactSchema';
 import type { SocialProfiles } from './LeadSocialService';
 import type { ReviewEntry } from './SiteImages';
-import { professionalSkills, relevantSkills, siteRepairPrompt, siteSystemPrompt } from './PromptLibrary';
+import { codemakersSkills, codemakersSystemMethod, professionalSkills, relevantSkills, siteRepairPrompt, siteSystemPrompt } from './PromptLibrary';
 import type { AssetManifest, BusinessAnalysis, CreativeBrief } from './WebsiteStrategy';
 import { strategyPromptBlock } from './WebsiteStrategy';
 
-export const SYSTEM_INSTRUCTION = siteSystemPrompt();
+export const SYSTEM_INSTRUCTION = `${siteSystemPrompt()}\n\n${codemakersSystemMethod()}`;
 export const REPAIR_SYSTEM_INSTRUCTION = siteRepairPrompt();
 
 const FACT_BOUNDARY = `FACTUAL BOUNDARY:
@@ -23,7 +23,8 @@ const OUTPUT_CONTRACT = `OUTPUT CONTRACT:
 - Implement visible :focus-visible and prefers-reduced-motion.
 - Use no external scripts, frameworks, unsafe protocols, base tag or data URLs.
 - The combined site must stay under 250 KB.
-- Every image must use a supplied {{ASSET_TOKEN}} or declared {{INTENT_id}}. Never type an image URL.`;
+- Every image must use a supplied {{ASSET_TOKEN}} or declared {{INTENT_id}}. Never type an image URL.
+- A premium site must contain at least one real visual in the hero or first major section. If no supplied asset fits, declare a specific hero imageIntent and render it as <img src="{{INTENT_id}}">. Never render an empty image div, a gradient-only image placeholder, or data-intent-id placeholders.`;
 
 function verifiedFacts(business: BusinessData, notes?: string): string {
   const entries: Array<[string, string | undefined]> = [
@@ -64,6 +65,9 @@ function commonBlocks(input: {
 
 SPECIALIST SKILLS:
 ${professionalSkills()}
+
+CODEMAKERS DESIGN REFERENCES (visual and UX craft only; factual rules above always win):
+${codemakersSkills(input.business.category || input.business.categories.join(' '))}
 
 NICHE GUIDANCE:
 ${relevantSkills(input.business.category || input.business.categories.join(' '))}
