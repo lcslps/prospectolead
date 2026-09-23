@@ -57,18 +57,48 @@ o documento HTML completo, começando em <!DOCTYPE html> e terminando em </html>
 - CSS todo dentro de uma tag <style> no <head>. Importe exatamente as duas fontes SANS-SERIF do Google Fonts escolhidas (título + texto) via @import url(...) no topo do <style>, ex: @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap'); — troque os nomes/pesos pelas fontes escolhidas para este site específico. É PROIBIDO importar ou usar qualquer fonte serifada. Todo \`font-family\` deve ter fallback \`sans-serif\`.
 - ÍCONES (obrigatório, é a única biblioteca externa permitida): logo no início do <body>, ou no final antes do </body>, inclua exatamente esta tag: <script src="https://unpkg.com/lucide@latest"></script>
   Em todo lugar que precisar de um ícone de UI, escreva: <i data-lucide="NOME_DO_ICONE" class="..." style="width:20px;height:20px"></i> (ajuste width/height conforme o contexto). No final do <body>, DEPOIS da tag script do lucide e depois de todo o HTML da página, adicione: <script>if (window.lucide) lucide.createIcons();</script>. NUNCA use caracteres emoji (📍✅⭐🔧📞🛡️↗ etc.) como ícone — use sempre <i data-lucide="...">.
+- BIBLIOTECAS EXTERNAS PERMITIDAS: use apenas Lucide para ícones e Lenis para scroll suave. Inclua no head: <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css">. Antes do script de inicialização no fim do body, inclua: <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>. Em seguida inicialize exatamente uma instância: new Lenis({ autoRaf: true, anchors: true, smoothWheel: true });. Não crie um loop manual de requestAnimationFrame quando autoRaf estiver ativo. O scroll precisa continuar acessível, preservar âncoras internas e respeitar preferências de redução de movimento quando o navegador as aplicar.
 - JS adicional dentro de <script> no final do <body> pode ser usado para pequenas interações (menu mobile, smooth scroll e estado visual do header) — nenhuma outra biblioteca ou framework externo além do lucide acima. O comportamento do header transparente→sólido após scroll é OBRIGATÓRIO quando houver header fixo: use \`window.scrollY\`, um listener passivo de \`scroll\` e uma classe como \`.is-scrolled\`; execute a função também no carregamento para refletir a posição atual.
 - em TODO lugar onde uma foto for usada, use exatamente <img src="[[IMG:id_da_imagem]]" ...> com o id correspondente que você definiu na seção ===IMAGES===. Não use nenhuma outra URL de imagem, nunca use placeholder.com, unsplash ou picsum.
 - todo o texto (títulos, menus, botões, depoimentos, rodapé) deve estar em português do Brasil e ser conteúdo real e específico do negócio informado, nunca "lorem ipsum" ou genérico como "Título aqui"
 - o site deve ter uma única página (one-page) com âncoras internas para cada seção no menu
 - LARGURA TOTAL OBRIGATÓRIA: o documento deve ocupar 100% da largura da viewport em desktop e mobile. Defina html e body com width: 100%, min-width: 0 e margin: 0; não aplique max-width, width fixa, margem horizontal automática ou padding externo ao body, main, ao hero ou ao wrapper raiz da página. O hero, fundos de seção e imagens de faixa devem ir de uma borda à outra da viewport (width: 100% ou 100vw). Somente blocos internos de leitura, como classes container/content, podem ter max-width e margin auto. Antes de responder, confirme que não haverá faixas vazias nas laterais em telas largas.
 - CHECKLIST OBRIGATÓRIO ANTES DE RESPONDER: entregue o HTML inteiro e fechado; inclua hero, diferenciais/sobre, destaques/produtos, depoimentos e CTA/contato final, mesmo que alguma seção não tenha sido marcada no formulário. A seção de contato final deve exibir telefone/WhatsApp e cidade quando esses dados existirem, ter um botão CTA funcional com link tel: ou https://wa.me/, e um ícone Lucide de telefone ou mensagem.
+- ESTRUTURA VERIFICÁVEL: use cinco tags section reais, nesta ordem e com estes ids: section id="hero", section id="diferenciais", section id="destaques", section id="depoimentos" e section id="contato". Não esconda nenhuma seção com display:none, opacity:0, height:0, overflow:hidden ou posicionamento fora da tela. O footer pode vir depois do contato.
 - CARDS E IMAGENS: não deixe nenhum card, coluna, moldura ou área reservada vazia. Cada card de destaque precisa ter imagem, título, texto/detalhe e CTA. Para cada placeholder [[IMG:id]] usado no HTML, declare exatamente um id: correspondente em ===IMAGES===; não declare imagens que não sejam usadas. Gere exatamente 4 imagens: hero, card_1, card_2 e card_3, e use todas no HTML. Mantenha o HTML conciso o suficiente para terminar integralmente dentro do limite de resposta.
 - ÍCONES VISÍVEIS: todo elemento i com atributo data-lucide precisa estar dentro de um botão, link ou bloco de conteúdo com texto; não crie quadrados vazios, placeholders de ícone ou elementos decorativos sem ícone renderizável.
 - TIPOGRAFIA: valide antes de responder que NÃO existe nenhuma fonte serifada no HTML/CSS/imports. Nenhum \`serif\`, Georgia, Times, Fraunces, Playfair, Cormorant, Newsreader, Domine, Petrona, Bitter ou equivalente.
 `;
 
-export function buildUserPrompt(d: BusinessFormData): string {
+export function buildStoryboardPrompt(d: BusinessFormData, referenceUrl: string): string {
+  return `
+Crie somente um STORYBOARD DE DIREÇÃO DE ARTE para uma landing page brasileira premium. Não escreva HTML, CSS, JavaScript, imagens, markdown ou explicações fora da estrutura abaixo.
+
+Negócio: ${d.name}
+Ramo: ${d.niche}
+Descrição: ${d.desc || 'Use o ramo como base.'}
+Cidade/região: ${d.city || 'Não informada'}
+Paleta desejada: ${d.colors || 'Defina uma paleta coerente com o negócio.'}
+Referência visual opcional: ${referenceUrl || 'Nenhuma URL fornecida; crie uma direção original.'}
+
+Use exatamente estas seções, em português do Brasil:
+DIREÇÃO DE ARTE
+PALETA E TIPOGRAFIA
+HERO
+DIFERENCIAIS
+DESTAQUES
+DEPOIMENTOS
+CONTATO E CTA
+MOVIMENTO E INTERAÇÃO
+ANTI-TEMPLATE
+
+Em cada seção, seja concreto sobre composição, conteúdo, hierarquia e intenção visual. Se houver URL de referência, use-a apenas como inspiração de clima e composição; não copie marca, textos ou layout literalmente.
+
+Evite obrigatoriamente: hero centralizado genérico; texto à esquerda com foto de banco à direita; gradiente azul/roxo genérico; três cards idênticos alinhados; ícones em círculos repetidos; imagens repetidas; fontes padrão; aparência de template SaaS. Proponha uma composição assimétrica e específica para este negócio.
+`;
+}
+
+export function buildUserPrompt(d: BusinessFormData, storyboard: string, referenceUrl: string): string {
   const sections = d.sections.join(', ');
   return `
 Crie um site institucional (landing page one-page) para o negócio abaixo.
@@ -82,6 +112,13 @@ WhatsApp/telefone de contato: ${d.phone || '(não informado, use um placeholder 
 Cidade/região: ${d.city || '(não informado)'}
 Preferência de paleta de cores: ${d.colors || '(escolha a paleta mais adequada ao ramo, seguindo o guia de estilo)'}
 Seções obrigatórias no site: ${sections}
+
+STORYBOARD APROVADO — siga esta direção de arte com fidelidade. Não omita nenhuma das seções planejadas:
+${storyboard}
+
+Referência visual enviada pelo usuário (use apenas como inspiração, sem copiar): ${referenceUrl || 'Nenhuma'}
+
+Evite obrigatoriamente: hero centralizado genérico; texto à esquerda e foto de banco à direita; gradiente azul/roxo automático; três cards iguais lado a lado; ícones em círculos repetidos; imagens repetidas; fontes padrão e aparência de template SaaS. Cada seção deve ter composição própria e justificar visualmente o negócio.
 
 ${OUTPUT_FORMAT}
 `;
@@ -112,6 +149,45 @@ export function parseModelOutput(raw: string): ParsedSite {
   html = html.replace(/^```(html)?/i, '').replace(/```$/, '').trim();
 
   return { images, html };
+}
+
+export function validateGeneratedSite(site: ParsedSite): string[] {
+  const { images, html } = site;
+  const normalized = html.toLowerCase();
+  const issues: string[] = [];
+  const requiredSections = ['hero', 'diferenciais', 'destaques', 'depoimentos', 'contato'];
+  const requiredImages = ['hero', 'card_1', 'card_2', 'card_3'];
+
+  if (!/^<!doctype html/i.test(html) || !/<\/html>\s*$/i.test(html)) issues.push('o documento HTML não está completo');
+  if (!/<body[\s>]/i.test(html)) issues.push('a tag body está ausente');
+  if (html.length < 9000) issues.push('o HTML está curto demais para um site completo');
+
+  for (const id of requiredSections) {
+    const sectionPattern = new RegExp(`<section[^>]*\\bid=["']${id}["']`, 'i');
+    if (!sectionPattern.test(html)) issues.push(`a seção #${id} está ausente`);
+  }
+
+  const suppliedImageIds = images.map((image) => image.id);
+  for (const id of requiredImages) {
+    if (!suppliedImageIds.includes(id)) issues.push(`a imagem ${id} não foi declarada`);
+    if (!html.includes(`[[IMG:${id}]]`)) issues.push(`a imagem ${id} não foi usada no HTML`);
+  }
+  if (images.length !== requiredImages.length || suppliedImageIds.some((id) => !requiredImages.includes(id))) {
+    issues.push('a lista de imagens não corresponde ao conjunto obrigatório');
+  }
+
+  if (!/(tel:|https:\/\/wa\.me\/)/i.test(html)) issues.push('o CTA de contato não possui link funcional');
+  if (!/data-lucide=/i.test(html) || !/lucide\.createicons\(\)/i.test(normalized)) {
+    issues.push('os ícones Lucide não foram inicializados');
+  }
+  if (!/lenis@1\.3\.26\/dist\/lenis\.min\.js/i.test(html) || !/new\s+lenis\s*\(/i.test(html) || !/autoraf\s*:\s*true/i.test(html)) {
+    issues.push('o scroll suave Lenis não foi configurado');
+  }
+  if (!/is-scrolled/i.test(html) || !/addEventListener\(['"]scroll['"]/i.test(html) || !/window\.scrollY/i.test(html)) {
+    issues.push('o header não possui comportamento sólido após a rolagem');
+  }
+
+  return issues;
 }
 
 export const FALLBACK_IMAGE_SVG =
