@@ -145,6 +145,15 @@ app.post('/api/leads/search', async (req, res) => {
     const nicheValue = String(req.body?.niche || '').trim();
     const limit = Math.max(1, Math.min(60, Number(req.body?.limit) || 20));
 
+    // Filtros aplicados na busca (vêm do botão Filtros no frontend)
+    const onlyNoSite = Boolean(req.body?.onlyNoSite);
+    const onlyWithPhone = Boolean(req.body?.onlyWithPhone);
+    const tierFilter = String(req.body?.tier || 'all').trim();
+    const minScore = Math.max(0, Math.min(100, Number(req.body?.minScore) || 0));
+    const sortBy = ['score', 'rating', 'reviews'].includes(String(req.body?.sortBy))
+      ? String(req.body.sortBy)
+      : 'score';
+
     const niche = nicheByValue(nicheValue) ||
       // Nicho digitado fora do catálogo: usa o próprio texto como keyword/label.
       (nicheValue ? { value: nicheValue, label: nicheValue, keyword: nicheValue } : null);
@@ -162,13 +171,32 @@ app.post('/api/leads/search', async (req, res) => {
     const allowedThisSearch = limit;
 
     const query = location ? `${niche.keyword} em ${location}, Brasil` : `${niche.keyword} no Brasil`;
-    const places = await searchPlacesText({ apiKey: GOOGLE_MAPS_API_KEY, query, limit: allowedThisSearch });
 
-    const results = places.map((p) => {
+    // A Places API não tem filtro nativo de "tem site / tem telefone":
+    // buscamos um volume maior no Google e filtramos aqui no backend,
+    // para que o frontend receba só leads já filtrados.
+    const hasFilters = onlyNoSite || onlyWithPhone || (tierFilter !== 'all' && tierFilter !== '') || minScore > 0;
+    const fetchLimit = hasFilters ? 60 : allowedThisSearch;
+    const places = await searchPlacesText({ apiKey: GOOGLE_MAPS_API_KEY, query, limit: fetchLimit });
+
+    let results = places.map((p) => {
       const lead = mapPlaceToLead(p, { niche: niche.label, city, state });
       const { score, tier } = scoreLead(lead);
       return { ...lead, score, tier };
     });
+
+    if (onlyNoSite) results = results.filter((r) => !r.hasSite);
+    if (onlyWithPhone) results = results.filter((r) => Boolean(r.phone));
+    if (tierFilter === 'Quente' || tierFilter === 'Morno' || tierFilter === 'Frio') {
+      results = results.filter((r) => r.tier === tierFilter);
+    }
+    if (minScore > 0) results = results.filter((r) => r.score >= minScore);
+
+    if (sortBy === 'rating') results.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    else if (sortBy === 'reviews') results.sort((a, b) => b.reviewCount - a.reviewCount);
+    else results.sort((a, b) => b.score - a.score);
+
+    results = results.slice(0, allowedThisSearch);
 
     const updatedUsage = incrementUsage(results.length);
 
@@ -289,7 +317,7 @@ app.post('/api/generate-text', async (req, res) => {
       body: JSON.stringify({
         systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { maxOutputTokens: 24576, thinkingConfig: { thinkingLevel } },
+        generationConfig: { maxOutputTokens: 24576, temperature: 1.15, topP: 0.95, thinkingConfig: { thinkingLevel } },
       }),
     });
     const data = await response.json().catch(() => ({}));

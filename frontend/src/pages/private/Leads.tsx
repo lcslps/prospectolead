@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Search, Phone, MapPin, Send, Globe, Download, History, X } from 'lucide-react';
+import { Search, Phone, MapPin, Send, Globe, Download, History, X, SlidersHorizontal } from 'lucide-react';
 import { PageHeader, Card } from '../../components/layout';
 import Select from '../../components/Select';
 import { fetchStates, fetchCities, fetchNiches, fetchLeadUsage } from '../../lib/geo';
@@ -26,7 +26,18 @@ function TierBadge({ tier }: { tier: LeadTier }) {
 const LAST_SEARCH_KEY = 'prospectolead:last-lead-search:v1';
 
 interface PersistedSearch {
-  filters: { country: string; uf: string; city: string; niche: string; limit: number };
+  filters: {
+    country: string;
+    uf: string;
+    city: string;
+    niche: string;
+    limit: number;
+    onlyNoSite?: boolean;
+    onlyWithPhone?: boolean;
+    tier?: 'all' | LeadTier;
+    minScore?: number;
+    sortBy?: 'score' | 'rating' | 'reviews';
+  };
   results: LeadSearchResult[];
   searchedAt: string;
   usage?: { used: number; limit: number };
@@ -81,6 +92,29 @@ export default function Leads({ backendUrl }: Props) {
   const pendingCityRef = useRef<string | null>(null);
   const isFirstUfEffect = useRef(true);
 
+  // Filtros aplicados via buscamento (vão para o backend / Google Maps)
+  const [showFilters, setShowFilters] = useState(false);
+  const [onlyNoSite, setOnlyNoSite] = useState(false);
+  const [onlyWithPhone, setOnlyWithPhone] = useState(false);
+  const [tierFilter, setTierFilter] = useState<'all' | LeadTier>('all');
+  const [minScore, setMinScore] = useState(0);
+  const [sortBy, setSortBy] = useState<'score' | 'rating' | 'reviews'>('score');
+
+  const activeFilterCount =
+    (onlyNoSite ? 1 : 0) +
+    (onlyWithPhone ? 1 : 0) +
+    (tierFilter !== 'all' ? 1 : 0) +
+    (minScore > 0 ? 1 : 0) +
+    (sortBy !== 'score' ? 1 : 0);
+
+  function clearFilters() {
+    setOnlyNoSite(false);
+    setOnlyWithPhone(false);
+    setTierFilter('all');
+    setMinScore(0);
+    setSortBy('score');
+  }
+
   useEffect(() => {
     fetchStates(backendUrl).then(setStates).catch(() => {});
     fetchNiches(backendUrl).then(setNiches).catch(() => {});
@@ -96,6 +130,11 @@ export default function Leads({ backendUrl }: Props) {
       if (persisted.filters?.city) setCity(persisted.filters.city);
       if (persisted.filters?.niche) setNiche(persisted.filters.niche);
       if (persisted.filters?.limit) setLimit(persisted.filters.limit);
+      if (persisted.filters?.onlyNoSite) setOnlyNoSite(true);
+      if (persisted.filters?.onlyWithPhone) setOnlyWithPhone(true);
+      if (persisted.filters?.tier) setTierFilter(persisted.filters.tier);
+      if (persisted.filters?.minScore) setMinScore(persisted.filters.minScore);
+      if (persisted.filters?.sortBy) setSortBy(persisted.filters.sortBy);
       setResults(persisted.results);
       setSearchedAt(persisted.searchedAt);
       if (persisted.filters) {
@@ -168,15 +207,26 @@ export default function Leads({ backendUrl }: Props) {
     setSelected(new Set());
     setSentIds(new Set());
     try {
-      const { results: found, usage: newUsage } = await searchLeads(backendUrl, { state: uf, city, niche, limit });
+      const { results: found, usage: newUsage } = await searchLeads(backendUrl, {
+        state: uf,
+        city,
+        niche,
+        limit,
+        onlyNoSite,
+        onlyWithPhone,
+        tier: tierFilter,
+        minScore,
+        sortBy,
+      });
       setResults(found);
       setUsage(newUsage);
       const at = new Date().toISOString();
       setSearchedAt(at);
       setSearchedFilters({ uf, city, niche });
+      setShowFilters(false);
       try {
         const payload: PersistedSearch = {
-          filters: { country, uf, city, niche, limit },
+          filters: { country, uf, city, niche, limit, onlyNoSite, onlyWithPhone, tier: tierFilter, minScore, sortBy },
           results: found,
           searchedAt: at,
           usage: newUsage,
@@ -262,7 +312,127 @@ export default function Leads({ backendUrl }: Props) {
       />
 
       <Card className="p-5">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+        <div className="flex flex-col md:flex-row gap-2.5">
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              title="Filtros da busca"
+              className={
+                'flex items-center justify-center gap-1.5 border rounded-[10px] px-4 py-2.5 text-[13.5px] font-medium h-full min-h-[42px] ' +
+                (activeFilterCount > 0
+                  ? 'border-blue-600 text-blue-700 bg-blue-50 hover:bg-blue-100'
+                  : 'border-[#d4d9e0] text-[#1a1d21] hover:bg-[#f4f6f9]')
+              }
+            >
+              <SlidersHorizontal size={16} />
+              Filtros
+              {activeFilterCount > 0 && (
+                <span className="ml-1 min-w-[20px] h-5 px-1 flex items-center justify-center bg-blue-600 text-white text-[11px] font-bold rounded-full">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+
+            {showFilters && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowFilters(false)} />
+                <div className="absolute left-0 top-full mt-2 z-20 w-[280px] bg-white border border-[#e4e7ec] rounded-[14px] shadow-[0_8px_24px_rgba(16,24,40,0.12)] p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-semibold text-[#1a1d21]">Filtros da busca</span>
+                    {activeFilterCount > 0 && (
+                      <button onClick={clearFilters} className="text-[12px] text-blue-600 hover:underline">
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+
+                  <label className="flex items-center justify-between gap-2 text-[13px] text-[#1a1d21] cursor-pointer">
+                    <span>Somente sem site</span>
+                    <input type="checkbox" checked={onlyNoSite} onChange={(e) => setOnlyNoSite(e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                  </label>
+
+                  <label className="flex items-center justify-between gap-2 text-[13px] text-[#1a1d21] cursor-pointer">
+                    <span>Somente com telefone</span>
+                    <input type="checkbox" checked={onlyWithPhone} onChange={(e) => setOnlyWithPhone(e.target.checked)} className="w-4 h-4 accent-blue-600" />
+                  </label>
+
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#5f6570] mb-1.5">Potencial (tier)</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(['all', 'Quente', 'Morno', 'Frio'] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setTierFilter(t)}
+                          className={
+                            'px-2.5 py-1.5 rounded-lg text-[12px] font-medium ' +
+                            (tierFilter === t ? 'bg-blue-600 text-white' : 'bg-[#f1f3f6] text-[#5f6570] hover:bg-[#e8ebf0]')
+                          }
+                        >
+                          {t === 'all' ? 'Todos' : t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#5f6570] mb-1.5">Score mínimo: {minScore}</div>
+                    <div className="flex gap-1.5">
+                      {[0, 50, 70, 85].map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setMinScore(s)}
+                          className={
+                            'flex-1 py-1.5 rounded-lg text-[12px] font-semibold ' +
+                            (minScore === s ? 'bg-blue-600 text-white' : 'bg-[#f1f3f6] text-[#5f6570] hover:bg-[#e8ebf0]')
+                          }
+                        >
+                          {s === 0 ? '—' : `${s}+`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-[12px] font-semibold text-[#5f6570] mb-1.5">Ordenar por</div>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(
+                        [
+                          { id: 'score', label: 'Score' },
+                          { id: 'rating', label: 'Avaliação' },
+                          { id: 'reviews', label: 'Reviews' },
+                        ] as const
+                      ).map((o) => (
+                        <button
+                          key={o.id}
+                          onClick={() => setSortBy(o.id)}
+                          className={
+                            'py-1.5 rounded-lg text-[12px] font-semibold ' +
+                            (sortBy === o.id ? 'bg-blue-600 text-white' : 'bg-[#f1f3f6] text-[#5f6570] hover:bg-[#e8ebf0]')
+                          }
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <p className="text-[11.5px] text-[#9aa0ab] leading-snug">
+                    Os filtros são aplicados no Google Maps ao clicar em Buscar.
+                  </p>
+
+                  <button
+                    onClick={handleSearch}
+                    disabled={searching}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-[10px] py-2 text-[13px]"
+                  >
+                    {searching ? 'Buscando...' : 'Aplicar e buscar'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="grid flex-1 grid-cols-1 md:grid-cols-5 gap-2.5">
           <Select value={country} onChange={() => {}} options={[{ value: 'BR', label: 'Brasil' }]} disabled searchable />
 
           <Select
@@ -306,6 +476,7 @@ export default function Leads({ backendUrl }: Props) {
             <Search size={16} strokeWidth={2.25} />
             {searching ? 'Buscando...' : 'Buscar'}
           </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-5">

@@ -18,6 +18,11 @@ export interface SearchLeadsParams {
   city: string;
   niche: string;
   limit: number;
+  onlyNoSite?: boolean;
+  onlyWithPhone?: boolean;
+  tier?: 'all' | 'Quente' | 'Morno' | 'Frio';
+  minScore?: number;
+  sortBy?: 'score' | 'rating' | 'reviews';
 }
 
 export interface SearchLeadsResult {

@@ -8,7 +8,7 @@ import { PageHeader } from '../../components/layout';
 import Select from '../../components/Select';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
-import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, validateGeneratedSite, repairHtmlSite } from '../../lib/prompts';
+import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, LOADING_IMAGE_SVG, validateGeneratedSite, repairHtmlSite } from '../../lib/prompts';
 import { getCrmLead, listCrmLeads, saveLeadSite } from '../../lib/leads';
 import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
 import { DEFAULT_SECTIONS } from '../../types';
@@ -159,33 +159,45 @@ export default function Criar({ backendUrl }: CriarProps) {
       const { images, html } = generatedSite;
       log(`✔ Layout e conteúdo completos gerados com ${usedModel}.`, 'ok');
 
+      // Preview imediato: layout visível já, com skeletons no lugar das fotos.
+      const toPreview = (h: string) => h.replace(/\[\[IMG:[a-zA-Z0-9_]+\]\]/g, LOADING_IMAGE_SVG);
       let html2 = html;
-      for (let i = 0; i < images.length; i++) {
-        const img = images[i];
-        setStatus(`Gerando imagem ${i + 1}/${images.length}: ${img.id}...`);
-        log(`▸ Gerando imagem "${img.id}" no Cloudflare FLUX...`, 'go');
-        try {
-          const isHero = /hero/i.test(img.id);
-          const width = isHero ? 1536 : 1024;
-          const height = 1024;
-          const finalPrompt =
-            img.prompt +
-            (isHero
-              ? ' Premium website hero advertising photography, subject placed to preserve deliberate negative space for large HTML typography, cinematic composition, crisp realistic materials. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.'
-              : ' Premium commercial editorial photography for a high-end website, realistic materials and lighting, clean composition. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.');
-          const dataUrl = await callCloudflareImage(backendUrl, modelImage, finalPrompt, width, height);
-          const re = new RegExp(`\\[\\[IMG:${img.id}\\]\\]`, 'g');
-          html2 = html2.replace(re, dataUrl);
-          log(`✔ Imagem "${img.id}" pronta via Cloudflare.`, 'ok');
-        } catch (e) {
-          const msg = String((e as Error)?.message || e);
-          log(`✘ Falha ao gerar "${img.id}": ${msg}`, 'err');
-          if (/429|quota|neuron|limit|daily allocation|exceeded/i.test(msg)) {
-            log('✘ Cota do Cloudflare atingida. Interrompendo as próximas imagens.', 'err');
-            break;
+      setFinalHtml(toPreview(html2));
+      setStatus('Layout pronto! Gerando as fotos...');
+      log('▸ Layout no preview — as fotos entram conforme ficam prontas.', 'muted');
+
+      // Fotos em paralelo: cada uma que termina aparece sozinha no preview.
+      let done = 0;
+      let quotaHit = false;
+      await Promise.allSettled(
+        images.map(async (img) => {
+          log(`▸ Gerando imagem "${img.id}" no Cloudflare FLUX...`, 'go');
+          try {
+            const isHero = /hero/i.test(img.id);
+            const width = isHero ? 1536 : 1024;
+            const height = 1024;
+            const finalPrompt =
+              img.prompt +
+              (isHero
+                ? ' Premium website hero advertising photography, subject placed to preserve deliberate negative space for large HTML typography, cinematic composition, crisp realistic materials. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.'
+                : ' Premium commercial editorial photography for a high-end website, realistic materials and lighting, clean composition. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.');
+            const dataUrl = await callCloudflareImage(backendUrl, modelImage, finalPrompt, width, height);
+            const re = new RegExp(`\\[\\[IMG:${img.id}\\]\\]`, 'g');
+            html2 = html2.replace(re, dataUrl);
+            done += 1;
+            setStatus(`Gerando fotos... ${done}/${images.length}`);
+            setFinalHtml(toPreview(html2));
+            log(`✔ Imagem "${img.id}" pronta via Cloudflare.`, 'ok');
+          } catch (e) {
+            const msg = String((e as Error)?.message || e);
+            log(`✘ Falha ao gerar "${img.id}": ${msg}`, 'err');
+            if (/429|quota|neuron|limit|daily allocation|exceeded/i.test(msg) && !quotaHit) {
+              quotaHit = true;
+              log('✘ Cota do Cloudflare atingida. As fotos restantes ficarão como fallback.', 'err');
+            }
           }
-        }
-      }
+        })
+      );
 
       html2 = html2.replace(/\[\[IMG:[a-zA-Z0-9_]+\]\]/g, FALLBACK_IMAGE_SVG);
 
