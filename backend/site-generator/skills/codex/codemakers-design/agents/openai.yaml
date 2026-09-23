@@ -1,4 +1,0 @@
-interface:
-  display_name: "CodeMakers-Design — Code Makers"
-  short_description: "Front-end autoral e UX rigorosa pela Code Makers"
-  default_prompt: "Use $codemakers-design, da Code Makers, para criar ou aprimorar esta interface com direção visual própria, interações completas e validação no navegador."

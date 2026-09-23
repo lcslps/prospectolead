@@ -1,1 +1,0 @@
-ALTER TABLE "Website" ADD COLUMN "seo" JSONB;
