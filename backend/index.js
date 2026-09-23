@@ -276,7 +276,7 @@ app.post('/api/generate-text', async (req, res) => {
       body: JSON.stringify({
         systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { maxOutputTokens: 8192 },
+        generationConfig: { maxOutputTokens: 16384 },
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -284,6 +284,11 @@ app.post('/api/generate-text', async (req, res) => {
       return res.status(response.status || 502).json({
         error: data?.error?.message || 'Falha ao chamar o modelo de texto',
         status: response.status,
+      });
+    }
+    if (data?.candidates?.[0]?.finishReason === 'MAX_TOKENS') {
+      return res.status(502).json({
+        error: 'A resposta do modelo foi cortada antes de concluir o site. Gere novamente para receber o HTML completo.',
       });
     }
     const parts = data?.candidates?.[0]?.content?.parts || [];
