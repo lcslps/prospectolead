@@ -64,6 +64,12 @@ function cleanSize(value, fallback) {
   return Math.max(256, Math.min(1920, Math.round(n / 16) * 16));
 }
 
+const IMAGE_WITHOUT_TEXT_RULES =
+  ' CRITICAL IMAGE RULE: create a photograph only, with absolutely no readable or decorative text anywhere in the pixels. ' +
+  'Do not generate letters, words, numbers, logos, monograms, signatures, labels, signage, storefront signs, billboards, watermarks, UI, posters, typography, or brand marks. ' +
+  'Keep walls, sky, windows, facades, screens, products, clothing and all background surfaces blank and free of writing. ' +
+  'The website will render all copy and branding in HTML over the photograph.';
+
 function cloudflareError(data, status) {
   const errors = Array.isArray(data?.errors) ? data.errors : [];
   const messages = Array.isArray(data?.messages) ? data.messages : [];
@@ -139,24 +145,58 @@ app.post('/api/leads/search', async (req, res) => {
     const nicheValue = String(req.body?.niche || '').trim();
     const limit = Math.max(1, Math.min(60, Number(req.body?.limit) || 20));
 
-    if (!city) return res.status(400).json({ error: 'Informe a cidade.' });
-    const niche = nicheByValue(nicheValue);
+    // Filtros aplicados na busca (vêm do botão Filtros no frontend)
+    const onlyNoSite = Boolean(req.body?.onlyNoSite);
+    const onlyWithPhone = Boolean(req.body?.onlyWithPhone);
+    const tierFilter = String(req.body?.tier || 'all').trim();
+    const minScore = Math.max(0, Math.min(100, Number(req.body?.minScore) || 0));
+    const sortBy = ['score', 'rating', 'reviews'].includes(String(req.body?.sortBy))
+      ? String(req.body.sortBy)
+      : 'score';
+
+    const niche = nicheByValue(nicheValue) ||
+      // Nicho digitado fora do catálogo: usa o próprio texto como keyword/label.
+      (nicheValue ? { value: nicheValue, label: nicheValue, keyword: nicheValue } : null);
     if (!niche) return res.status(400).json({ error: 'Nicho inválido.' });
 
-    const usage = getUsage();
-    if (usage.used >= MONTHLY_LEAD_LIMIT) {
-      return res.status(429).json({ error: `Limite mensal de ${MONTHLY_LEAD_LIMIT} leads atingido.` });
-    }
-    const allowedThisSearch = Math.min(limit, MONTHLY_LEAD_LIMIT - usage.used);
+    // Cidade e estado são opcionais: sem eles, a busca abrange o Brasil todo.
+    const location = city && state ? `${city}, ${state}` : city || state || '';
 
-    const query = `${niche.keyword} em ${city}${state ? ', ' + state : ''}, Brasil`;
-    const places = await searchPlacesText({ apiKey: GOOGLE_MAPS_API_KEY, query, limit: allowedThisSearch });
+    // LIMITE MENSAL DESATIVADO — para reativar, descomente o bloco abaixo.
+    // const usage = getUsage();
+    // if (usage.used >= MONTHLY_LEAD_LIMIT) {
+    //   return res.status(429).json({ error: `Limite mensal de ${MONTHLY_LEAD_LIMIT} leads atingido.` });
+    // }
+    // const allowedThisSearch = Math.min(limit, MONTHLY_LEAD_LIMIT - usage.used);
+    const allowedThisSearch = limit;
 
-    const results = places.map((p) => {
+    const query = location ? `${niche.keyword} em ${location}, Brasil` : `${niche.keyword} no Brasil`;
+
+    // A Places API não tem filtro nativo de "tem site / tem telefone":
+    // buscamos um volume maior no Google e filtramos aqui no backend,
+    // para que o frontend receba só leads já filtrados.
+    const hasFilters = onlyNoSite || onlyWithPhone || (tierFilter !== 'all' && tierFilter !== '') || minScore > 0;
+    const fetchLimit = hasFilters ? 60 : allowedThisSearch;
+    const places = await searchPlacesText({ apiKey: GOOGLE_MAPS_API_KEY, query, limit: fetchLimit });
+
+    let results = places.map((p) => {
       const lead = mapPlaceToLead(p, { niche: niche.label, city, state });
       const { score, tier } = scoreLead(lead);
       return { ...lead, score, tier };
     });
+
+    if (onlyNoSite) results = results.filter((r) => !r.hasSite);
+    if (onlyWithPhone) results = results.filter((r) => Boolean(r.phone));
+    if (tierFilter === 'Quente' || tierFilter === 'Morno' || tierFilter === 'Frio') {
+      results = results.filter((r) => r.tier === tierFilter);
+    }
+    if (minScore > 0) results = results.filter((r) => r.score >= minScore);
+
+    if (sortBy === 'rating') results.sort((a, b) => (b.rating ?? -1) - (a.rating ?? -1));
+    else if (sortBy === 'reviews') results.sort((a, b) => b.reviewCount - a.reviewCount);
+    else results.sort((a, b) => b.score - a.score);
+
+    results = results.slice(0, allowedThisSearch);
 
     const updatedUsage = incrementUsage(results.length);
 
@@ -269,6 +309,7 @@ app.post('/api/generate-text', async (req, res) => {
     }
     if (!userPrompt) return res.status(400).json({ error: 'Prompt do texto está vazio.' });
 
+    const thinkingLevel = model.includes('flash-lite') ? 'minimal' : 'low';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
     const response = await fetch(url, {
       method: 'POST',
@@ -276,7 +317,7 @@ app.post('/api/generate-text', async (req, res) => {
       body: JSON.stringify({
         systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
         contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { maxOutputTokens: 16384 },
+        generationConfig: { maxOutputTokens: 24576, temperature: 1.15, topP: 0.95, thinkingConfig: { thinkingLevel } },
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -296,7 +337,7 @@ app.post('/api/generate-text', async (req, res) => {
     if (!text) {
       return res.status(502).json({ error: 'O modelo não retornou texto.' });
     }
-    return res.json({ ok: true, model, text });
+    return res.json({ ok: true, model, text, finishReason: data?.candidates?.[0]?.finishReason, usageMetadata: data?.usageMetadata });
   } catch (error) {
     return res.status(500).json({ error: error?.message || String(error) });
   }
@@ -321,7 +362,9 @@ app.post('/api/image', async (req, res) => {
     }
 
     const form = new FormData();
-    form.append('prompt', prompt);
+    // Centralized so every Cloudflare generation receives the rule, even when
+    // a model-generated image brief accidentally asks for a branded scene.
+    form.append('prompt', prompt + IMAGE_WITHOUT_TEXT_RULES);
     form.append('width', String(width));
     form.append('height', String(height));
 

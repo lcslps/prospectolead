@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Download, Phone, MessageCircle, X } from 'lucide-react';
 import { PageHeader, Card } from '../../components/layout';
+import Select from '../../components/Select';
 import { listCrmLeads, createManualLead, deleteCrmLead } from '../../lib/leads';
 import { fetchNiches } from '../../lib/geo';
 import type { Lead, LeadStage, NicheOption } from '../../types';
@@ -69,18 +70,15 @@ function NewLeadModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <select
-            className="w-full border border-[#d4d9e0] rounded-[10px] px-3 py-2.5 text-[13.5px]"
+          <Select
             value={niche}
-            onChange={(e) => setNiche(e.target.value)}
-          >
-            <option value="">Nicho</option>
-            {niches.map((n) => (
-              <option key={n.value} value={n.label}>
-                {n.label}
-              </option>
-            ))}
-          </select>
+            onChange={setNiche}
+            options={[{ value: '', label: 'Nicho' }, ...niches.map((n) => ({ value: n.label, label: n.label }))]}
+            placeholder="Nicho"
+            searchable
+            searchPlaceholder="Buscar ou digitar nicho..."
+            creatable
+          />
           <input
             className="w-full border border-[#d4d9e0] rounded-[10px] px-3 py-2.5 text-[13.5px]"
             placeholder="Cidade"
