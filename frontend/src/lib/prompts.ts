@@ -49,62 +49,29 @@ Formato OBRIGATÓRIO da sua resposta (não escreva nada fora desse formato, não
 
 ===IMAGES===
 uma linha por imagem necessária, no formato:
-id_da_imagem: prompt em inglês, detalhado, descrevendo uma FOTOGRAFIA publicitária realista profissional (não ilustração) para FLUX. Descreva sujeito, enquadramento, lente/câmera, iluminação, textura, fundo, posição do sujeito e espaço negativo necessário para a tipografia HTML. Termine com "no text, no logo, no watermark".
+id_da_imagem: prompt em inglês, detalhado, descrevendo uma FOTOGRAFIA publicitária realista profissional (não ilustração) para FLUX. Descreva sujeito, enquadramento, lente/câmera, iluminação, textura, fundo, posição do sujeito e espaço negativo necessário para a tipografia HTML. Não peça nome da empresa, logotipo, fachada identificada ou qualquer texto dentro da foto. Termine exatamente com: "absolutely no text, letters, numbers, logo, signage, labels, watermark, typography or brand mark; all surfaces blank".
 (gere entre 3 e 6 imagens: 1 hero grande, e o restante para os cards de destaque/produtos. dê ids curtos em snake_case, ex: hero, card_1, card_2, about)
 
 ===HTML===
 o documento HTML completo, começando em <!DOCTYPE html> e terminando em </html>, 100% autocontido:
+- ORÇAMENTO DE SAÍDA OBRIGATÓRIO: entregue o documento inteiro em no máximo 18.000 caracteres. Não escreva comentários no HTML/CSS/JS. Use CSS reutilizável e curto, com poucas classes compartilhadas; não repita regras por card, nem crie descrições longas. Priorize as cinco seções completas, conteúdo visível e o fechamento </html> antes de qualquer detalhe decorativo. Use três cards de destaque e dois depoimentos concisos.
 - CSS todo dentro de uma tag <style> no <head>. Importe exatamente as duas fontes SANS-SERIF do Google Fonts escolhidas (título + texto) via @import url(...) no topo do <style>, ex: @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap'); — troque os nomes/pesos pelas fontes escolhidas para este site específico. É PROIBIDO importar ou usar qualquer fonte serifada. Todo \`font-family\` deve ter fallback \`sans-serif\`.
 - ÍCONES (obrigatório): logo no início do body, ou no final antes do fechamento do body, inclua exatamente esta tag: <script src="https://unpkg.com/lucide@latest"></script>
   Em todo lugar que precisar de um ícone de UI, escreva: <i data-lucide="NOME_DO_ICONE" class="..." style="width:20px;height:20px"></i> (ajuste width/height conforme o contexto). No final do <body>, DEPOIS da tag script do lucide e depois de todo o HTML da página, adicione: <script>if (window.lucide) lucide.createIcons();</script>. NUNCA use caracteres emoji (📍✅⭐🔧📞🛡️↗ etc.) como ícone — use sempre <i data-lucide="...">.
-- BIBLIOTECAS EXTERNAS PERMITIDAS: use apenas Lucide para ícones e Lenis para scroll suave. Inclua no head: <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css">. Antes do script de inicialização no fim do body, inclua: <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>. Em seguida inicialize exatamente uma instância: new Lenis({ autoRaf: true, anchors: true, smoothWheel: true });. Não crie um loop manual de requestAnimationFrame quando autoRaf estiver ativo. O scroll precisa continuar acessível, preservar âncoras internas e respeitar preferências de redução de movimento quando o navegador as aplicar.
-- STACK OBRIGATÓRIA EM TODO SITE: Lucide para ícones, Lenis para scroll suave, GSAP com ScrollTrigger para animações de entrada e Three.js para um elemento 3D contextual e leve. Não carregue nenhuma outra biblioteca externa.
-  1. LENIS: inclua no head <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css"> e, no final do body, <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>, seguido de new Lenis({ autoRaf: true, anchors: true, smoothWheel: true }). Não crie requestAnimationFrame manual quando autoRaf estiver ativo.
-  2. GSAP: no final do body, antes do script de animação, inclua <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script> e <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>. Registre ScrollTrigger e use-o em animações discretas de entrada para hero e seções. Use opacidade, translateY e stagger; nunca faça animação contínua, excessiva ou que esconda conteúdo. Respeite prefers-reduced-motion.
-  3. THREE.JS: no head, inclua um importmap apontando three para https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js. Crie no máximo um canvas ou container 3D pequeno, decorativo e semanticamente ligado ao negócio, sem substituir fotos, texto, CTA ou conteúdo. Use uma cena simples (geometrias básicas, iluminação leve e rotação muito sutil), interrompa/anule a animação para prefers-reduced-motion e esconda o elemento se WebGL não estiver disponível. O site precisa permanecer completo e bonito mesmo sem WebGL.
-- DESIGN SYSTEM E REFERÊNCIAS: use a qualidade de composição e componentes de 21st.dev como inspiração de microinterações e acabamento, sem tentar importar componentes React. Trate styles.refero.design, inspora.design e sistemas do Framer Marketplace como repertório de paleta, tipografia, espaçamento e composição. Use a URL de referência do usuário quando fornecida, sem copiar marcas ou layouts. Crie sempre um layout específico e não-template.
-- JS adicional dentro de <script> no final do <body> pode ser usado para pequenas interações (menu mobile, estado visual do header e as animações da stack obrigatória). O comportamento do header transparente→sólido após scroll é OBRIGATÓRIO quando houver header fixo: use \`window.scrollY\`, um listener passivo de \`scroll\` e uma classe como \`.is-scrolled\`; execute a função também no carregamento para refletir a posição atual.
+- BIBLIOTECAS E MOVIMENTO (economia de tokens — leia com atenção): NÃO escreva boilerplate de Lenis, GSAP, ScrollTrigger ou Three.js. O sistema injeta automaticamente após a sua resposta: scroll suave (Lenis), reveal discreto das seções (GSAP), header que fica sólido após ~80px de scroll (classe .is-scrolled) e um elemento 3D decorativo leve. Não gaste seu limite de resposta com isso. Desenhe apenas um header fixo transparente sobre o hero com CSS legível nos dois estados (sobre a foto e sobre fundo sólido) e, se quiser, um JS mínimo próprio (ex: menu mobile). Não carregue nenhuma outra biblioteca além de ícones (instrução de ÍCONES acima).
+- DESIGN SYSTEM E REFERÊNCIAS: use a qualidade de composição e microinterações de 21st.dev como inspiração de acabamento, sem importar componentes React. Trate styles.refero.design, inspora.design e Framer Marketplace como repertório de paleta, tipografia, espaçamento e composição. Use a URL de referência do usuário quando fornecida, sem copiar marcas ou layouts. Crie sempre um layout específico e não-template.
 - em TODO lugar onde uma foto for usada, use exatamente <img src="[[IMG:id_da_imagem]]" ...> com o id correspondente que você definiu na seção ===IMAGES===. Não use nenhuma outra URL de imagem, nunca use placeholder.com, unsplash ou picsum.
 - todo o texto (títulos, menus, botões, depoimentos, rodapé) deve estar em português do Brasil e ser conteúdo real e específico do negócio informado, nunca "lorem ipsum" ou genérico como "Título aqui"
 - o site deve ter uma única página (one-page) com âncoras internas para cada seção no menu
 - LARGURA TOTAL OBRIGATÓRIA: o documento deve ocupar 100% da largura da viewport em desktop e mobile. Defina html e body com width: 100%, min-width: 0 e margin: 0; não aplique max-width, width fixa, margem horizontal automática ou padding externo ao body, main, ao hero ou ao wrapper raiz da página. O hero, fundos de seção e imagens de faixa devem ir de uma borda à outra da viewport (width: 100% ou 100vw). Somente blocos internos de leitura, como classes container/content, podem ter max-width e margin auto. Antes de responder, confirme que não haverá faixas vazias nas laterais em telas largas.
 - CHECKLIST OBRIGATÓRIO ANTES DE RESPONDER: entregue o HTML inteiro e fechado; inclua hero, diferenciais/sobre, destaques/produtos, depoimentos e CTA/contato final, mesmo que alguma seção não tenha sido marcada no formulário. A seção de contato final deve exibir telefone/WhatsApp e cidade quando esses dados existirem, ter um botão CTA funcional com link tel: ou https://wa.me/, e um ícone Lucide de telefone ou mensagem.
 - ESTRUTURA VERIFICÁVEL: use cinco tags section reais, nesta ordem e com estes ids: section id="hero", section id="diferenciais", section id="destaques", section id="depoimentos" e section id="contato". Não esconda nenhuma seção com display:none, opacity:0, height:0, overflow:hidden ou posicionamento fora da tela. O footer pode vir depois do contato.
-- CARDS E IMAGENS: não deixe nenhum card, coluna, moldura ou área reservada vazia. Cada card de destaque precisa ter imagem, título, texto/detalhe e CTA. Para cada placeholder [[IMG:id]] usado no HTML, declare exatamente um id: correspondente em ===IMAGES===; não declare imagens que não sejam usadas. Gere exatamente 4 imagens: hero, card_1, card_2 e card_3, e use todas no HTML. Mantenha o HTML conciso o suficiente para terminar integralmente dentro do limite de resposta.
+- CARDS E IMAGENS: não deixe nenhum card, coluna, moldura ou área reservada vazia. Cada card de destaque precisa ter imagem, título, texto/detalhe e CTA. Para cada placeholder [[IMG:id]] usado no HTML, declare exatamente um id: correspondente em ===IMAGES===; não declare imagens que não sejam usadas. Gere exatamente 4 imagens: hero, card_1, card_2 e card_3, e use todas no HTML. A imagem principal do hero deve ser uma tag real <img class="hero-media" src="[[IMG:hero]]" alt="...">, posicionada absolutamente atrás do conteúdo com width: 100%, height: 100% e object-fit: cover. Nunca use [[IMG:hero]] em background-image, background ou url(...), nem coloque uma imagem base64 no CSS. A sobreposição escura do hero deve ser um pseudo-elemento ou elemento separado sobre a .hero-media, com opacidade máxima de 0.58; o conteúdo precisa ter z-index maior. Mantenha o HTML conciso o suficiente para terminar integralmente dentro do limite de resposta.
 - ÍCONES VISÍVEIS: todo elemento i com atributo data-lucide precisa estar dentro de um botão, link ou bloco de conteúdo com texto; não crie quadrados vazios, placeholders de ícone ou elementos decorativos sem ícone renderizável.
 - TIPOGRAFIA: valide antes de responder que NÃO existe nenhuma fonte serifada no HTML/CSS/imports. Nenhum \`serif\`, Georgia, Times, Fraunces, Playfair, Cormorant, Newsreader, Domine, Petrona, Bitter ou equivalente.
 `;
 
-export function buildStoryboardPrompt(d: BusinessFormData, referenceUrl: string): string {
-  return `
-Crie somente um STORYBOARD DE DIREÇÃO DE ARTE para uma landing page brasileira premium. Não escreva HTML, CSS, JavaScript, imagens, markdown ou explicações fora da estrutura abaixo.
-
-Negócio: ${d.name}
-Ramo: ${d.niche}
-Descrição: ${d.desc || 'Use o ramo como base.'}
-Cidade/região: ${d.city || 'Não informada'}
-Paleta desejada: ${d.colors || 'Defina uma paleta coerente com o negócio.'}
-Referência visual opcional: ${referenceUrl || 'Nenhuma URL fornecida; crie uma direção original.'}
-
-Use exatamente estas seções, em português do Brasil:
-DIREÇÃO DE ARTE
-PALETA E TIPOGRAFIA
-HERO
-DIFERENCIAIS
-DESTAQUES
-DEPOIMENTOS
-CONTATO E CTA
-MOVIMENTO E INTERAÇÃO
-ELEMENTO 3D CONTEXTUAL
-ANTI-TEMPLATE
-
-Em cada seção, seja concreto sobre composição, conteúdo, hierarquia e intenção visual. Em MOVIMENTO E INTERAÇÃO, descreva animações GSAP discretas e o uso de Lenis; em ELEMENTO 3D CONTEXTUAL, descreva uma cena Three.js leve que valorize o negócio sem competir com o conteúdo. Se houver URL de referência, use-a apenas como inspiração de clima e composição; não copie marca, textos ou layout literalmente.
-
-Evite obrigatoriamente: hero centralizado genérico; texto à esquerda com foto de banco à direita; gradiente azul/roxo genérico; três cards idênticos alinhados; ícones em círculos repetidos; imagens repetidas; fontes padrão; aparência de template SaaS. Proponha uma composição assimétrica e específica para este negócio.
-`;
-}
-
-export function buildUserPrompt(d: BusinessFormData, storyboard: string, referenceUrl: string): string {
+export function buildUserPrompt(d: BusinessFormData, referenceUrl: string): string {
   const sections = d.sections.join(', ');
   return `
 Crie um site institucional (landing page one-page) para o negócio abaixo.
@@ -118,9 +85,6 @@ WhatsApp/telefone de contato: ${d.phone || '(não informado, use um placeholder 
 Cidade/região: ${d.city || '(não informado)'}
 Preferência de paleta de cores: ${d.colors || '(escolha a paleta mais adequada ao ramo, seguindo o guia de estilo)'}
 Seções obrigatórias no site: ${sections}
-
-STORYBOARD APROVADO — siga esta direção de arte com fidelidade. Não omita nenhuma das seções planejadas:
-${storyboard}
 
 Referência visual enviada pelo usuário (use apenas como inspiração, sem copiar): ${referenceUrl || 'Nenhuma'}
 
@@ -157,49 +121,147 @@ export function parseModelOutput(raw: string): ParsedSite {
   return { images, html };
 }
 
-export function validateGeneratedSite(site: ParsedSite): string[] {
+export interface SiteValidation {
+  blocking: string[];
+  warnings: string[];
+}
+
+export function validateGeneratedSite(site: ParsedSite): SiteValidation {
   const { images, html } = site;
   const normalized = html.toLowerCase();
-  const issues: string[] = [];
+  const blocking: string[] = [];
+  const warnings: string[] = [];
   const requiredSections = ['hero', 'diferenciais', 'destaques', 'depoimentos', 'contato'];
   const requiredImages = ['hero', 'card_1', 'card_2', 'card_3'];
 
-  if (!/^<!doctype html/i.test(html) || !/<\/html>\s*$/i.test(html)) issues.push('o documento HTML não está completo');
-  if (!/<body[\s>]/i.test(html)) issues.push('a tag body está ausente');
-  if (html.length < 9000) issues.push('o HTML está curto demais para um site completo');
+  if (!/^<!doctype html/i.test(html) || !/<\/html>\s*$/i.test(html)) blocking.push('o documento HTML não está completo');
+  if (!/<body[\s>]/i.test(html)) blocking.push('a tag body está ausente');
+  if (html.length < 7000) blocking.push('o HTML está curto demais para um site completo');
 
   for (const id of requiredSections) {
     const sectionPattern = new RegExp(`<section[^>]*\\bid=["']${id}["']`, 'i');
-    if (!sectionPattern.test(html)) issues.push(`a seção #${id} está ausente`);
+    if (!sectionPattern.test(html)) blocking.push(`a seção #${id} está ausente`);
   }
 
   const suppliedImageIds = images.map((image) => image.id);
   for (const id of requiredImages) {
-    if (!suppliedImageIds.includes(id)) issues.push(`a imagem ${id} não foi declarada`);
-    if (!html.includes(`[[IMG:${id}]]`)) issues.push(`a imagem ${id} não foi usada no HTML`);
+    if (!suppliedImageIds.includes(id)) blocking.push(`a imagem ${id} não foi declarada`);
+    if (!html.includes(`[[IMG:${id}]]`)) blocking.push(`a imagem ${id} não foi usada no HTML`);
   }
   if (images.length !== requiredImages.length || suppliedImageIds.some((id) => !requiredImages.includes(id))) {
-    issues.push('a lista de imagens não corresponde ao conjunto obrigatório');
+    blocking.push('a lista de imagens não corresponde ao conjunto obrigatório');
   }
 
-  if (!/(tel:|https:\/\/wa\.me\/)/i.test(html)) issues.push('o CTA de contato não possui link funcional');
+  if (!/(tel:|https:\/\/wa\.me\/)/i.test(html)) blocking.push('o CTA de contato não possui link funcional');
+  const heroImageElement = /<img\b(?=[^>]*\bsrc=["']\[\[IMG:hero\]\]["'])(?=[^>]*\bclass=["'][^"']*\bhero-media\b)/i;
+  if (!heroImageElement.test(html)) {
+    blocking.push('a imagem do hero deve ser uma tag img.hero-media');
+  }
+  if (/background(?:-image)?\s*:[^;{}]*\[\[IMG:hero\]\]/i.test(html) || /url\(\s*["']?\[\[IMG:hero\]\]/i.test(html)) {
+    blocking.push('a imagem do hero não pode ser usada como background CSS');
+  }
+  if (!/\.hero-media\s*\{[^}]*\bobject-fit\s*:\s*cover/i.test(html)) {
+    blocking.push('a imagem do hero precisa usar object-fit: cover');
+  }
+
   if (!/data-lucide=/i.test(html) || !/lucide\.createicons\(\)/i.test(normalized)) {
-    issues.push('os ícones Lucide não foram inicializados');
+    warnings.push('os ícones Lucide não foram inicializados');
   }
   if (!/lenis@1\.3\.26\/dist\/lenis\.min\.js/i.test(html) || !/new\s+lenis\s*\(/i.test(html) || !/autoraf\s*:\s*true/i.test(html)) {
-    issues.push('o scroll suave Lenis não foi configurado');
+    warnings.push('o scroll suave Lenis não foi configurado');
   }
   if (!/is-scrolled/i.test(html) || !/addEventListener\(['"]scroll['"]/i.test(html) || !/window\.scrollY/i.test(html)) {
-    issues.push('o header não possui comportamento sólido após a rolagem');
+    warnings.push('o header não possui comportamento sólido após a rolagem');
   }
   if (!/gsap@3\.15\.0\/dist\/gsap\.min\.js/i.test(html) || !/scrolltrigger\.min\.js/i.test(html) || !/registerplugin\s*\(\s*scrolltrigger\s*\)/i.test(html)) {
-    issues.push('as animações GSAP com ScrollTrigger não foram configuradas');
+    warnings.push('as animações GSAP com ScrollTrigger não foram configuradas');
   }
   if (!/three@0\.181\.0\/build\/three\.module\.js/i.test(html) || !/new\s+three\.scene\s*\(/i.test(html) || !/webglrenderer/i.test(html)) {
-    issues.push('o elemento 3D Three.js não foi configurado');
+    warnings.push('o elemento 3D Three.js não foi configurado');
   }
 
-  return issues;
+  return { blocking, warnings };
+}
+
+function insertBeforeCloseTag(html: string, tag: string, snippet: string): string {
+  const idx = html.toLowerCase().lastIndexOf(tag);
+  if (idx === -1) return html + snippet;
+  return html.slice(0, idx) + snippet + html.slice(idx);
+}
+
+// Completa localmente (sem nova chamada ao modelo) os itens de warning:
+// scripts/init de Lucide, Lenis, GSAP, header sólido e Three.js.
+export function repairHtmlSite(source: string): { html: string; fixed: string[] } {
+  let html = source;
+  const fixed: string[] = [];
+
+  const hasLucideScript = /unpkg\.com\/lucide/i.test(html);
+  const hasLucideInit = /lucide\.createicons\(\)/i.test(html);
+  const hasLenis = /lenis@1\.3\.26\/dist\/lenis\.min\.js/i.test(html) && /new\s+lenis\s*\(/i.test(html);
+  const hasHeader = /is-scrolled/i.test(html) && /window\.scrollY/i.test(html);
+  const hasGsap =
+    /gsap@3\.15\.0\/dist\/gsap\.min\.js/i.test(html) && /registerplugin\s*\(\s*scrolltrigger\s*\)/i.test(html);
+  const hasThree =
+    /three@0\.181\.0\/build\/three\.module\.js/i.test(html) && /new\s+three\.scene\s*\(/i.test(html);
+
+  if (!/lenis@1\.3\.26\/dist\/lenis\.css/i.test(html)) {
+    html = insertBeforeCloseTag(html, '</head>', '<link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css">');
+  }
+  if (!hasThree) {
+    html = insertBeforeCloseTag(
+      html,
+      '</head>',
+      '<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js"}}</script>'
+    );
+  }
+  if (!hasHeader) {
+    html = insertBeforeCloseTag(html, '</head>', '<style>header.is-scrolled{box-shadow:0 10px 30px rgba(0,0,0,.12);}</style>');
+  }
+
+  let bodyScripts = '';
+  if (!hasLucideScript) {
+    bodyScripts += '<script src="https://unpkg.com/lucide@latest"></script>';
+    fixed.push('script Lucide');
+  }
+  if (!hasLenis) {
+    bodyScripts +=
+      '<script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>' +
+      '<script>if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&window.Lenis){var __lenis=new Lenis({autoRaf:true,anchors:true,smoothWheel:true});}</script>';
+    fixed.push('scroll suave Lenis');
+  }
+  if (!hasGsap) {
+    bodyScripts +=
+      '<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>' +
+      '<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>' +
+      '<script>if(!matchMedia("(prefers-reduced-motion: reduce)").matches&&window.gsap&&window.ScrollTrigger){gsap.registerPlugin(ScrollTrigger);gsap.utils.toArray("section").forEach(function(s){gsap.from(s,{opacity:0,y:24,duration:.7,ease:"power2.out",scrollTrigger:{trigger:s,start:"top 88%"}});});}</script>';
+    fixed.push('animações GSAP');
+  }
+  if (!hasHeader) {
+    bodyScripts +=
+      '<script>(function(){function h(){var e=document.querySelector("header");if(e)e.classList.toggle("is-scrolled",window.scrollY>80);}addEventListener("scroll",h,{passive:true});h();})();</script>';
+    fixed.push('header sólido após scroll');
+  }
+  if (!hasThree) {
+    bodyScripts +=
+      '<script type="module">import * as THREE from "three";try{' +
+      'if(matchMedia("(prefers-reduced-motion: reduce)").matches)throw 0;' +
+      'var host=document.querySelector("#destaques")||document.body;' +
+      'var wrap=document.createElement("div");wrap.setAttribute("style","width:180px;height:180px;pointer-events:none;opacity:.9");host.appendChild(wrap);' +
+      'var renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});renderer.setSize(180,180);wrap.appendChild(renderer.domElement);' +
+      'var scene=new THREE.Scene();var cam=new THREE.PerspectiveCamera(45,1,.1,100);cam.position.z=4;' +
+      'scene.add(new THREE.AmbientLight(0xffffff,.9));var dl=new THREE.DirectionalLight(0xffffff,1.2);dl.position.set(2,3,4);scene.add(dl);' +
+      'var m=new THREE.Mesh(new THREE.IcosahedronGeometry(1.1,0),new THREE.MeshStandardMaterial({color:0xc88a53,roughness:.35,metalness:.15}));scene.add(m);' +
+      '(function a(){requestAnimationFrame(a);m.rotation.y+=.003;m.rotation.x+=.0015;renderer.render(scene,cam);})();' +
+      '}catch(e){}</script>';
+    fixed.push('elemento 3D decorativo');
+  }
+  if (bodyScripts) html = insertBeforeCloseTag(html, '</body>', bodyScripts);
+  if (!hasLucideInit) {
+    html = insertBeforeCloseTag(html, '</body>', '<script>if(window.lucide)lucide.createIcons();</script>');
+    fixed.push('inicialização de ícones');
+  }
+
+  return { html, fixed };
 }
 
 export const FALLBACK_IMAGE_SVG =

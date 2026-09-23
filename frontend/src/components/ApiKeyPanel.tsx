@@ -1,5 +1,6 @@
 import { TEXT_MODELS, IMAGE_MODELS } from '../types';
-import { Card, Field, inputClassName } from './layout';
+import { Card, Field } from './layout';
+import Select from './Select';
 
 interface Props {
   modelText: string;
@@ -15,31 +16,23 @@ export default function ApiKeyPanel({ modelText, setModelText, modelImage, setMo
 
       <div className="space-y-3">
         <Field label="Modelo de texto (geração do site)">
-          <select
+          <Select
             value={modelText}
-            onChange={(e) => setModelText(e.target.value)}
-            className={'w-full ' + inputClassName}
-          >
-            {TEXT_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+            onChange={setModelText}
+            options={TEXT_MODELS.map((m) => ({ value: m.value, label: m.label }))}
+            searchable
+            searchPlaceholder="Buscar modelo..."
+          />
         </Field>
 
         <Field label="Modelo de imagem (Cloudflare Workers AI)">
-          <select
+          <Select
             value={modelImage}
-            onChange={(e) => setModelImage(e.target.value)}
-            className={'w-full ' + inputClassName}
-          >
-            {IMAGE_MODELS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+            onChange={setModelImage}
+            options={IMAGE_MODELS.map((m) => ({ value: m.value, label: m.label }))}
+            searchable
+            searchPlaceholder="Buscar modelo..."
+          />
         </Field>
       </div>
     </Card>

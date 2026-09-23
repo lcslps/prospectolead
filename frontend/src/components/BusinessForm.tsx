@@ -2,6 +2,7 @@ import { Rocket } from 'lucide-react';
 import { NICHES, DEFAULT_SECTIONS } from '../types';
 import type { BusinessFormData, LogEntry } from '../types';
 import { Card, Field, inputClassName } from './layout';
+import Select from './Select';
 
 interface Props {
   data: BusinessFormData;
@@ -33,7 +34,7 @@ export default function BusinessForm({
   logs,
   referenceUrl,
   setReferenceUrl,
-  generateLabel = 'Gerar storyboard',
+  generateLabel = 'Gerar site',
 }: Props) {
   function set<K extends keyof BusinessFormData>(key: K, value: BusinessFormData[K]) {
     setData({ ...data, [key]: value });
@@ -60,13 +61,14 @@ export default function BusinessForm({
       </Field>
 
       <Field label="Ramo de atuação">
-        <select value={data.niche} onChange={(e) => set('niche', e.target.value)} className={inputClass}>
-          {NICHES.map((n) => (
-            <option key={n.value} value={n.label}>
-              {n.label}
-            </option>
-          ))}
-        </select>
+        <Select
+          value={data.niche}
+          onChange={(v) => set('niche', v)}
+          options={NICHES.map((n) => ({ value: n.label, label: n.label }))}
+          searchable
+          searchPlaceholder="Buscar ou digitar ramo..."
+          creatable
+        />
       </Field>
 
       <Field label="Descrição curta do negócio">

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Check, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import ApiKeyPanel from '../../components/ApiKeyPanel';
 import BusinessForm from '../../components/BusinessForm';
 import PreviewPanel from '../../components/PreviewPanel';
 import { PageHeader } from '../../components/layout';
+import Select from '../../components/Select';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
-import { buildStoryboardPrompt, buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, validateGeneratedSite } from '../../lib/prompts';
+import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, validateGeneratedSite, repairHtmlSite } from '../../lib/prompts';
 import { getCrmLead, listCrmLeads, saveLeadSite } from '../../lib/leads';
 import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
 import { DEFAULT_SECTIONS } from '../../types';
@@ -35,11 +36,11 @@ function formDataFromLead(lead: Lead): BusinessFormData {
   return {
     name: lead.name,
     niche: lead.niche || EMPTY_FORM.niche,
-    desc: `${lead.niche || 'Negócio local'} em ${lead.city}${lead.state ? ', ' + lead.state : ''}.`,
+    desc: `${lead.niche || 'Negócio local'}${lead.city ? ` em ${lead.city}${lead.state ? ', ' + lead.state : ''}` : ''}.`,
     perks: perks.join('\n'),
     cta: '',
     phone: lead.phone || '',
-    city: lead.state ? `${lead.city}, ${lead.state}` : lead.city,
+    city: lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.city || lead.state || '',
     colors: '',
     sections: [...DEFAULT_SECTIONS],
   };
@@ -54,7 +55,7 @@ export default function Criar({ backendUrl }: CriarProps) {
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
 
-  const [modelText, setModelText] = useState('gemini-3.8-flash');
+  const [modelText, setModelText] = useState('gemini-3.5-flash-lite');
   const [modelImage, setModelImage] = useState('@cf/black-forest-labs/flux-2-klein-4b');
 
   const [lead, setLead] = useState<Lead | null>(null);
@@ -63,7 +64,6 @@ export default function Criar({ backendUrl }: CriarProps) {
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [formData, setFormData] = useState<BusinessFormData>(EMPTY_FORM);
   const [referenceUrl, setReferenceUrl] = useState('');
-  const [storyboard, setStoryboard] = useState('');
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -83,19 +83,20 @@ export default function Criar({ backendUrl }: CriarProps) {
     if (!leadId) {
       setLead(null);
       setFormData(EMPTY_FORM);
-      setStoryboard('');
       return;
     }
     getCrmLead(backendUrl, leadId)
       .then((l) => {
         setLead(l);
         setFormData(formDataFromLead(l));
-        setStoryboard('');
       })
       .catch(() => setLead(null));
   }, [leadId, backendUrl]);
 
+  // Leads que já têm site gerado não entram na seleção (evita gerar por cima);
+  // o lead atual continua visível caso tenha sido aberto pelo CRM.
   const filteredLeads = crmLeads.filter((item) => {
+    if (item.siteUrl && item.id !== lead?.id) return false;
     const query = leadSearch.trim().toLowerCase();
     return !query || `${item.name} ${item.city} ${item.state} ${item.niche}`.toLowerCase().includes(query);
   });
@@ -113,50 +114,6 @@ export default function Criar({ backendUrl }: CriarProps) {
     setLogs((prev) => [...prev, { id: logId.current, text, kind }]);
   }
 
-  function updateFormData(data: BusinessFormData) {
-    setFormData(data);
-    setStoryboard('');
-  }
-
-  function updateReferenceUrl(value: string) {
-    setReferenceUrl(value);
-    setStoryboard('');
-  }
-
-  async function handleCreateStoryboard() {
-    if (!formData.name.trim()) {
-      alert('Informe o nome da empresa.');
-      return;
-    }
-    if (!backendUrl.trim()) {
-      alert('Informe a URL do backend.');
-      return;
-    }
-
-    setGenerating(true);
-    setLogs([]);
-    setFinalHtml('');
-    try {
-      setStatus('Criando storyboard e direção de arte...');
-      log('▸ Criando a direção de arte para sua aprovação...', 'go');
-      const result = await callGeminiTextWithFallback(
-        backendUrl,
-        modelText,
-        STYLE_GUIDE,
-        buildStoryboardPrompt(formData, referenceUrl),
-        log
-      );
-      setStoryboard(result.text.trim());
-      setStatus('Storyboard pronto para revisão.');
-      log(`✔ Storyboard criado com ${result.model}.`, 'ok');
-    } catch (e) {
-      log('✘ Erro ao criar storyboard: ' + (e as Error).message, 'err');
-      setStatus('Não foi possível criar o storyboard.');
-    } finally {
-      setGenerating(false);
-    }
-  }
-
   async function handleGenerate() {
     if (!formData.name.trim()) {
       alert('Informe o nome da empresa.');
@@ -166,11 +123,6 @@ export default function Criar({ backendUrl }: CriarProps) {
       alert('Informe a URL do backend.');
       return;
     }
-    if (!storyboard) {
-      alert('Gere e aprove o storyboard antes de criar o site.');
-      return;
-    }
-
     setGenerating(true);
     setLogs([]);
     setFinalHtml('');
@@ -181,36 +133,27 @@ export default function Criar({ backendUrl }: CriarProps) {
 
       let generatedSite: ReturnType<typeof parseModelOutput> | null = null;
       let usedModel = modelText;
-      const basePrompt = buildUserPrompt(formData, storyboard, referenceUrl);
+      const basePrompt = buildUserPrompt(formData, referenceUrl);
 
-      const repairModels = [modelText, 'gemini-3.8-flash', 'gemini-3.1-pro-preview'].filter(
-        (model, index, models) => models.indexOf(model) === index
-      );
+      // 1ª chamada: geração completa no modelo escolhido (o fallback interno
+      // em callGeminiTextWithFallback já cobre 503/quota trocando de modelo).
+      const result = await callGeminiTextWithFallback(backendUrl, modelText, STYLE_GUIDE, basePrompt, log);
+      usedModel = result.model;
+      let candidate = parseModelOutput(result.text);
+      let validation = validateGeneratedSite(candidate);
 
-      for (let attempt = 0; attempt < repairModels.length; attempt += 1) {
-        const requestedModel = repairModels[attempt];
-        const retryPrompt =
-          attempt === 0
-            ? basePrompt
-            : `${basePrompt}\n\nREPARO DE ESTRUTURA: retorne somente uma resposta completa no formato exigido. Não escreva explicações. Antes de responder, confira: cinco tags section com ids hero, diferenciais, destaques, depoimentos e contato; quatro placeholders de imagem hero, card_1, card_2 e card_3; scripts Lucide, Lenis, GSAP/ScrollTrigger e Three.js; header is-scrolled; e fechamento </html>. Mantenha CSS e JavaScript concisos para terminar o documento inteiro.`;
-        if (attempt > 0) log(`▸ Rascunho incompleto; tentando modelo de qualidade superior: ${requestedModel}...`, 'go');
-        const result = await callGeminiTextWithFallback(backendUrl, requestedModel, STYLE_GUIDE, retryPrompt, log);
-        usedModel = result.model;
-        const candidate = parseModelOutput(result.text);
-        const validationIssues = validateGeneratedSite(candidate);
-
-        if (validationIssues.length === 0) {
-          generatedSite = candidate;
-          break;
-        }
-
-        log(`✘ Rascunho reprovado: ${validationIssues.join('; ')}.`, 'err');
-        if (attempt === 0) log('▸ Pedindo uma versão completa corrigida...', 'go');
-        if (attempt < repairModels.length - 1) log('▸ Rascunho reprovado; elevando a qualidade do modelo para corrigir a estrutura...', 'go');
+      if (validation.blocking.length > 0) {
+        log(`✘ Estrutura incompleta: ${validation.blocking.join('; ')}.`, 'err');
+        throw new Error('O modelo não entregou um site completo. Nenhum site foi salvo — revise os dados e clique em gerar novamente.');
       }
 
-      if (!generatedSite) {
-        throw new Error('O modelo não entregou um site completo após tentativas em modelos de maior qualidade. Nenhum site foi salvo.');
+      generatedSite = candidate;
+      if (validation.warnings.length > 0) {
+        const repaired = repairHtmlSite(candidate.html);
+        generatedSite = { images: candidate.images, html: repaired.html };
+        if (repaired.fixed.length > 0) {
+          log(`▸ Completado automaticamente (sem nova chamada): ${repaired.fixed.join(', ')}.`, 'muted');
+        }
       }
 
       const { images, html } = generatedSite;
@@ -228,8 +171,8 @@ export default function Criar({ backendUrl }: CriarProps) {
           const finalPrompt =
             img.prompt +
             (isHero
-              ? ' Premium website hero advertising photography, subject placed to preserve deliberate negative space for large HTML typography, cinematic composition, crisp realistic materials, no text, no logo, no watermark.'
-              : ' Premium commercial editorial photography for a high-end website, realistic materials and lighting, clean composition, no text, no logo, no watermark.');
+              ? ' Premium website hero advertising photography, subject placed to preserve deliberate negative space for large HTML typography, cinematic composition, crisp realistic materials. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.'
+              : ' Premium commercial editorial photography for a high-end website, realistic materials and lighting, clean composition. Absolutely no text, letters, numbers, logo, monogram, signage, label, watermark, typography or brand mark anywhere in the photograph.');
           const dataUrl = await callCloudflareImage(backendUrl, modelImage, finalPrompt, width, height);
           const re = new RegExp(`\\[\\[IMG:${img.id}\\]\\]`, 'g');
           html2 = html2.replace(re, dataUrl);
@@ -304,19 +247,21 @@ export default function Criar({ backendUrl }: CriarProps) {
                 />
               </Field>
               <Field label="Selecionar lead">
-                <select
+                <Select
                   value={lead?.id || ''}
-                  onChange={(e) => handleLeadChange(e.target.value)}
-                  className={'w-full ' + inputClassName}
+                  onChange={handleLeadChange}
+                  options={[
+                    { value: '', label: loadingLeads ? 'Carregando leads...' : 'Escolha um lead do CRM' },
+                    ...filteredLeads.map((item) => ({
+                      value: item.id,
+                      label: `${item.name} — ${item.city}${item.state ? `/${item.state}` : ''}`,
+                    })),
+                  ]}
+                  placeholder="Escolha um lead do CRM"
                   disabled={loadingLeads}
-                >
-                  <option value="">{loadingLeads ? 'Carregando leads...' : 'Escolha um lead do CRM'}</option>
-                  {filteredLeads.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} — {item.city}{item.state ? `/${item.state}` : ''}
-                    </option>
-                  ))}
-                </select>
+                  searchable
+                  searchPlaceholder="Buscar lead..."
+                />
               </Field>
               {crmLeads.length === 0 && !loadingLeads && (
                 <p className="text-[12px] text-[#8a919d]">Nenhum lead encontrado no CRM.</p>
@@ -331,45 +276,15 @@ export default function Criar({ backendUrl }: CriarProps) {
           />
           <BusinessForm
             data={formData}
-            setData={updateFormData}
-            onGenerate={handleCreateStoryboard}
+            setData={setFormData}
+            onGenerate={handleGenerate}
             generating={generating}
             status={savingToLead ? 'Salvando site no lead...' : status}
             logs={logs}
             referenceUrl={referenceUrl}
-            setReferenceUrl={updateReferenceUrl}
+            setReferenceUrl={setReferenceUrl}
+            generateLabel="Gerar site"
           />
-
-          {storyboard && (
-            <Card className="p-5 mt-4.5">
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div>
-                  <h2 className="text-[15px] font-semibold text-[#1a1d21]">Storyboard pronto para aprovação</h2>
-                  <p className="text-[12.5px] text-[#5f6570] mt-1">Revise a direção de arte. Alterar os dados ou a referência exige um novo storyboard.</p>
-                </div>
-                <Sparkles size={18} className="text-blue-600 shrink-0" />
-              </div>
-              <pre className="whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-[#3b4252] bg-[#f7f8fa] border border-[#e4e7ec] rounded-xl p-3.5 max-h-[440px] overflow-y-auto">{storyboard}</pre>
-              <div className="grid grid-cols-2 gap-2.5 mt-3.5">
-                <button
-                  type="button"
-                  onClick={handleCreateStoryboard}
-                  disabled={generating}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d4d9e0] py-3 text-[13px] font-semibold text-[#3b4252] hover:border-[#9aa0ab] disabled:opacity-50"
-                >
-                  <RefreshCw size={15} /> Refazer
-                </button>
-                <button
-                  type="button"
-                  onClick={handleGenerate}
-                  disabled={generating}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-[13px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Check size={16} /> Aprovar e gerar
-                </button>
-              </div>
-            </Card>
-          )}
         </div>
 
         <PreviewPanel html={finalHtml} fileName={fileName} />

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Search, Phone, MapPin, Send, Globe, Download, History, X } from 'lucide-react';
 import { PageHeader, Card } from '../../components/layout';
+import Select from '../../components/Select';
 import { fetchStates, fetchCities, fetchNiches, fetchLeadUsage } from '../../lib/geo';
 import { searchLeads, sendLeadsToCrm } from '../../lib/leads';
 import type { GeoState, NicheOption, LeadSearchResult, LeadTier } from '../../types';
@@ -9,9 +10,6 @@ import { TIER_COLORS } from '../../types';
 interface Props {
   backendUrl: string;
 }
-
-const selectClass =
-  'bg-white border border-[#d4d9e0] focus:border-[#5b8cff] rounded-[10px] px-3.5 py-2.5 text-[13.5px] text-[#1a1d21] outline-none disabled:bg-[#f4f6f9] disabled:text-[#9aa0ab]';
 
 function TierBadge({ tier }: { tier: LeadTier }) {
   const c = TIER_COLORS[tier];
@@ -61,7 +59,10 @@ export default function Leads({ backendUrl }: Props) {
   const [city, setCity] = useState('');
   const [niche, setNiche] = useState('');
   const [limit, setLimit] = useState(20);
-  const [usage, setUsage] = useState<{ used: number; limit: number }>({ used: 0, limit: 40 });
+  // LIMITE MENSAL DESATIVADO — contador oculto. Para reativar: renomeie
+  // _usage de volta para usage e descomente o bloco actions abaixo.
+  // (o prefixo _ mantém o tsc noUnusedLocals sem erro enquanto desativado)
+  const [_usage, setUsage] = useState<{ used: number; limit: number }>({ used: 0, limit: 40 });
 
   const [loadingCities, setLoadingCities] = useState(false);
   const [searching, setSearching] = useState(false);
@@ -72,6 +73,9 @@ export default function Leads({ backendUrl }: Props) {
   const [sending, setSending] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
   const [searchedAt, setSearchedAt] = useState<string | null>(null);
+  // Filtros usados na última busca executada (a linha "Última busca em..."
+  // deve refletir a busca feita, não o que está digitado no formulário agora).
+  const [searchedFilters, setSearchedFilters] = useState<{ uf: string; city: string; niche: string } | null>(null);
 
   // Guarda a cidade restaurada do localStorage para não ser apagada pelo efeito de UF
   const pendingCityRef = useRef<string | null>(null);
@@ -94,6 +98,13 @@ export default function Leads({ backendUrl }: Props) {
       if (persisted.filters?.limit) setLimit(persisted.filters.limit);
       setResults(persisted.results);
       setSearchedAt(persisted.searchedAt);
+      if (persisted.filters) {
+        setSearchedFilters({
+          uf: persisted.filters.uf || '',
+          city: persisted.filters.city || '',
+          niche: persisted.filters.niche || '',
+        });
+      }
       if (persisted.usage) setUsage(persisted.usage);
     }
   }, [backendUrl]);
@@ -148,8 +159,8 @@ export default function Leads({ backendUrl }: Props) {
   }
 
   async function handleSearch() {
-    if (!city || !niche) {
-      setError('Escolha o estado, a cidade e o nicho antes de buscar.');
+    if (!niche) {
+      setError('Escolha o nicho antes de buscar.');
       return;
     }
     setError('');
@@ -162,6 +173,7 @@ export default function Leads({ backendUrl }: Props) {
       setUsage(newUsage);
       const at = new Date().toISOString();
       setSearchedAt(at);
+      setSearchedFilters({ uf, city, niche });
       try {
         const payload: PersistedSearch = {
           filters: { country, uf, city, niche, limit },
@@ -188,6 +200,7 @@ export default function Leads({ backendUrl }: Props) {
     }
     setResults([]);
     setSearchedAt(null);
+    setSearchedFilters(null);
     setSelected(new Set());
     setSentIds(new Set());
   }
@@ -240,50 +253,50 @@ export default function Leads({ backendUrl }: Props) {
       <PageHeader
         title="Buscar Leads"
         description="Encontre negócios locais por categoria e localização"
-        actions={
-          <span className="text-[12.5px] text-[#5f6570]">
-            {usage.used} / {usage.limit} leads este mês
-          </span>
-        }
+        // LIMITE MENSAL DESATIVADO — contador oculto. Para reativar, descomente:
+        // actions={
+        //   <span className="text-[12.5px] text-[#5f6570]">
+        //     {usage.used} / {usage.limit} leads este mês
+        //   </span>
+        // }
       />
 
       <Card className="p-5">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
-          <select className={selectClass} value={country} disabled>
-            <option value="BR">Brasil</option>
-          </select>
+          <Select value={country} onChange={() => {}} options={[{ value: 'BR', label: 'Brasil' }]} disabled searchable />
 
-          <select className={selectClass} value={uf} onChange={(e) => setUf(e.target.value)}>
-            <option value="">Selecione o estado</option>
-            {states.map((s) => (
-              <option key={s.uf} value={s.uf}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={uf}
+            onChange={(v) => setUf(v)}
+            options={[{ value: '', label: 'Todos os estados' }, ...states.map((s) => ({ value: s.uf, label: s.name }))]}
+            placeholder="Todos os estados"
+            searchable
+            searchPlaceholder="Buscar estado..."
+          />
 
-          <select
-            className={selectClass}
+          <Select
             value={city}
-            onChange={(e) => setCity(e.target.value)}
-            disabled={!uf || loadingCities}
-          >
-            <option value="">{!uf ? 'Escolha o estado primeiro' : loadingCities ? 'Carregando...' : 'Selecione a cidade'}</option>
-            {cities.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
+            onChange={(v) => setCity(v)}
+            options={[
+              { value: '', label: loadingCities ? 'Carregando...' : 'Todas as cidades' },
+              ...cities.map((c) => ({ value: c, label: c })),
+            ]}
+            placeholder="Todas as cidades"
+            disabled={loadingCities}
+            searchable
+            searchPlaceholder="Buscar cidade..."
+          />
 
-          <select className={selectClass} value={niche} onChange={(e) => setNiche(e.target.value)}>
-            <option value="">Selecione o nicho</option>
-            {niches.map((n) => (
-              <option key={n.value} value={n.value}>
-                {n.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={niche}
+            onChange={(v) => setNiche(v)}
+            options={[{ value: '', label: 'Selecione o nicho' }, ...niches.map((n) => ({ value: n.value, label: n.label }))]}
+            placeholder="Selecione ou digite o nicho"
+            searchable
+            searchPlaceholder="Buscar ou digitar nicho..."
+            creatable
+            createLabel={(q) => `Buscar por "${q}"`}
+          />
 
           <button
             onClick={handleSearch}
@@ -310,7 +323,7 @@ export default function Leads({ backendUrl }: Props) {
             </button>
           ))}
           <span className="text-[12px] text-[#9aa0ab] ml-2">
-            Quantidades maiores consomem mais da sua cota mensal.
+            Quantidades maiores retornam mais resultados por busca.
           </span>
         </div>
 
@@ -322,10 +335,13 @@ export default function Leads({ backendUrl }: Props) {
           <History size={14} className="text-[#9aa0ab]" />
           <span>
             Última busca em <b className="text-[#1a1d21]">{formatSearchedAt(searchedAt)}</b>
-            {city && niche && (
+            {searchedFilters?.niche && (
               <>
                 {' '}
-                · {niche} em {city}/{uf}
+                · {searchedFilters.niche} em{' '}
+                {searchedFilters.city
+                  ? `${searchedFilters.city}/${searchedFilters.uf}`
+                  : searchedFilters.uf || 'Brasil'}
               </>
             )}{' '}
             · {results.length} {results.length === 1 ? 'lead' : 'leads'} (salvo neste navegador)
