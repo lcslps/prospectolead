@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Download } from 'lucide-react';
+import { Card } from './layout';
 
 interface Props {
   html: string;
@@ -18,14 +20,14 @@ export default function PreviewPanel({ html, fileName }: Props) {
   }
 
   return (
-    <div className="bg-gradient-to-b from-[#16181d] to-[#1d2027] border border-[#2a2d35] rounded-[14px] overflow-hidden min-h-[640px] flex flex-col">
-      <div className="flex items-center justify-between px-4.5 py-3.5 border-b border-[#2a2d35]">
+    <Card className="overflow-hidden min-h-[640px] flex flex-col">
+      <div className="flex items-center justify-between px-4.5 py-3.5 border-b border-[#e4e7ec]">
         <div className="flex gap-1.5">
           <button
             onClick={() => setTab('preview')}
             className={
               'px-3.5 py-1.5 rounded-lg text-[12.5px] border ' +
-              (tab === 'preview' ? 'bg-[#0f1114] border-[#2a2d35] text-[#eef0f3]' : 'border-transparent text-[#9aa0ab]')
+              (tab === 'preview' ? 'bg-[#eef1f5] border-[#e4e7ec] text-[#1a1d21] font-medium' : 'border-transparent text-[#5f6570]')
             }
           >
             Prévia
@@ -34,19 +36,19 @@ export default function PreviewPanel({ html, fileName }: Props) {
             onClick={() => setTab('code')}
             className={
               'px-3.5 py-1.5 rounded-lg text-[12.5px] border ' +
-              (tab === 'code' ? 'bg-[#0f1114] border-[#2a2d35] text-[#eef0f3]' : 'border-transparent text-[#9aa0ab]')
+              (tab === 'code' ? 'bg-[#eef1f5] border-[#e4e7ec] text-[#1a1d21] font-medium' : 'border-transparent text-[#5f6570]')
             }
           >
             Código
           </button>
         </div>
         <div className="flex gap-2">
-          <div className="flex gap-1 bg-[#0f1114] border border-[#2a2d35] rounded-lg p-0.5">
+          <div className="flex gap-1 bg-[#eef1f5] border border-[#e4e7ec] rounded-lg p-0.5">
             <button
               onClick={() => setDevice('desktop')}
               className={
                 'px-2.5 py-1.5 rounded-md text-[11.5px] ' +
-                (device === 'desktop' ? 'bg-[#1d2027] text-[#eef0f3]' : 'text-[#9aa0ab]')
+                (device === 'desktop' ? 'bg-white text-[#1a1d21] shadow-sm font-medium' : 'text-[#5f6570]')
               }
             >
               Desktop
@@ -55,7 +57,7 @@ export default function PreviewPanel({ html, fileName }: Props) {
               onClick={() => setDevice('mobile')}
               className={
                 'px-2.5 py-1.5 rounded-md text-[11.5px] ' +
-                (device === 'mobile' ? 'bg-[#1d2027] text-[#eef0f3]' : 'text-[#9aa0ab]')
+                (device === 'mobile' ? 'bg-white text-[#1a1d21] shadow-sm font-medium' : 'text-[#5f6570]')
               }
             >
               Mobile
@@ -64,20 +66,22 @@ export default function PreviewPanel({ html, fileName }: Props) {
           <button
             onClick={download}
             disabled={!html}
-            className="bg-[#22252c] text-[#eef0f3] border border-[#2a2d35] hover:border-[#3a3f4a] rounded-[10px] px-3.5 py-2 text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-[#eef1f5] text-[#1a1d21] border border-[#e4e7ec] hover:border-[#c9d0d9] rounded-[10px] px-3.5 py-2 text-[13px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            ⬇ Baixar HTML
+            <span className="inline-flex items-center gap-1.5">
+              <Download size={15} strokeWidth={2.25} /> Baixar HTML
+            </span>
           </button>
         </div>
       </div>
 
-      <div className="flex-1 relative bg-[#0b0c0f]">
+      <div className="flex-1 relative bg-[#f7f8fa]">
         {!html && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 gap-2.5 text-[#9aa0ab]">
-            <h3 className="text-[19px] font-medium text-[#eef0f3]">Seu site vai aparecer aqui</h3>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-10 gap-2.5 text-[#5f6570]">
+            <h3 className="text-[19px] font-medium text-[#1a1d21]">Seu site vai aparecer aqui</h3>
             <p className="text-[13px] leading-relaxed max-w-[380px] m-0">
-              Preencha os dados do negócio, cole sua API key do Gemini e clique em "Gerar site". O Gemini cria
-              layout e conteúdo; o Cloudflare FLUX produz as fotos automaticamente.
+              Preencha os dados do negócio e clique em "Gerar site". O Gemini cria layout e conteúdo; o
+              Cloudflare FLUX produz as fotos automaticamente.
             </p>
           </div>
         )}
@@ -89,7 +93,7 @@ export default function PreviewPanel({ html, fileName }: Props) {
               srcDoc={html}
               className={
                 device === 'mobile'
-                  ? 'max-w-[390px] w-full h-[820px] rounded-[22px] shadow-[0_0_0_8px_#111] bg-white border-0'
+                  ? 'max-w-[390px] w-full h-[820px] rounded-[22px] shadow-[0_0_0_8px_#e0e4ea] bg-white border-0'
                   : 'w-full h-full bg-white border-0'
               }
             />
@@ -97,11 +101,11 @@ export default function PreviewPanel({ html, fileName }: Props) {
         )}
 
         {html && tab === 'code' && (
-          <pre className="m-0 p-4.5 text-[12px] leading-relaxed text-[#c9d1e0] whitespace-pre-wrap break-words h-full overflow-auto font-mono">
+          <pre className="m-0 p-4.5 text-[12px] leading-relaxed text-[#3b4252] whitespace-pre-wrap break-words h-full overflow-auto font-mono">
             {html}
           </pre>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

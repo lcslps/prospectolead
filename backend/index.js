@@ -6,11 +6,18 @@ const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const ACCOUNT_ID = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const API_TOKEN = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
 
 const ALLOWED_MODELS = new Set([
   '@cf/black-forest-labs/flux-2-klein-4b',
   '@cf/black-forest-labs/flux-2-klein-9b',
   '@cf/black-forest-labs/flux-2-dev',
+]);
+
+const ALLOWED_TEXT_MODELS = new Set([
+  'gemini-3.1-pro-preview',
+  'gemini-3.8-flash',
+  'gemini-3.5-flash-lite',
 ]);
 
 app.use(cors());
@@ -55,7 +62,53 @@ app.get('/api/cloudflare/status', (_req, res) => {
     ok: true,
     configured: Boolean(ACCOUNT_ID && API_TOKEN),
     defaultModel: '@cf/black-forest-labs/flux-2-klein-4b',
+    geminiConfigured: Boolean(GEMINI_API_KEY),
   });
+});
+
+app.post('/api/generate-text', async (req, res) => {
+  try {
+    if (!GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: 'Gemini não configurado. Preencha GEMINI_API_KEY no arquivo .env do backend e reinicie.',
+      });
+    }
+
+    const model = String(req.body?.model || 'gemini-3.8-flash').trim();
+    const systemInstruction = String(req.body?.systemInstruction || '').trim();
+    const userPrompt = String(req.body?.userPrompt || '').trim();
+
+    if (!ALLOWED_TEXT_MODELS.has(model)) {
+      return res.status(400).json({ error: `Modelo de texto não permitido: ${model}` });
+    }
+    if (!userPrompt) return res.status(400).json({ error: 'Prompt do texto está vazio.' });
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+        generationConfig: { maxOutputTokens: 8192 },
+      }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return res.status(response.status || 502).json({
+        error: data?.error?.message || 'Falha ao chamar o modelo de texto',
+        status: response.status,
+      });
+    }
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.map((p) => p.text || '').join('');
+    if (!text) {
+      return res.status(502).json({ error: 'O modelo não retornou texto.' });
+    }
+    return res.json({ ok: true, model, text });
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || String(error) });
+  }
 });
 
 app.post('/api/image', async (req, res) => {
@@ -130,6 +183,7 @@ app.listen(PORT, () => {
   console.log('Backend Gemini + Cloudflare iniciado.');
   console.log(`API disponível em: http://localhost:${PORT}`);
   console.log(`Cloudflare configurado: ${Boolean(ACCOUNT_ID && API_TOKEN) ? 'SIM' : 'NÃO'}`);
+  console.log(`Gemini configurado: ${Boolean(GEMINI_API_KEY) ? 'SIM' : 'NÃO'}`);
   console.log('Lembre-se de rodar o frontend React (npm run dev) em outra aba do terminal.');
   console.log('');
 });

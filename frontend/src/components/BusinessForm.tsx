@@ -1,5 +1,7 @@
+import { Rocket } from 'lucide-react';
 import { NICHES, DEFAULT_SECTIONS } from '../types';
 import type { BusinessFormData, LogEntry } from '../types';
+import { Card, Field, inputClassName } from './layout';
 
 interface Props {
   data: BusinessFormData;
@@ -11,11 +13,13 @@ interface Props {
 }
 
 const logColor: Record<LogEntry['kind'], string> = {
-  ok: 'text-[#7ee0c3]',
-  go: 'text-[#5b8cff]',
-  err: 'text-[#ff6b6b]',
-  muted: 'text-[#9aa0ab]',
+  ok: 'text-[#0e7c5b]',
+  go: 'text-[#2f5fe0]',
+  err: 'text-[#d64545]',
+  muted: 'text-[#5f6570]',
 };
+
+const inputClass = 'w-full ' + inputClassName;
 
 export default function BusinessForm({ data, setData, onGenerate, generating, status, logs }: Props) {
   function set<K extends keyof BusinessFormData>(key: K, value: BusinessFormData[K]) {
@@ -28,9 +32,9 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
   }
 
   return (
-    <div className="bg-gradient-to-b from-[#16181d] to-[#1d2027] border border-[#2a2d35] rounded-[14px] p-5 mt-4.5">
-      <h2 className="text-[15px] text-[#eef0f3] mb-0.5">Dados do negócio</h2>
-      <p className="text-[#9aa0ab] text-[12.5px] leading-relaxed mb-3.5">Quanto mais detalhe você der, melhor fica o site.</p>
+    <Card className="p-5 mt-4.5">
+      <h2 className="text-[15px] text-[#1a1d21] mb-0.5">Dados do negócio</h2>
+      <p className="text-[#5f6570] text-[12.5px] leading-relaxed mb-3.5">Quanto mais detalhe você der, melhor fica o site.</p>
 
       <Field label="Nome da empresa / marca">
         <input
@@ -111,7 +115,7 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
         />
       </Field>
 
-      <label className="block text-[12.5px] text-[#9aa0ab] font-medium mt-3.5 mb-1.5">Seções que o site deve ter</label>
+      <label className="block text-[12.5px] text-[#5f6570] font-medium mt-3.5 mb-1.5">Seções que o site deve ter</label>
       <div className="flex flex-wrap gap-2 mt-1.5">
         {DEFAULT_SECTIONS.map((s) => {
           const active = data.sections.includes(s);
@@ -123,8 +127,8 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
               className={
                 'border rounded-full px-3 py-1.5 text-[12.5px] transition-colors ' +
                 (active
-                  ? 'bg-[#5b8cff26] border-[#5b8cff] text-[#cddcff]'
-                  : 'border-[#2a2d35] text-[#9aa0ab]')
+                  ? 'bg-[#5b8cff14] border-[#5b8cff] text-[#2f5fe0] font-medium'
+                  : 'border-[#d4d9e0] text-[#5f6570] bg-white hover:border-[#c9d0d9]')
               }
             >
               {s}
@@ -136,15 +140,21 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
       <button
         onClick={onGenerate}
         disabled={generating}
-        className="w-full mt-4.5 py-3.5 rounded-xl text-[14.5px] font-bold text-white bg-gradient-to-br from-[#5b8cff] to-[#7c6bff] shadow-[0_8px_24px_-8px_rgba(91,140,255,0.6)] disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed"
+        className="w-full mt-4.5 py-3.5 rounded-xl text-[14.5px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm disabled:opacity-50 disabled:hover:bg-blue-600 disabled:cursor-not-allowed"
       >
-        {generating ? 'Gerando...' : '✨ Gerar site'}
+        {generating ? (
+          'Gerando...'
+        ) : (
+          <span className="inline-flex items-center justify-center gap-2">
+            <Rocket size={16} strokeWidth={2.25} /> Gerar site
+          </span>
+        )}
       </button>
 
-      {status && <div className="mt-3.5 text-[12px] text-[#9aa0ab]">{status}</div>}
+      {status && <div className="mt-3.5 text-[12px] text-[#5f6570]">{status}</div>}
 
       {logs.length > 0 && (
-        <div className="mt-2.5 border border-[#2a2d35] rounded-[10px] bg-[#0b0c0f] px-3 py-2.5 max-h-[190px] overflow-y-auto text-[12px] leading-[1.9]">
+        <div className="mt-2.5 border border-[#e4e7ec] rounded-[10px] bg-[#f7f8fa] px-3 py-2.5 max-h-[190px] overflow-y-auto text-[12px] leading-[1.9]">
           {logs.map((l, i) => (
             <div key={`${l.id}-${i}`} className={logColor[l.kind]}>
               {l.text}
@@ -152,18 +162,6 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-const inputClass =
-  'w-full bg-[#0f1114] border border-[#2a2d35] focus:border-[#5b8cff] rounded-[10px] px-3 py-2.5 text-[13.5px] text-[#eef0f3] outline-none font-inherit';
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="mt-3.5 first:mt-0">
-      <label className="block text-[12.5px] text-[#9aa0ab] font-medium mb-1.5">{label}</label>
-      {children}
-    </div>
+    </Card>
   );
 }

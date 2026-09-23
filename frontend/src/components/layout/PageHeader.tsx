@@ -1,0 +1,21 @@
+import type { ReactNode } from 'react';
+
+interface PageHeaderProps {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}
+
+export default function PageHeader({ title, description, actions }: PageHeaderProps) {
+  return (
+    <div className="flex items-center justify-between mb-7">
+      <div>
+        <h1 className="text-xl font-['Poppins',_sans-serif] font-semibold tracking-tight">{title}</h1>
+        {description && (
+          <span className="text-[#5f6570] text-[12.5px] block mt-0.5">{description}</span>
+        )}
+      </div>
+      {actions && <div className="flex items-center gap-2">{actions}</div>}
+    </div>
+  );
+}

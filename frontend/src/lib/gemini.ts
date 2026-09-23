@@ -1,36 +1,34 @@
 export const TEXT_FALLBACKS = ['gemini-3.1-pro-preview', 'gemini-3.8-flash', 'gemini-3.5-flash-lite'];
 
+function baseUrl(backendUrl: string): string {
+  const base = backendUrl.trim().replace(/\/$/, '');
+  if (!base) throw new Error('Backend não configurado. Informe a URL do backend.');
+  return base;
+}
+
 export async function callGeminiText(
-  apiKey: string,
+  backendUrl: string,
   model: string,
   systemInstruction: string,
   userPrompt: string
 ): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const body = {
-    systemInstruction: { role: 'system', parts: [{ text: systemInstruction }] },
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    generationConfig: { maxOutputTokens: 8192 },
-  };
-  const res = await fetch(url, {
+  const res = await fetch(baseUrl(backendUrl) + '/api/generate-text', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ model, systemInstruction, userPrompt }),
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.error?.message || 'Falha ao chamar o modelo de texto');
+    throw new Error(data?.error || 'Falha ao chamar o modelo de texto');
   }
-  const parts = data?.candidates?.[0]?.content?.parts || [];
-  const text = parts.map((p: { text?: string }) => p.text || '').join('');
-  if (!text) {
-    throw new Error('O modelo não retornou texto. Resposta: ' + JSON.stringify(data).slice(0, 300));
+  if (!data?.text) {
+    throw new Error('O modelo não retornou texto.');
   }
-  return text;
+  return data.text as string;
 }
 
 export async function callGeminiTextWithFallback(
-  apiKey: string,
+  backendUrl: string,
   preferredModel: string,
   systemInstruction: string,
   userPrompt: string,
@@ -41,7 +39,7 @@ export async function callGeminiTextWithFallback(
   for (const model of models) {
     try {
       onLog?.(`▸ Tentando modelo de texto: ${model}...`, 'muted');
-      const text = await callGeminiText(apiKey, model, systemInstruction, userPrompt);
+      const text = await callGeminiText(backendUrl, model, systemInstruction, userPrompt);
       if (model !== preferredModel) onLog?.(`✔ Fallback ativado: usando ${model}.`, 'ok');
       return { text, model };
     } catch (e) {
