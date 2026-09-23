@@ -21,13 +21,21 @@ const EMPTY_FORM: BusinessFormData = {
 };
 
 function defaultBackend() {
-  if (typeof window === 'undefined') return 'http://localhost:3001';
-  return window.location.protocol.startsWith('http') ? window.location.origin : 'http://localhost:3001';
+  return 'http://localhost:3001';
+}
+
+function initialBackendUrl() {
+  const saved = (localStorage.getItem('cloudflare_backend') || '').trim();
+  // Descarta o default antigo bugado (origin do próprio frontend, ex: :5173)
+  if (typeof window !== 'undefined' && saved.replace(/\/$/, '') === window.location.origin) {
+    return defaultBackend();
+  }
+  return saved || defaultBackend();
 }
 
 export default function App() {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [backendUrl, setBackendUrl] = useState(() => localStorage.getItem('cloudflare_backend') || defaultBackend());
+  const [backendUrl, setBackendUrl] = useState(initialBackendUrl);
   const [modelText, setModelText] = useState('gemini-3.8-flash');
   const [modelImage, setModelImage] = useState('@cf/black-forest-labs/flux-2-klein-4b');
 

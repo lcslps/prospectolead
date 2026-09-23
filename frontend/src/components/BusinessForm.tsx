@@ -145,8 +145,8 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
 
       {logs.length > 0 && (
         <div className="mt-2.5 border border-[#2a2d35] rounded-[10px] bg-[#0b0c0f] px-3 py-2.5 max-h-[190px] overflow-y-auto text-[12px] leading-[1.9]">
-          {logs.map((l) => (
-            <div key={l.id} className={logColor[l.kind]}>
+          {logs.map((l, i) => (
+            <div key={`${l.id}-${i}`} className={logColor[l.kind]}>
               {l.text}
             </div>
           ))}
