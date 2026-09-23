@@ -26,6 +26,8 @@ const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const ACCOUNT_ID = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const API_TOKEN = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
+const FALLBACK_ACCOUNT_ID = (process.env.CLOUDFLARE_FALLBACK_ACCOUNT_ID || '').trim();
+const FALLBACK_API_TOKEN = (process.env.CLOUDFLARE_FALLBACK_API_TOKEN || '').trim();
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
 const GOOGLE_MAPS_API_KEY = (process.env.GOOGLE_MAPS_API_KEY || '').trim();
 const MONTHLY_LEAD_LIMIT = Number(process.env.MONTHLY_LEAD_LIMIT || 40);
@@ -90,6 +92,7 @@ app.get('/api/cloudflare/status', (_req, res) => {
   res.json({
     ok: true,
     configured: Boolean(ACCOUNT_ID && API_TOKEN),
+    fallbackConfigured: Boolean(FALLBACK_ACCOUNT_ID && FALLBACK_API_TOKEN),
     defaultModel: '@cf/black-forest-labs/flux-2-klein-4b',
     geminiConfigured: Boolean(GEMINI_API_KEY),
     googleMapsConfigured: Boolean(GOOGLE_MAPS_API_KEY),
@@ -361,51 +364,78 @@ app.post('/api/image', async (req, res) => {
       return res.status(400).json({ error: `Modelo Cloudflare não permitido: ${model}` });
     }
 
-    const form = new FormData();
-    // Centralized so every Cloudflare generation receives the rule, even when
-    // a model-generated image brief accidentally asks for a branded scene.
-    form.append('prompt', prompt + IMAGE_WITHOUT_TEXT_RULES);
-    form.append('width', String(width));
-    form.append('height', String(height));
+    // O FormData é montado dentro do loop de tentativas (principal + fallback).
 
-    const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/ai/run/${model}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${API_TOKEN}` },
-      body: form,
-    });
+    // Credenciais principal + fallback: tenta a principal primeiro e,
+    // se falhar, repete a mesma requisição com a conta de fallback.
+    const credentials = [
+      { accountId: ACCOUNT_ID, token: API_TOKEN, label: 'principal' },
+      { accountId: FALLBACK_ACCOUNT_ID, token: FALLBACK_API_TOKEN, label: 'fallback' },
+    ].filter((c) => c.accountId && c.token);
 
-    const raw = await response.text();
-    let data = {};
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      // response wasn't JSON, handled by the check below
-    }
+    let lastError = null;
+    for (const cred of credentials) {
+      // FormData é reconstruído a cada tentativa porque o corpo
+      // da requisição é consumido após o primeiro fetch.
+      const attemptForm = new FormData();
+      attemptForm.append('prompt', prompt + IMAGE_WITHOUT_TEXT_RULES);
+      attemptForm.append('width', String(width));
+      attemptForm.append('height', String(height));
 
-    if (!response.ok || data?.success === false) {
-      return res.status(response.status || 502).json({
-        error: cloudflareError(data, response.status),
-        status: response.status,
+      const url = `https://api.cloudflare.com/client/v4/accounts/${cred.accountId}/ai/run/${model}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cred.token}` },
+        body: attemptForm,
+      });
+
+      const raw = await response.text();
+      let data = {};
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        // response wasn't JSON, handled by the check below
+      }
+
+      if (!response.ok || data?.success === false) {
+        lastError = {
+          error: cloudflareError(data, response.status),
+          status: response.status,
+        };
+        // Se ainda há outra credencial para tentar, continua o loop.
+        continue;
+      }
+
+      const image = data?.result?.image || data?.image;
+      if (!image || typeof image !== 'string') {
+        lastError = {
+          error: 'O Cloudflare respondeu sem o campo result.image.',
+          preview: raw.slice(0, 500),
+        };
+        continue;
+      }
+
+      const mime = detectMime(image);
+      return res.json({
+        ok: true,
+        model,
+        width,
+        height,
+        mime,
+        usedCredential: cred.label,
+        dataUrl: `data:${mime};base64,${image}`,
       });
     }
 
-    const image = data?.result?.image || data?.image;
-    if (!image || typeof image !== 'string') {
+    if (lastError?.preview) {
       return res.status(502).json({
-        error: 'O Cloudflare respondeu sem o campo result.image.',
-        preview: raw.slice(0, 500),
+        error: lastError.error,
+        preview: lastError.preview,
       });
     }
-
-    const mime = detectMime(image);
-    return res.json({
-      ok: true,
-      model,
-      width,
-      height,
-      mime,
-      dataUrl: `data:${mime};base64,${image}`,
+    return res.status(lastError?.status || 502).json({
+      error: lastError?.error || 'Falha ao gerar imagem no Cloudflare.',
+      status: lastError?.status,
     });
   } catch (error) {
     return res.status(500).json({ error: error?.message || String(error) });
@@ -417,6 +447,7 @@ app.listen(PORT, () => {
   console.log('Backend Gemini + Cloudflare iniciado.');
   console.log(`API disponível em: http://localhost:${PORT}`);
   console.log(`Cloudflare configurado: ${Boolean(ACCOUNT_ID && API_TOKEN) ? 'SIM' : 'NÃO'}`);
+  console.log(`Cloudflare fallback configurado: ${Boolean(FALLBACK_ACCOUNT_ID && FALLBACK_API_TOKEN) ? 'SIM' : 'NÃO'}`);
   console.log(`Gemini configurado: ${Boolean(GEMINI_API_KEY) ? 'SIM' : 'NÃO'}`);
   console.log(`Google Maps configurado: ${Boolean(GOOGLE_MAPS_API_KEY) ? 'SIM' : 'NÃO'}`);
   console.log('Lembre-se de rodar o frontend React (npm run dev) em outra aba do terminal.');
