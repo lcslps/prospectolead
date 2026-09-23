@@ -55,10 +55,15 @@ id_da_imagem: prompt em inglês, detalhado, descrevendo uma FOTOGRAFIA publicit�
 ===HTML===
 o documento HTML completo, começando em <!DOCTYPE html> e terminando em </html>, 100% autocontido:
 - CSS todo dentro de uma tag <style> no <head>. Importe exatamente as duas fontes SANS-SERIF do Google Fonts escolhidas (título + texto) via @import url(...) no topo do <style>, ex: @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap'); — troque os nomes/pesos pelas fontes escolhidas para este site específico. É PROIBIDO importar ou usar qualquer fonte serifada. Todo \`font-family\` deve ter fallback \`sans-serif\`.
-- ÍCONES (obrigatório, é a única biblioteca externa permitida): logo no início do <body>, ou no final antes do </body>, inclua exatamente esta tag: <script src="https://unpkg.com/lucide@latest"></script>
+- ÍCONES (obrigatório): logo no início do body, ou no final antes do fechamento do body, inclua exatamente esta tag: <script src="https://unpkg.com/lucide@latest"></script>
   Em todo lugar que precisar de um ícone de UI, escreva: <i data-lucide="NOME_DO_ICONE" class="..." style="width:20px;height:20px"></i> (ajuste width/height conforme o contexto). No final do <body>, DEPOIS da tag script do lucide e depois de todo o HTML da página, adicione: <script>if (window.lucide) lucide.createIcons();</script>. NUNCA use caracteres emoji (📍✅⭐🔧📞🛡️↗ etc.) como ícone — use sempre <i data-lucide="...">.
 - BIBLIOTECAS EXTERNAS PERMITIDAS: use apenas Lucide para ícones e Lenis para scroll suave. Inclua no head: <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css">. Antes do script de inicialização no fim do body, inclua: <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>. Em seguida inicialize exatamente uma instância: new Lenis({ autoRaf: true, anchors: true, smoothWheel: true });. Não crie um loop manual de requestAnimationFrame quando autoRaf estiver ativo. O scroll precisa continuar acessível, preservar âncoras internas e respeitar preferências de redução de movimento quando o navegador as aplicar.
-- JS adicional dentro de <script> no final do <body> pode ser usado para pequenas interações (menu mobile, smooth scroll e estado visual do header) — nenhuma outra biblioteca ou framework externo além do lucide acima. O comportamento do header transparente→sólido após scroll é OBRIGATÓRIO quando houver header fixo: use \`window.scrollY\`, um listener passivo de \`scroll\` e uma classe como \`.is-scrolled\`; execute a função também no carregamento para refletir a posição atual.
+- STACK OBRIGATÓRIA EM TODO SITE: Lucide para ícones, Lenis para scroll suave, GSAP com ScrollTrigger para animações de entrada e Three.js para um elemento 3D contextual e leve. Não carregue nenhuma outra biblioteca externa.
+  1. LENIS: inclua no head <link rel="stylesheet" href="https://unpkg.com/lenis@1.3.26/dist/lenis.css"> e, no final do body, <script src="https://unpkg.com/lenis@1.3.26/dist/lenis.min.js"></script>, seguido de new Lenis({ autoRaf: true, anchors: true, smoothWheel: true }). Não crie requestAnimationFrame manual quando autoRaf estiver ativo.
+  2. GSAP: no final do body, antes do script de animação, inclua <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script> e <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/ScrollTrigger.min.js"></script>. Registre ScrollTrigger e use-o em animações discretas de entrada para hero e seções. Use opacidade, translateY e stagger; nunca faça animação contínua, excessiva ou que esconda conteúdo. Respeite prefers-reduced-motion.
+  3. THREE.JS: no head, inclua um importmap apontando three para https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js. Crie no máximo um canvas ou container 3D pequeno, decorativo e semanticamente ligado ao negócio, sem substituir fotos, texto, CTA ou conteúdo. Use uma cena simples (geometrias básicas, iluminação leve e rotação muito sutil), interrompa/anule a animação para prefers-reduced-motion e esconda o elemento se WebGL não estiver disponível. O site precisa permanecer completo e bonito mesmo sem WebGL.
+- DESIGN SYSTEM E REFERÊNCIAS: use a qualidade de composição e componentes de 21st.dev como inspiração de microinterações e acabamento, sem tentar importar componentes React. Trate styles.refero.design, inspora.design e sistemas do Framer Marketplace como repertório de paleta, tipografia, espaçamento e composição. Use a URL de referência do usuário quando fornecida, sem copiar marcas ou layouts. Crie sempre um layout específico e não-template.
+- JS adicional dentro de <script> no final do <body> pode ser usado para pequenas interações (menu mobile, estado visual do header e as animações da stack obrigatória). O comportamento do header transparente→sólido após scroll é OBRIGATÓRIO quando houver header fixo: use \`window.scrollY\`, um listener passivo de \`scroll\` e uma classe como \`.is-scrolled\`; execute a função também no carregamento para refletir a posição atual.
 - em TODO lugar onde uma foto for usada, use exatamente <img src="[[IMG:id_da_imagem]]" ...> com o id correspondente que você definiu na seção ===IMAGES===. Não use nenhuma outra URL de imagem, nunca use placeholder.com, unsplash ou picsum.
 - todo o texto (títulos, menus, botões, depoimentos, rodapé) deve estar em português do Brasil e ser conteúdo real e específico do negócio informado, nunca "lorem ipsum" ou genérico como "Título aqui"
 - o site deve ter uma única página (one-page) com âncoras internas para cada seção no menu
@@ -90,9 +95,10 @@ DESTAQUES
 DEPOIMENTOS
 CONTATO E CTA
 MOVIMENTO E INTERAÇÃO
+ELEMENTO 3D CONTEXTUAL
 ANTI-TEMPLATE
 
-Em cada seção, seja concreto sobre composição, conteúdo, hierarquia e intenção visual. Se houver URL de referência, use-a apenas como inspiração de clima e composição; não copie marca, textos ou layout literalmente.
+Em cada seção, seja concreto sobre composição, conteúdo, hierarquia e intenção visual. Em MOVIMENTO E INTERAÇÃO, descreva animações GSAP discretas e o uso de Lenis; em ELEMENTO 3D CONTEXTUAL, descreva uma cena Three.js leve que valorize o negócio sem competir com o conteúdo. Se houver URL de referência, use-a apenas como inspiração de clima e composição; não copie marca, textos ou layout literalmente.
 
 Evite obrigatoriamente: hero centralizado genérico; texto à esquerda com foto de banco à direita; gradiente azul/roxo genérico; três cards idênticos alinhados; ícones em círculos repetidos; imagens repetidas; fontes padrão; aparência de template SaaS. Proponha uma composição assimétrica e específica para este negócio.
 `;
@@ -185,6 +191,12 @@ export function validateGeneratedSite(site: ParsedSite): string[] {
   }
   if (!/is-scrolled/i.test(html) || !/addEventListener\(['"]scroll['"]/i.test(html) || !/window\.scrollY/i.test(html)) {
     issues.push('o header não possui comportamento sólido após a rolagem');
+  }
+  if (!/gsap@3\.15\.0\/dist\/gsap\.min\.js/i.test(html) || !/scrolltrigger\.min\.js/i.test(html) || !/registerplugin\s*\(\s*scrolltrigger\s*\)/i.test(html)) {
+    issues.push('as animações GSAP com ScrollTrigger não foram configuradas');
+  }
+  if (!/three@0\.181\.0\/build\/three\.module\.js/i.test(html) || !/new\s+three\.scene\s*\(/i.test(html) || !/webglrenderer/i.test(html)) {
+    issues.push('o elemento 3D Three.js não foi configurado');
   }
 
   return issues;

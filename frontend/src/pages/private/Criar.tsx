@@ -183,12 +183,18 @@ export default function Criar({ backendUrl }: CriarProps) {
       let usedModel = modelText;
       const basePrompt = buildUserPrompt(formData, storyboard, referenceUrl);
 
-      for (let attempt = 0; attempt < 2; attempt += 1) {
+      const repairModels = [modelText, 'gemini-3.8-flash', 'gemini-3.1-pro-preview'].filter(
+        (model, index, models) => models.indexOf(model) === index
+      );
+
+      for (let attempt = 0; attempt < repairModels.length; attempt += 1) {
+        const requestedModel = repairModels[attempt];
         const retryPrompt =
           attempt === 0
             ? basePrompt
-            : `${basePrompt}\n\nCORREÇÃO OBRIGATÓRIA: a tentativa anterior foi reprovada por estar incompleta. Entregue novamente o documento HTML completo, com todas as cinco sections obrigatórias, quatro imagens obrigatórias, contato funcional e sem conteúdo oculto. Não resuma nem pare antes de </html>.`;
-        const result = await callGeminiTextWithFallback(backendUrl, modelText, STYLE_GUIDE, retryPrompt, log);
+            : `${basePrompt}\n\nREPARO DE ESTRUTURA: retorne somente uma resposta completa no formato exigido. Não escreva explicações. Antes de responder, confira: cinco tags section com ids hero, diferenciais, destaques, depoimentos e contato; quatro placeholders de imagem hero, card_1, card_2 e card_3; scripts Lucide, Lenis, GSAP/ScrollTrigger e Three.js; header is-scrolled; e fechamento </html>. Mantenha CSS e JavaScript concisos para terminar o documento inteiro.`;
+        if (attempt > 0) log(`▸ Rascunho incompleto; tentando modelo de qualidade superior: ${requestedModel}...`, 'go');
+        const result = await callGeminiTextWithFallback(backendUrl, requestedModel, STYLE_GUIDE, retryPrompt, log);
         usedModel = result.model;
         const candidate = parseModelOutput(result.text);
         const validationIssues = validateGeneratedSite(candidate);
@@ -200,10 +206,11 @@ export default function Criar({ backendUrl }: CriarProps) {
 
         log(`✘ Rascunho reprovado: ${validationIssues.join('; ')}.`, 'err');
         if (attempt === 0) log('▸ Pedindo uma versão completa corrigida...', 'go');
+        if (attempt < repairModels.length - 1) log('▸ Rascunho reprovado; elevando a qualidade do modelo para corrigir a estrutura...', 'go');
       }
 
       if (!generatedSite) {
-        throw new Error('O modelo não entregou um site completo após duas tentativas. Nenhum site foi salvo.');
+        throw new Error('O modelo não entregou um site completo após tentativas em modelos de maior qualidade. Nenhum site foi salvo.');
       }
 
       const { images, html } = generatedSite;

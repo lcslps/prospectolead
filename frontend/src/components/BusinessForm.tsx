@@ -133,7 +133,7 @@ export default function BusinessForm({
           type="url"
           value={referenceUrl}
           onChange={(e) => setReferenceUrl(e.target.value)}
-          placeholder="Pinterest, Behance, Refero ou outro link"
+          placeholder="Pinterest, Behance, Refero, Inspora ou Framer"
           className={inputClass}
         />
       </Field>
