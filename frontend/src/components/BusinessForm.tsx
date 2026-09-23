@@ -10,6 +10,9 @@ interface Props {
   generating: boolean;
   status: string;
   logs: LogEntry[];
+  referenceUrl: string;
+  setReferenceUrl: (value: string) => void;
+  generateLabel?: string;
 }
 
 const logColor: Record<LogEntry['kind'], string> = {
@@ -21,7 +24,17 @@ const logColor: Record<LogEntry['kind'], string> = {
 
 const inputClass = 'w-full ' + inputClassName;
 
-export default function BusinessForm({ data, setData, onGenerate, generating, status, logs }: Props) {
+export default function BusinessForm({
+  data,
+  setData,
+  onGenerate,
+  generating,
+  status,
+  logs,
+  referenceUrl,
+  setReferenceUrl,
+  generateLabel = 'Gerar storyboard',
+}: Props) {
   function set<K extends keyof BusinessFormData>(key: K, value: BusinessFormData[K]) {
     setData({ ...data, [key]: value });
   }
@@ -115,6 +128,16 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
         />
       </Field>
 
+      <Field label="Referência visual (opcional)">
+        <input
+          type="url"
+          value={referenceUrl}
+          onChange={(e) => setReferenceUrl(e.target.value)}
+          placeholder="Pinterest, Behance, Refero, Inspora ou Framer"
+          className={inputClass}
+        />
+      </Field>
+
       <label className="block text-[12.5px] text-[#5f6570] font-medium mt-3.5 mb-1.5">Seções que o site deve ter</label>
       <div className="flex flex-wrap gap-2 mt-1.5">
         {DEFAULT_SECTIONS.map((s) => {
@@ -146,7 +169,7 @@ export default function BusinessForm({ data, setData, onGenerate, generating, st
           'Gerando...'
         ) : (
           <span className="inline-flex items-center justify-center gap-2">
-            <Rocket size={16} strokeWidth={2.25} /> Gerar site
+            <Rocket size={16} strokeWidth={2.25} /> {generateLabel}
           </span>
         )}
       </button>

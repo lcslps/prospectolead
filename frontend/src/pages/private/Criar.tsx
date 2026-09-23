@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Check, RefreshCw, Sparkles } from 'lucide-react';
 import ApiKeyPanel from '../../components/ApiKeyPanel';
 import BusinessForm from '../../components/BusinessForm';
 import PreviewPanel from '../../components/PreviewPanel';
 import { PageHeader } from '../../components/layout';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
-import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG } from '../../lib/prompts';
+import { buildStoryboardPrompt, buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, validateGeneratedSite } from '../../lib/prompts';
 import { getCrmLead, listCrmLeads, saveLeadSite } from '../../lib/leads';
 import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
 import { DEFAULT_SECTIONS } from '../../types';
@@ -62,6 +62,8 @@ export default function Criar({ backendUrl }: CriarProps) {
   const [leadSearch, setLeadSearch] = useState('');
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [formData, setFormData] = useState<BusinessFormData>(EMPTY_FORM);
+  const [referenceUrl, setReferenceUrl] = useState('');
+  const [storyboard, setStoryboard] = useState('');
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -81,12 +83,14 @@ export default function Criar({ backendUrl }: CriarProps) {
     if (!leadId) {
       setLead(null);
       setFormData(EMPTY_FORM);
+      setStoryboard('');
       return;
     }
     getCrmLead(backendUrl, leadId)
       .then((l) => {
         setLead(l);
         setFormData(formDataFromLead(l));
+        setStoryboard('');
       })
       .catch(() => setLead(null));
   }, [leadId, backendUrl]);
@@ -109,7 +113,17 @@ export default function Criar({ backendUrl }: CriarProps) {
     setLogs((prev) => [...prev, { id: logId.current, text, kind }]);
   }
 
-  async function handleGenerate() {
+  function updateFormData(data: BusinessFormData) {
+    setFormData(data);
+    setStoryboard('');
+  }
+
+  function updateReferenceUrl(value: string) {
+    setReferenceUrl(value);
+    setStoryboard('');
+  }
+
+  async function handleCreateStoryboard() {
     if (!formData.name.trim()) {
       alert('Informe o nome da empresa.');
       return;
@@ -122,22 +136,85 @@ export default function Criar({ backendUrl }: CriarProps) {
     setGenerating(true);
     setLogs([]);
     setFinalHtml('');
+    try {
+      setStatus('Criando storyboard e direção de arte...');
+      log('▸ Criando a direção de arte para sua aprovação...', 'go');
+      const result = await callGeminiTextWithFallback(
+        backendUrl,
+        modelText,
+        STYLE_GUIDE,
+        buildStoryboardPrompt(formData, referenceUrl),
+        log
+      );
+      setStoryboard(result.text.trim());
+      setStatus('Storyboard pronto para revisão.');
+      log(`✔ Storyboard criado com ${result.model}.`, 'ok');
+    } catch (e) {
+      log('✘ Erro ao criar storyboard: ' + (e as Error).message, 'err');
+      setStatus('Não foi possível criar o storyboard.');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleGenerate() {
+    if (!formData.name.trim()) {
+      alert('Informe o nome da empresa.');
+      return;
+    }
+    if (!backendUrl.trim()) {
+      alert('Informe a URL do backend.');
+      return;
+    }
+    if (!storyboard) {
+      alert('Gere e aprove o storyboard antes de criar o site.');
+      return;
+    }
+
+    setGenerating(true);
+    setLogs([]);
+    setFinalHtml('');
 
     try {
       setStatus('Escrevendo o layout e o conteúdo do site...');
       log('▸ Pedindo ao Gemini para desenhar o site e o roteiro de imagens...', 'go');
 
-      const { text: raw, model: usedModel } = await callGeminiTextWithFallback(
-        backendUrl,
-        modelText,
-        STYLE_GUIDE,
-        buildUserPrompt(formData),
-        log
-      );
-      log(`✔ Layout e conteúdo gerados com ${usedModel}.`, 'ok');
+      let generatedSite: ReturnType<typeof parseModelOutput> | null = null;
+      let usedModel = modelText;
+      const basePrompt = buildUserPrompt(formData, storyboard, referenceUrl);
 
-      const { images, html } = parseModelOutput(raw);
-      log(`▸ ${images.length} imagens serão geradas: ` + images.map((i) => i.id).join(', '), 'muted');
+      const repairModels = [modelText, 'gemini-3.8-flash', 'gemini-3.1-pro-preview'].filter(
+        (model, index, models) => models.indexOf(model) === index
+      );
+
+      for (let attempt = 0; attempt < repairModels.length; attempt += 1) {
+        const requestedModel = repairModels[attempt];
+        const retryPrompt =
+          attempt === 0
+            ? basePrompt
+            : `${basePrompt}\n\nREPARO DE ESTRUTURA: retorne somente uma resposta completa no formato exigido. Não escreva explicações. Antes de responder, confira: cinco tags section com ids hero, diferenciais, destaques, depoimentos e contato; quatro placeholders de imagem hero, card_1, card_2 e card_3; scripts Lucide, Lenis, GSAP/ScrollTrigger e Three.js; header is-scrolled; e fechamento </html>. Mantenha CSS e JavaScript concisos para terminar o documento inteiro.`;
+        if (attempt > 0) log(`▸ Rascunho incompleto; tentando modelo de qualidade superior: ${requestedModel}...`, 'go');
+        const result = await callGeminiTextWithFallback(backendUrl, requestedModel, STYLE_GUIDE, retryPrompt, log);
+        usedModel = result.model;
+        const candidate = parseModelOutput(result.text);
+        const validationIssues = validateGeneratedSite(candidate);
+
+        if (validationIssues.length === 0) {
+          generatedSite = candidate;
+          break;
+        }
+
+        log(`✘ Rascunho reprovado: ${validationIssues.join('; ')}.`, 'err');
+        if (attempt === 0) log('▸ Pedindo uma versão completa corrigida...', 'go');
+        if (attempt < repairModels.length - 1) log('▸ Rascunho reprovado; elevando a qualidade do modelo para corrigir a estrutura...', 'go');
+      }
+
+      if (!generatedSite) {
+        throw new Error('O modelo não entregou um site completo após tentativas em modelos de maior qualidade. Nenhum site foi salvo.');
+      }
+
+      const { images, html } = generatedSite;
+      log(`✔ Layout e conteúdo completos gerados com ${usedModel}.`, 'ok');
 
       let html2 = html;
       for (let i = 0; i < images.length; i++) {
@@ -254,12 +331,45 @@ export default function Criar({ backendUrl }: CriarProps) {
           />
           <BusinessForm
             data={formData}
-            setData={setFormData}
-            onGenerate={handleGenerate}
+            setData={updateFormData}
+            onGenerate={handleCreateStoryboard}
             generating={generating}
             status={savingToLead ? 'Salvando site no lead...' : status}
             logs={logs}
+            referenceUrl={referenceUrl}
+            setReferenceUrl={updateReferenceUrl}
           />
+
+          {storyboard && (
+            <Card className="p-5 mt-4.5">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <h2 className="text-[15px] font-semibold text-[#1a1d21]">Storyboard pronto para aprovação</h2>
+                  <p className="text-[12.5px] text-[#5f6570] mt-1">Revise a direção de arte. Alterar os dados ou a referência exige um novo storyboard.</p>
+                </div>
+                <Sparkles size={18} className="text-blue-600 shrink-0" />
+              </div>
+              <pre className="whitespace-pre-wrap font-sans text-[12.5px] leading-relaxed text-[#3b4252] bg-[#f7f8fa] border border-[#e4e7ec] rounded-xl p-3.5 max-h-[440px] overflow-y-auto">{storyboard}</pre>
+              <div className="grid grid-cols-2 gap-2.5 mt-3.5">
+                <button
+                  type="button"
+                  onClick={handleCreateStoryboard}
+                  disabled={generating}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#d4d9e0] py-3 text-[13px] font-semibold text-[#3b4252] hover:border-[#9aa0ab] disabled:opacity-50"
+                >
+                  <RefreshCw size={15} /> Refazer
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-[13px] font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Check size={16} /> Aprovar e gerar
+                </button>
+              </div>
+            </Card>
+          )}
         </div>
 
         <PreviewPanel html={finalHtml} fileName={fileName} />
