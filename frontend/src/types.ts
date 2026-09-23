@@ -52,3 +52,70 @@ export const NICHES = [
 ] as const;
 
 export const DEFAULT_SECTIONS = ['Hero', 'Destaques/Produtos', 'Sobre', 'Depoimentos', 'Contato/CTA final'];
+
+/* -------------------------------------------------------------------- */
+/* Leads / CRM                                                          */
+/* -------------------------------------------------------------------- */
+
+export interface GeoState {
+  uf: string;
+  name: string;
+}
+
+export interface NicheOption {
+  value: string;
+  label: string;
+  keyword: string;
+}
+
+export type LeadStage = 'Base' | 'Abordado' | 'Agendado' | 'Follow Up' | 'Convertido' | 'Perdido';
+export type LeadStatus = 'Em aberto' | 'Ganho' | 'Perdido';
+export type LeadTier = 'Quente' | 'Morno' | 'Frio';
+
+// Campos que já vêm prontos de uma busca no Google Places (antes de entrar no CRM)
+export interface LeadSearchResult {
+  placeId: string | null;
+  name: string;
+  niche: string;
+  city: string;
+  state: string;
+  address: string;
+  phone: string;
+  email: string;
+  hasSite: boolean;
+  websiteUrl: string;
+  rating: number | null;
+  reviewCount: number;
+  googleMapsUri: string;
+  score: number;
+  tier: LeadTier;
+}
+
+// Lead já salvo no CRM (com etapa, status, notas etc.)
+export interface Lead extends LeadSearchResult {
+  id: string;
+  stage: LeadStage;
+  status: LeadStatus;
+  notes: string;
+  siteUrl: string | null;
+  siteGeneratedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const CRM_STAGES: LeadStage[] = ['Base', 'Abordado', 'Agendado', 'Follow Up', 'Convertido', 'Perdido'];
+
+export const STAGE_COLORS: Record<LeadStage, string> = {
+  Base: '#9aa0ab',
+  Abordado: '#2f5fe0',
+  Agendado: '#0e9f6e',
+  'Follow Up': '#e08a2f',
+  Convertido: '#6d5ce0',
+  Perdido: '#d64545',
+};
+
+export const TIER_COLORS: Record<LeadTier, { bg: string; text: string }> = {
+  Quente: { bg: '#e7f6ee', text: '#0e7c5b' },
+  Morno: { bg: '#fdf1e0', text: '#b5720d' },
+  Frio: { bg: '#eef1f5', text: '#5f6570' },
+};

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar, MobileTopbar } from './components/layout';
-import { Criar, privateNav } from './pages/private';
-import type { PrivatePageId } from './pages/private';
+import { Criar, Leads, Crm, LeadDetail, privateNav } from './pages/private';
 
 function defaultBackend() {
   return 'http://localhost:3001';
@@ -16,15 +16,24 @@ function initialBackendUrl() {
   return saved || defaultBackend();
 }
 
+function activeIdFromPath(pathname: string): string {
+  if (pathname.startsWith('/crm')) return 'crm';
+  if (pathname.startsWith('/criar')) return 'criar';
+  if (pathname.startsWith('/leads')) return 'leads';
+  return 'leads';
+}
+
 export default function App() {
   const [backendUrl] = useState(initialBackendUrl);
-  const [activePage, setActivePage] = useState<PrivatePageId>('criar');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => localStorage.setItem('cloudflare_backend', backendUrl.trim()), [backendUrl]);
   useEffect(() => {
     localStorage.removeItem('gemini_api_key');
   }, []);
 
+  const activePage = activeIdFromPath(location.pathname);
   const activeNav = privateNav.find((item) => item.id === activePage);
   const ActiveIcon = activeNav?.icon;
 
@@ -35,7 +44,7 @@ export default function App() {
           title="Gerador de Sites"
           items={privateNav}
           activeId={activePage}
-          onNavigate={(id) => setActivePage(id as PrivatePageId)}
+          onNavigate={(id) => navigate(`/${id}`)}
         />
 
         {/* Conteúdo */}
@@ -45,7 +54,14 @@ export default function App() {
             icon={ActiveIcon ? <ActiveIcon size={15} strokeWidth={2.25} /> : undefined}
           />
 
-          {activePage === 'criar' && <Criar backendUrl={backendUrl} />}
+          <Routes>
+            <Route path="/" element={<Navigate to="/leads" replace />} />
+            <Route path="/leads" element={<Leads backendUrl={backendUrl} />} />
+            <Route path="/crm" element={<Crm backendUrl={backendUrl} />} />
+            <Route path="/crm/:id" element={<LeadDetail backendUrl={backendUrl} />} />
+            <Route path="/criar" element={<Criar backendUrl={backendUrl} />} />
+            <Route path="*" element={<Navigate to="/leads" replace />} />
+          </Routes>
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import ApiKeyPanel from '../../components/ApiKeyPanel';
 import BusinessForm from '../../components/BusinessForm';
 import PreviewPanel from '../../components/PreviewPanel';
@@ -6,7 +8,8 @@ import { PageHeader } from '../../components/layout';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
 import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG } from '../../lib/prompts';
-import type { BusinessFormData, LogEntry, LogKind } from '../../types';
+import { getCrmLead, saveLeadSite } from '../../lib/leads';
+import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
 import { DEFAULT_SECTIONS } from '../../types';
 
 const EMPTY_FORM: BusinessFormData = {
@@ -21,20 +24,60 @@ const EMPTY_FORM: BusinessFormData = {
   sections: [...DEFAULT_SECTIONS],
 };
 
+// Monta os dados do formulário automaticamente a partir de um lead do CRM,
+// para que nada precise ser digitado manualmente.
+function formDataFromLead(lead: Lead): BusinessFormData {
+  const perks: string[] = [];
+  if (lead.rating !== null) perks.push(`Nota ${lead.rating.toFixed(1)}/5 no Google (${lead.reviewCount} avaliações)`);
+  if (!lead.hasSite) perks.push('Atendimento local de confiança');
+
+  return {
+    name: lead.name,
+    niche: lead.niche || EMPTY_FORM.niche,
+    desc: `${lead.niche || 'Negócio local'} em ${lead.city}${lead.state ? ', ' + lead.state : ''}.`,
+    perks: perks.join('\n'),
+    cta: '',
+    phone: lead.phone || '',
+    city: lead.state ? `${lead.city}, ${lead.state}` : lead.city,
+    colors: '',
+    sections: [...DEFAULT_SECTIONS],
+  };
+}
+
 interface CriarProps {
   backendUrl: string;
 }
 
 export default function Criar({ backendUrl }: CriarProps) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const leadId = searchParams.get('leadId');
+
   const [modelText, setModelText] = useState('gemini-3.8-flash');
   const [modelImage, setModelImage] = useState('@cf/black-forest-labs/flux-2-klein-4b');
 
+  const [lead, setLead] = useState<Lead | null>(null);
   const [formData, setFormData] = useState<BusinessFormData>(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [finalHtml, setFinalHtml] = useState('');
+  const [savingToLead, setSavingToLead] = useState(false);
   const logId = useRef(0);
+
+  useEffect(() => {
+    if (!leadId) {
+      setLead(null);
+      setFormData(EMPTY_FORM);
+      return;
+    }
+    getCrmLead(backendUrl, leadId)
+      .then((l) => {
+        setLead(l);
+        setFormData(formDataFromLead(l));
+      })
+      .catch(() => setLead(null));
+  }, [leadId, backendUrl]);
 
   function log(text: string, kind: LogKind = 'muted') {
     logId.current += 1;
@@ -104,6 +147,18 @@ export default function Criar({ backendUrl }: CriarProps) {
       setStatus('Pronto!');
       log('✔ Site finalizado.', 'ok');
       setFinalHtml(html2);
+
+      if (lead) {
+        setSavingToLead(true);
+        try {
+          await saveLeadSite(backendUrl, lead.id, html2);
+          log('✔ Site salvo no lead no CRM.', 'ok');
+        } catch (e) {
+          log('✘ Não consegui salvar o site no lead: ' + (e as Error).message, 'err');
+        } finally {
+          setSavingToLead(false);
+        }
+      }
     } catch (e) {
       log('✘ Erro: ' + (e as Error).message, 'err');
       setStatus('Ocorreu um erro.');
@@ -116,7 +171,22 @@ export default function Criar({ backendUrl }: CriarProps) {
 
   return (
     <div className="max-w-[1360px] mx-auto px-6 pt-7 pb-20">
-      <PageHeader title="Criar" />
+      {lead ? (
+        <>
+          <button
+            onClick={() => navigate(`/crm/${lead.id}`)}
+            className="flex items-center gap-1.5 text-[13px] text-[#5f6570] hover:text-[#1a1d21] mb-3"
+          >
+            <ArrowLeft size={15} /> Voltar para o lead
+          </button>
+          <PageHeader
+            title="Criar"
+            description={`Dados carregados automaticamente do lead "${lead.name}" — edite se quiser antes de gerar.`}
+          />
+        </>
+      ) : (
+        <PageHeader title="Criar" />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5.5 items-start">
         <div>
@@ -131,7 +201,7 @@ export default function Criar({ backendUrl }: CriarProps) {
             setData={setFormData}
             onGenerate={handleGenerate}
             generating={generating}
-            status={status}
+            status={savingToLead ? 'Salvando site no lead...' : status}
             logs={logs}
           />
         </div>

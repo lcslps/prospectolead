@@ -4,3 +4,6 @@ node_modules/
 !.env.example
 dist/
 *.log
+data/db.json
+data/sites/*
+!data/sites/.gitkeep

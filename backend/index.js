@@ -1,12 +1,31 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { BR_STATES, fetchCitiesByState } from './lib/geo.js';
+import { NICHES, nicheByValue } from './lib/niches.js';
+import { searchPlacesText, mapPlaceToLead, scoreLead } from './lib/places.js';
+import {
+  SITES_DIR,
+  listLeads,
+  getLead,
+  upsertLeadsFromSearch,
+  createManualLead,
+  updateLead,
+  deleteLead,
+  stageCounts,
+  getUsage,
+  incrementUsage,
+} from './lib/store.js';
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const ACCOUNT_ID = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const API_TOKEN = (process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
+const GOOGLE_MAPS_API_KEY = (process.env.GOOGLE_MAPS_API_KEY || '').trim();
+const MONTHLY_LEAD_LIMIT = Number(process.env.MONTHLY_LEAD_LIMIT || 40);
 
 const ALLOWED_MODELS = new Set([
   '@cf/black-forest-labs/flux-2-klein-4b',
@@ -21,7 +40,8 @@ const ALLOWED_TEXT_MODELS = new Set([
 ]);
 
 app.use(cors());
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use('/sites', express.static(SITES_DIR));
 
 function detectMime(base64) {
   try {
@@ -63,7 +83,148 @@ app.get('/api/cloudflare/status', (_req, res) => {
     configured: Boolean(ACCOUNT_ID && API_TOKEN),
     defaultModel: '@cf/black-forest-labs/flux-2-klein-4b',
     geminiConfigured: Boolean(GEMINI_API_KEY),
+    googleMapsConfigured: Boolean(GOOGLE_MAPS_API_KEY),
   });
+});
+
+/* ---------------------------------------------------------------------- */
+/* Geo (país/estado/cidade) e catálogo de nichos                          */
+/* ---------------------------------------------------------------------- */
+
+app.get('/api/geo/countries', (_req, res) => {
+  res.json({ ok: true, countries: [{ code: 'BR', name: 'Brasil' }] });
+});
+
+app.get('/api/geo/states', (_req, res) => {
+  res.json({ ok: true, states: BR_STATES });
+});
+
+app.get('/api/geo/cities', async (req, res) => {
+  try {
+    const uf = String(req.query?.uf || '').trim();
+    if (!uf) return res.status(400).json({ error: 'Informe o parâmetro uf.' });
+    const cities = await fetchCitiesByState(uf);
+    res.json({ ok: true, cities });
+  } catch (error) {
+    res.status(502).json({ error: error?.message || 'Falha ao buscar cidades.' });
+  }
+});
+
+app.get('/api/niches', (_req, res) => {
+  res.json({ ok: true, niches: NICHES });
+});
+
+app.get('/api/leads/usage', (_req, res) => {
+  const usage = getUsage();
+  res.json({ ok: true, used: usage.used, limit: MONTHLY_LEAD_LIMIT, month: usage.month });
+});
+
+/* ---------------------------------------------------------------------- */
+/* Busca de leads (Google Places API - New)                               */
+/* ---------------------------------------------------------------------- */
+
+app.post('/api/leads/search', async (req, res) => {
+  try {
+    if (!GOOGLE_MAPS_API_KEY) {
+      return res.status(500).json({
+        error: 'Google Maps não configurado. Preencha GOOGLE_MAPS_API_KEY no .env do backend e reinicie.',
+      });
+    }
+
+    const state = String(req.body?.state || '').trim();
+    const city = String(req.body?.city || '').trim();
+    const nicheValue = String(req.body?.niche || '').trim();
+    const limit = Math.max(1, Math.min(60, Number(req.body?.limit) || 20));
+
+    if (!city) return res.status(400).json({ error: 'Informe a cidade.' });
+    const niche = nicheByValue(nicheValue);
+    if (!niche) return res.status(400).json({ error: 'Nicho inválido.' });
+
+    const usage = getUsage();
+    if (usage.used >= MONTHLY_LEAD_LIMIT) {
+      return res.status(429).json({ error: `Limite mensal de ${MONTHLY_LEAD_LIMIT} leads atingido.` });
+    }
+    const allowedThisSearch = Math.min(limit, MONTHLY_LEAD_LIMIT - usage.used);
+
+    const query = `${niche.keyword} em ${city}${state ? ', ' + state : ''}, Brasil`;
+    const places = await searchPlacesText({ apiKey: GOOGLE_MAPS_API_KEY, query, limit: allowedThisSearch });
+
+    const results = places.map((p) => {
+      const lead = mapPlaceToLead(p, { niche: niche.label, city, state });
+      const { score, tier } = scoreLead(lead);
+      return { ...lead, score, tier };
+    });
+
+    const updatedUsage = incrementUsage(results.length);
+
+    res.json({
+      ok: true,
+      results,
+      usage: { used: updatedUsage.used, limit: MONTHLY_LEAD_LIMIT, month: updatedUsage.month },
+    });
+  } catch (error) {
+    res.status(502).json({ error: error?.message || 'Falha ao buscar leads.' });
+  }
+});
+
+/* ---------------------------------------------------------------------- */
+/* CRM                                                                    */
+/* ---------------------------------------------------------------------- */
+
+app.post('/api/crm/leads', (req, res) => {
+  const body = req.body || {};
+  if (Array.isArray(body.leads)) {
+    const saved = upsertLeadsFromSearch(body.leads);
+    return res.json({ ok: true, leads: saved });
+  }
+  // criação manual de um único lead ("+ Criar lead")
+  const lead = createManualLead(body);
+  res.json({ ok: true, lead });
+});
+
+app.get('/api/crm/leads', (req, res) => {
+  const { q, stage, tier, hasSite, hasPhone, minScore } = req.query;
+  const leads = listLeads({ q, stage, tier, hasSite, hasPhone, minScore });
+  res.json({ ok: true, leads, counts: stageCounts() });
+});
+
+app.get('/api/crm/leads/:id', (req, res) => {
+  const lead = getLead(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
+  res.json({ ok: true, lead });
+});
+
+app.patch('/api/crm/leads/:id', (req, res) => {
+  const allowed = ['stage', 'status', 'notes', 'name', 'niche', 'city', 'state', 'phone', 'email', 'address'];
+  const patch = {};
+  for (const key of allowed) {
+    if (req.body?.[key] !== undefined) patch[key] = req.body[key];
+  }
+  const lead = updateLead(req.params.id, patch);
+  if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
+  res.json({ ok: true, lead });
+});
+
+app.delete('/api/crm/leads/:id', (req, res) => {
+  const removed = deleteLead(req.params.id);
+  if (!removed) return res.status(404).json({ error: 'Lead não encontrado.' });
+  res.json({ ok: true });
+});
+
+// Salva o HTML final gerado em /criar vinculado a um lead do CRM
+app.post('/api/crm/leads/:id/site', (req, res) => {
+  const lead = getLead(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
+
+  const html = String(req.body?.html || '');
+  if (!html.trim()) return res.status(400).json({ error: 'HTML vazio.' });
+
+  const filePath = path.join(SITES_DIR, `${lead.id}.html`);
+  fs.writeFileSync(filePath, html, 'utf-8');
+
+  const siteUrl = `/sites/${lead.id}.html`;
+  const updated = updateLead(lead.id, { siteUrl, siteGeneratedAt: new Date().toISOString() });
+  res.json({ ok: true, lead: updated, siteUrl });
 });
 
 app.post('/api/generate-text', async (req, res) => {
@@ -184,6 +345,7 @@ app.listen(PORT, () => {
   console.log(`API disponível em: http://localhost:${PORT}`);
   console.log(`Cloudflare configurado: ${Boolean(ACCOUNT_ID && API_TOKEN) ? 'SIM' : 'NÃO'}`);
   console.log(`Gemini configurado: ${Boolean(GEMINI_API_KEY) ? 'SIM' : 'NÃO'}`);
+  console.log(`Google Maps configurado: ${Boolean(GOOGLE_MAPS_API_KEY) ? 'SIM' : 'NÃO'}`);
   console.log('Lembre-se de rodar o frontend React (npm run dev) em outra aba do terminal.');
   console.log('');
 });
