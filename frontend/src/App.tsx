@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Sidebar, MobileTopbar } from './components/layout';
-import { Criar, Leads, Crm, LeadDetail, privateNav } from './pages/private';
+import { Criar, Leads, Crm, LeadDetail, Projetos, ProjetoPreview, privateNav } from './pages/private';
 
 function defaultBackend() {
   return 'http://localhost:3001';
@@ -19,6 +19,7 @@ function initialBackendUrl() {
 function activeIdFromPath(pathname: string): string {
   if (pathname.startsWith('/crm')) return 'crm';
   if (pathname.startsWith('/criar')) return 'criar';
+  if (pathname.startsWith('/projetos')) return 'projetos';
   if (pathname.startsWith('/leads')) return 'leads';
   return 'leads';
 }
@@ -60,6 +61,8 @@ export default function App() {
             <Route path="/crm" element={<Crm backendUrl={backendUrl} />} />
             <Route path="/crm/:id" element={<LeadDetail backendUrl={backendUrl} />} />
             <Route path="/criar" element={<Criar backendUrl={backendUrl} />} />
+            <Route path="/projetos" element={<Projetos backendUrl={backendUrl} />} />
+            <Route path="/projetos/:id" element={<ProjetoPreview backendUrl={backendUrl} />} />
             <Route path="*" element={<Navigate to="/leads" replace />} />
           </Routes>
         </div>

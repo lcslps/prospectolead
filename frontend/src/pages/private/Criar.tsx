@@ -8,9 +8,10 @@ import { PageHeader } from '../../components/layout';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
 import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG } from '../../lib/prompts';
-import { getCrmLead, saveLeadSite } from '../../lib/leads';
+import { getCrmLead, listCrmLeads, saveLeadSite } from '../../lib/leads';
 import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
 import { DEFAULT_SECTIONS } from '../../types';
+import { Card, Field, inputClassName } from '../../components/layout';
 
 const EMPTY_FORM: BusinessFormData = {
   name: '',
@@ -57,6 +58,9 @@ export default function Criar({ backendUrl }: CriarProps) {
   const [modelImage, setModelImage] = useState('@cf/black-forest-labs/flux-2-klein-4b');
 
   const [lead, setLead] = useState<Lead | null>(null);
+  const [crmLeads, setCrmLeads] = useState<Lead[]>([]);
+  const [leadSearch, setLeadSearch] = useState('');
+  const [loadingLeads, setLoadingLeads] = useState(false);
   const [formData, setFormData] = useState<BusinessFormData>(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('');
@@ -64,6 +68,14 @@ export default function Criar({ backendUrl }: CriarProps) {
   const [finalHtml, setFinalHtml] = useState('');
   const [savingToLead, setSavingToLead] = useState(false);
   const logId = useRef(0);
+
+  useEffect(() => {
+    setLoadingLeads(true);
+    listCrmLeads(backendUrl)
+      .then(({ leads }) => setCrmLeads(leads))
+      .catch(() => setCrmLeads([]))
+      .finally(() => setLoadingLeads(false));
+  }, [backendUrl]);
 
   useEffect(() => {
     if (!leadId) {
@@ -78,6 +90,19 @@ export default function Criar({ backendUrl }: CriarProps) {
       })
       .catch(() => setLead(null));
   }, [leadId, backendUrl]);
+
+  const filteredLeads = crmLeads.filter((item) => {
+    const query = leadSearch.trim().toLowerCase();
+    return !query || `${item.name} ${item.city} ${item.state} ${item.niche}`.toLowerCase().includes(query);
+  });
+
+  function handleLeadChange(id: string) {
+    if (!id) {
+      navigate('/criar');
+      return;
+    }
+    navigate(`/criar?leadId=${encodeURIComponent(id)}`);
+  }
 
   function log(text: string, kind: LogKind = 'muted') {
     logId.current += 1;
@@ -190,6 +215,37 @@ export default function Criar({ backendUrl }: CriarProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-5.5 items-start">
         <div>
+          <Card className="p-5 mb-3">
+            <h2 className="text-[15px] text-[#1a1d21] mb-3">Lead do CRM</h2>
+            <div className="space-y-3">
+              <Field label="Buscar lead">
+                <input
+                  value={leadSearch}
+                  onChange={(e) => setLeadSearch(e.target.value)}
+                  placeholder="Nome, cidade ou segmento"
+                  className={'w-full ' + inputClassName}
+                />
+              </Field>
+              <Field label="Selecionar lead">
+                <select
+                  value={lead?.id || ''}
+                  onChange={(e) => handleLeadChange(e.target.value)}
+                  className={'w-full ' + inputClassName}
+                  disabled={loadingLeads}
+                >
+                  <option value="">{loadingLeads ? 'Carregando leads...' : 'Escolha um lead do CRM'}</option>
+                  {filteredLeads.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} — {item.city}{item.state ? `/${item.state}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              {crmLeads.length === 0 && !loadingLeads && (
+                <p className="text-[12px] text-[#8a919d]">Nenhum lead encontrado no CRM.</p>
+              )}
+            </div>
+          </Card>
           <ApiKeyPanel
             modelText={modelText}
             setModelText={setModelText}

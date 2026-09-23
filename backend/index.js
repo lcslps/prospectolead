@@ -9,11 +9,14 @@ import { searchPlacesText, mapPlaceToLead, scoreLead } from './lib/places.js';
 import {
   SITES_DIR,
   listLeads,
+  listSites,
   getLead,
   upsertLeadsFromSearch,
   createManualLead,
   updateLead,
   deleteLead,
+  deleteLeadSite,
+  duplicateLeadSite,
   stageCounts,
   getUsage,
   incrementUsage,
@@ -211,7 +214,12 @@ app.delete('/api/crm/leads/:id', (req, res) => {
   res.json({ ok: true });
 });
 
-// Salva o HTML final gerado em /criar vinculado a um lead do CRM
+// Lista os sites já gerados (leads com siteUrl), ordenados do mais recente
+app.get('/api/sites', (_req, res) => {
+  const sites = listSites();
+  res.json({ ok: true, sites, total: sites.length });
+});
+
 app.post('/api/crm/leads/:id/site', (req, res) => {
   const lead = getLead(req.params.id);
   if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
@@ -225,6 +233,23 @@ app.post('/api/crm/leads/:id/site', (req, res) => {
   const siteUrl = `/sites/${lead.id}.html`;
   const updated = updateLead(lead.id, { siteUrl, siteGeneratedAt: new Date().toISOString() });
   res.json({ ok: true, lead: updated, siteUrl });
+});
+
+// Remove apenas o site gerado, mantendo o lead no CRM
+app.delete('/api/crm/leads/:id/site', (req, res) => {
+  const lead = getLead(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
+  const updated = deleteLeadSite(lead.id);
+  res.json({ ok: true, lead: updated });
+});
+
+// Duplica o projeto: copia o lead + o HTML gerado para um novo id
+app.post('/api/crm/leads/:id/duplicate', (req, res) => {
+  const lead = getLead(req.params.id);
+  if (!lead) return res.status(404).json({ error: 'Lead não encontrado.' });
+  if (!lead.siteUrl) return res.status(400).json({ error: 'Este lead não tem site gerado.' });
+  const copy = duplicateLeadSite(lead.id);
+  res.json({ ok: true, lead: copy });
 });
 
 app.post('/api/generate-text', async (req, res) => {

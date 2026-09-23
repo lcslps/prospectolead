@@ -98,3 +98,21 @@ export async function saveLeadSite(backendUrl: string, id: string, html: string)
   });
   return data.siteUrl;
 }
+
+export async function listSites(backendUrl: string): Promise<{ sites: Lead[]; total: number }> {
+  return request(base(backendUrl) + '/api/sites');
+}
+
+export async function deleteLeadSite(backendUrl: string, id: string): Promise<Lead> {
+  const data = await request<{ lead: Lead }>(base(backendUrl) + `/api/crm/leads/${id}/site`, {
+    method: 'DELETE',
+  });
+  return data.lead;
+}
+
+export async function duplicateLeadSite(backendUrl: string, id: string): Promise<Lead> {
+  const data = await request<{ lead: Lead }>(base(backendUrl) + `/api/crm/leads/${id}/duplicate`, {
+    method: 'POST',
+  });
+  return data.lead;
+}

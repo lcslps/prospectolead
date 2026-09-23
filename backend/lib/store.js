@@ -174,9 +174,89 @@ export function updateLead(id, patch) {
 export function deleteLead(id) {
   const db = readDb();
   const before = db.leads.length;
+  const target = db.leads.find((l) => l.id === id);
   db.leads = db.leads.filter((l) => l.id !== id);
   writeDb(db);
+  if (target?.siteUrl) {
+    try {
+      const filePath = path.join(SITES_DIR, `${id}.html`);
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch {
+      // ignora erro ao remover arquivo do site
+    }
+  }
   return db.leads.length < before;
+}
+
+export function listSites() {
+  const db = readDb();
+  return db.leads
+    .filter((l) => Boolean(l.siteUrl))
+    .filter((l) => {
+      try {
+        return fs.existsSync(path.join(SITES_DIR, `${l.id}.html`));
+      } catch {
+        return true;
+      }
+    })
+    .sort((a, b) => {
+      const da = a.siteGeneratedAt ? new Date(a.siteGeneratedAt).getTime() : 0;
+      const dbb = b.siteGeneratedAt ? new Date(b.siteGeneratedAt).getTime() : 0;
+      return dbb - da;
+    });
+}
+
+export function deleteLeadSite(id) {
+  const db = readDb();
+  const idx = db.leads.findIndex((l) => l.id === id);
+  if (idx === -1) return null;
+  try {
+    const filePath = path.join(SITES_DIR, `${id}.html`);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {
+    // ignora erro ao remover arquivo
+  }
+  db.leads[idx] = {
+    ...db.leads[idx],
+    siteUrl: null,
+    siteGeneratedAt: null,
+    updatedAt: new Date().toISOString(),
+  };
+  writeDb(db);
+  return db.leads[idx];
+}
+
+export function duplicateLeadSite(id) {
+  const db = readDb();
+  const source = db.leads.find((l) => l.id === id);
+  if (!source) return null;
+  const now = new Date().toISOString();
+  const newId = crypto.randomUUID();
+  const copy = {
+    ...source,
+    id: newId,
+    placeId: null,
+    name: `${source.name} (cópia)`,
+    stage: 'Base',
+    status: 'Em aberto',
+    notes: '',
+    siteUrl: source.siteUrl ? `/sites/${newId}.html` : null,
+    siteGeneratedAt: source.siteUrl ? now : null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  db.leads.push(copy);
+  writeDb(db);
+  if (source.siteUrl) {
+    try {
+      const src = path.join(SITES_DIR, `${id}.html`);
+      const dst = path.join(SITES_DIR, `${newId}.html`);
+      if (fs.existsSync(src)) fs.copyFileSync(src, dst);
+    } catch {
+      // se a cópia do arquivo falhar, mantém o lead mesmo assim
+    }
+  }
+  return copy;
 }
 
 export function stageCounts() {

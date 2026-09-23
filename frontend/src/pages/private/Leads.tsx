@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Search, Phone, MapPin, Send, Globe, Download } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Search, Phone, MapPin, Send, Globe, Download, History, X } from 'lucide-react';
 import { PageHeader, Card } from '../../components/layout';
 import { fetchStates, fetchCities, fetchNiches, fetchLeadUsage } from '../../lib/geo';
 import { searchLeads, sendLeadsToCrm } from '../../lib/leads';
@@ -25,9 +25,37 @@ function TierBadge({ tier }: { tier: LeadTier }) {
   );
 }
 
+const LAST_SEARCH_KEY = 'prospectolead:last-lead-search:v1';
+
+interface PersistedSearch {
+  filters: { country: string; uf: string; city: string; niche: string; limit: number };
+  results: LeadSearchResult[];
+  searchedAt: string;
+  usage?: { used: number; limit: number };
+}
+
+function loadPersistedSearch(): PersistedSearch | null {
+  try {
+    const raw = localStorage.getItem(LAST_SEARCH_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedSearch;
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.results)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function formatSearchedAt(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
 export default function Leads({ backendUrl }: Props) {
   const [states, setStates] = useState<GeoState[]>([]);
   const [niches, setNiches] = useState<NicheOption[]>([]);
+  const [country] = useState('BR');
   const [uf, setUf] = useState('');
   const [cities, setCities] = useState<string[]>([]);
   const [city, setCity] = useState('');
@@ -43,14 +71,53 @@ export default function Leads({ backendUrl }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sending, setSending] = useState(false);
   const [sentIds, setSentIds] = useState<Set<string>>(new Set());
+  const [searchedAt, setSearchedAt] = useState<string | null>(null);
+
+  // Guarda a cidade restaurada do localStorage para não ser apagada pelo efeito de UF
+  const pendingCityRef = useRef<string | null>(null);
+  const isFirstUfEffect = useRef(true);
 
   useEffect(() => {
     fetchStates(backendUrl).then(setStates).catch(() => {});
     fetchNiches(backendUrl).then(setNiches).catch(() => {});
     fetchLeadUsage(backendUrl).then(setUsage).catch(() => {});
+
+    // Restaura última busca (filtros + resultados) sem gastar cota de novo
+    const persisted = loadPersistedSearch();
+    if (persisted) {
+      if (persisted.filters?.uf) {
+        pendingCityRef.current = persisted.filters.city || null;
+        setUf(persisted.filters.uf);
+      }
+      if (persisted.filters?.city) setCity(persisted.filters.city);
+      if (persisted.filters?.niche) setNiche(persisted.filters.niche);
+      if (persisted.filters?.limit) setLimit(persisted.filters.limit);
+      setResults(persisted.results);
+      setSearchedAt(persisted.searchedAt);
+      if (persisted.usage) setUsage(persisted.usage);
+    }
   }, [backendUrl]);
 
   useEffect(() => {
+    // Na primeira execução após restaurar, mantém a cidade salva
+    if (isFirstUfEffect.current) {
+      isFirstUfEffect.current = false;
+      if (pendingCityRef.current !== null) {
+        const restoredCity = pendingCityRef.current;
+        pendingCityRef.current = null;
+        if (!uf) return;
+        setLoadingCities(true);
+        fetchCities(backendUrl, uf)
+          .then((list) => {
+            setCities(list);
+            // Mantém a cidade salva mesmo se ela não vier na lista (ex.: dado antigo)
+            if (restoredCity) setCity(restoredCity);
+          })
+          .catch((e) => setError(e.message))
+          .finally(() => setLoadingCities(false));
+        return;
+      }
+    }
     setCity('');
     setCities([]);
     if (!uf) return;
@@ -93,11 +160,36 @@ export default function Leads({ backendUrl }: Props) {
       const { results: found, usage: newUsage } = await searchLeads(backendUrl, { state: uf, city, niche, limit });
       setResults(found);
       setUsage(newUsage);
+      const at = new Date().toISOString();
+      setSearchedAt(at);
+      try {
+        const payload: PersistedSearch = {
+          filters: { country, uf, city, niche, limit },
+          results: found,
+          searchedAt: at,
+          usage: newUsage,
+        };
+        localStorage.setItem(LAST_SEARCH_KEY, JSON.stringify(payload));
+      } catch {
+        // localStorage cheio ou indisponível: a busca continua funcionando
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setSearching(false);
     }
+  }
+
+  function clearHistory() {
+    try {
+      localStorage.removeItem(LAST_SEARCH_KEY);
+    } catch {
+      // ignore
+    }
+    setResults([]);
+    setSearchedAt(null);
+    setSelected(new Set());
+    setSentIds(new Set());
   }
 
   async function handleSendToCrm(leads: LeadSearchResult[]) {
@@ -157,7 +249,7 @@ export default function Leads({ backendUrl }: Props) {
 
       <Card className="p-5">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
-          <select className={selectClass} value="BR" disabled>
+          <select className={selectClass} value={country} disabled>
             <option value="BR">Brasil</option>
           </select>
 
@@ -224,6 +316,29 @@ export default function Leads({ backendUrl }: Props) {
 
         {error && <div className="mt-3 text-[12.5px] text-[#d64545]">{error}</div>}
       </Card>
+
+      {searchedAt && (
+        <div className="flex items-center gap-2 mt-4 text-[12.5px] text-[#5f6570]">
+          <History size={14} className="text-[#9aa0ab]" />
+          <span>
+            Última busca em <b className="text-[#1a1d21]">{formatSearchedAt(searchedAt)}</b>
+            {city && niche && (
+              <>
+                {' '}
+                · {niche} em {city}/{uf}
+              </>
+            )}{' '}
+            · {results.length} {results.length === 1 ? 'lead' : 'leads'} (salvo neste navegador)
+          </span>
+          <button
+            onClick={clearHistory}
+            className="ml-auto flex items-center gap-1 text-[#9aa0ab] hover:text-[#d64545]"
+            title="Apagar histórico salvo neste navegador"
+          >
+            <X size={14} /> Limpar
+          </button>
+        </div>
+      )}
 
       {results.length > 0 && (
         <>
