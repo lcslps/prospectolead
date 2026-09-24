@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Download, Phone, MessageCircle, X } from 'lucide-react';
+import { Plus, Download, Phone, MessageCircle, X, ExternalLink, Sparkles, Save } from 'lucide-react';
 import { PageHeader, Card } from '../../components/layout';
 import Select from '../../components/Select';
-import { listCrmLeads, createManualLead, deleteCrmLead } from '../../lib/leads';
+import { listCrmLeads, createManualLead, deleteCrmLead, getCrmLead, updateCrmLead } from '../../lib/leads';
 import { fetchNiches } from '../../lib/geo';
-import type { Lead, LeadStage, NicheOption } from '../../types';
+import type { Lead, LeadStage, LeadStatus, NicheOption } from '../../types';
 import { CRM_STAGES, STAGE_COLORS, TIER_COLORS } from '../../types';
 
 interface Props {
@@ -104,8 +104,255 @@ function NewLeadModal({
   );
 }
 
-export default function Crm({ backendUrl }: Props) {
+const POPUP_TABS = ['Informações', 'Notas', 'Site'] as const;
+type PopupTab = (typeof POPUP_TABS)[number];
+
+const POPUP_STATUS: LeadStatus[] = ['Em aberto', 'Ganho', 'Perdido'];
+
+function PopupRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-0.5 py-2 border-b border-[#eef0f3] last:border-b-0">
+      <span className="text-[11.5px] text-[#9aa0ab]">{label}</span>
+      <div className="text-[13.5px] text-[#1a1d21]">{children}</div>
+    </div>
+  );
+}
+
+function LeadPopup({
+  lead,
+  side,
+  top,
+  left,
+  backendUrl,
+  onClose,
+  onUpdated,
+}: {
+  lead: Lead;
+  side: 'left' | 'right';
+  top: number;
+  left: number;
+  backendUrl: string;
+  onClose: () => void;
+  onUpdated: (lead: Lead) => void;
+}) {
   const navigate = useNavigate();
+  const [full, setFull] = useState<Lead>(lead);
+  const [tab, setTab] = useState<PopupTab>('Informações');
+  const [notesDraft, setNotesDraft] = useState(lead.notes || '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    getCrmLead(backendUrl, lead.id)
+      .then((l) => {
+        if (!alive) return;
+        setFull(l);
+        setNotesDraft(l.notes || '');
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [backendUrl, lead.id]);
+
+  // Reflete no popup mudanças vindas do kanban (ex: arrasto de coluna)
+  useEffect(() => {
+    setFull(lead);
+  }, [lead]);
+
+  async function patch(fields: Partial<Lead>) {
+    const updated = await updateCrmLead(backendUrl, full.id, fields);
+    setFull(updated);
+    onUpdated(updated);
+  }
+
+  async function saveNotes() {
+    setSaving(true);
+    try {
+      await patch({ notes: notesDraft });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const tierColor = TIER_COLORS[full.tier];
+  const googleUrl =
+    full.googleMapsUri || (full.placeId ? `https://www.google.com/maps/place/?q=place_id:${full.placeId}` : '');
+
+  return (
+    <div className="fixed z-50 w-[400px] max-w-[calc(100vw-24px)]" style={{ top, left }}>
+      <Card className="relative p-5 max-h-[calc(100vh-120px)] overflow-y-auto shadow-[0_12px_40px_rgba(16,24,40,0.18)]">
+        <span
+          className={
+            'absolute top-12 w-3.5 h-3.5 rotate-45 bg-white ' +
+            (side === 'right' ? '-left-2 border-l border-b border-[#e4e7ec]' : '-right-2 border-r border-t border-[#e4e7ec]')
+          }
+        />
+        <div className="flex items-center gap-2 mb-1">
+          <span
+            className="text-[11px] font-bold px-2 py-0.5 rounded-md"
+            style={{ backgroundColor: tierColor.bg, color: tierColor.text }}
+          >
+            {full.score}
+          </span>
+          <span
+            className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full"
+            style={{ backgroundColor: tierColor.bg, color: tierColor.text }}
+          >
+            {full.tier}
+          </span>
+          <button onClick={onClose} className="ml-auto text-[#9aa0ab] hover:text-[#1a1d21]">
+            <X size={16} />
+          </button>
+        </div>
+
+        <h3 className="text-[16px] font-semibold text-[#1a1d21] leading-snug">{full.name}</h3>
+        <p className="text-[12px] text-[#9aa0ab] mb-3">
+          {full.niche}
+          {full.city ? ` · ${full.city}` : ''}
+        </p>
+
+        <div className="flex gap-1 border-b border-[#e4e7ec] mb-3">
+          {POPUP_TABS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={
+                'px-3 py-2 text-[12.5px] border-b-2 -mb-px ' +
+                (tab === t ? 'border-blue-600 text-blue-600 font-semibold' : 'border-transparent text-[#5f6570]')
+              }
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {tab === 'Informações' && (
+          <div>
+            <PopupRow label="Etapa">
+              <div className="flex flex-wrap gap-1.5">
+                {CRM_STAGES.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => patch({ stage: s })}
+                    className={
+                      'px-2.5 py-1 rounded-full text-[11px] border ' +
+                      (full.stage === s
+                        ? 'bg-blue-600 text-white border-blue-600 font-semibold'
+                        : 'border-[#d4d9e0] text-[#5f6570]')
+                    }
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </PopupRow>
+            <PopupRow label="Telefone">
+              {full.phone || '—'}
+              {full.phone && (
+                <a href={`tel:${full.phone}`} className="text-blue-600 ml-2 font-medium">
+                  Ligar
+                </a>
+              )}
+            </PopupRow>
+            <PopupRow label="Endereço">{full.address || '—'}</PopupRow>
+            <PopupRow label="Avaliação">
+              {full.rating !== null ? `${full.rating.toFixed(1)}/5 · ${full.reviewCount} avaliações` : '—'}
+            </PopupRow>
+            {googleUrl && (
+              <PopupRow label="Google Meu Negócio">
+                <a
+                  href={googleUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-blue-600 font-medium"
+                >
+                  <ExternalLink size={13} /> Ver no Google
+                </a>
+              </PopupRow>
+            )}
+            <PopupRow label="Status">
+              <div className="flex gap-1.5">
+                {POPUP_STATUS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => patch({ status: s })}
+                    className={
+                      'px-3 py-1 rounded-full text-[11px] border ' +
+                      (full.status === s
+                        ? 'bg-[#1a1d21] text-white border-[#1a1d21] font-semibold'
+                        : 'border-[#d4d9e0] text-[#5f6570]')
+                    }
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </PopupRow>
+          </div>
+        )}
+
+        {tab === 'Notas' && (
+          <div>
+            <textarea
+              value={notesDraft}
+              onChange={(e) => setNotesDraft(e.target.value)}
+              placeholder="Anotações sobre a conversa, próximos passos..."
+              className="w-full min-h-[140px] border border-[#d4d9e0] rounded-[10px] px-3 py-2.5 text-[13px] outline-none focus:border-[#5b8cff] resize-y"
+            />
+            <button
+              onClick={saveNotes}
+              disabled={saving}
+              className="mt-2 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-[10px] px-4 py-2 text-[12.5px]"
+            >
+              <Save size={13} /> {saving ? 'Salvando...' : 'Salvar notas'}
+            </button>
+          </div>
+        )}
+
+        {tab === 'Site' && (
+          <div className="text-center py-5">
+            {full.siteUrl ? (
+              <>
+                <p className="text-[13px] text-[#5f6570] mb-3">Este lead já tem um site gerado.</p>
+                <div className="flex items-center justify-center gap-2">
+                  <a
+                    href={backendUrl.replace(/\/$/, '') + full.siteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="border border-[#d4d9e0] rounded-[10px] px-3.5 py-2 text-[12.5px] font-medium hover:bg-[#f4f6f9]"
+                  >
+                    Ver site
+                  </a>
+                  <button
+                    onClick={() => navigate(`/criar?leadId=${full.id}`)}
+                    className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-[10px] px-3.5 py-2 text-[12.5px]"
+                  >
+                    <Sparkles size={14} /> Gerar novamente
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-[13px] text-[#5f6570] mb-3">
+                  Nenhum site gerado ainda. Os dados deste lead entram automaticamente.
+                </p>
+                <button
+                  onClick={() => navigate(`/criar?leadId=${full.id}`)}
+                  className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-[10px] px-4 py-2.5 text-[13px]"
+                >
+                  <Sparkles size={15} /> Gerar site para este lead
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+export default function Crm({ backendUrl }: Props) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [niches, setNiches] = useState<NicheOption[]>([]);
   const [filter, setFilter] = useState<FilterId>('todos');
@@ -113,6 +360,12 @@ export default function Crm({ backendUrl }: Props) {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState('');
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverStage, setDragOverStage] = useState<LeadStage | null>(null);
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Lead | null>(null);
+  const [popupPos, setPopupPos] = useState<{ left: number; top: number; side: 'left' | 'right' } | null>(null);
+  const dragEndAt = useRef(0);
 
   async function load() {
     setLoading(true);
@@ -172,7 +425,69 @@ export default function Crm({ backendUrl }: Props) {
     if (!confirm('Remover este lead do CRM?')) return;
     await deleteCrmLead(backendUrl, id);
     setLeads((prev) => prev.filter((l) => l.id !== id));
+    if (selected?.id === id) closeLead();
   }
+
+  async function moveLead(id: string, toStage: LeadStage) {
+    const current = leads.find((l) => l.id === id);
+    if (!current || current.stage === toStage) return;
+    const fromStage = current.stage;
+    setMovingId(id);
+    setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, stage: toStage } : l)));
+    setSelected((prev) => (prev?.id === id ? { ...prev, stage: toStage } : prev));
+    try {
+      const updated = await updateCrmLead(backendUrl, id, { stage: toStage });
+      setLeads((prev) => prev.map((l) => (l.id === id ? updated : l)));
+      setSelected((prev) => (prev?.id === id ? updated : prev));
+    } catch (e) {
+      setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, stage: fromStage } : l)));
+      setSelected((prev) => (prev?.id === id ? { ...prev, stage: fromStage } : prev));
+      setError((e as Error).message || 'Falha ao mover o lead. Tente de novo.');
+    } finally {
+      setMovingId(null);
+      setDragId(null);
+      setDragOverStage(null);
+    }
+  }
+
+  function openLead(lead: Lead, anchor: HTMLElement) {
+    // Ignora o clique fantasma que o navegador dispara logo após um arrasto
+    if (Date.now() - dragEndAt.current < 400) return;
+    const rect = anchor.getBoundingClientRect();
+    const POPUP_W = 400;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let side: 'left' | 'right';
+    let left: number;
+    if (rect.left + rect.width / 2 < vw / 2) {
+      // Card à esquerda → popup abre à direita
+      side = 'right';
+      left = rect.right + 12;
+      if (left + POPUP_W > vw - 12) left = Math.max(12, vw - POPUP_W - 12);
+    } else {
+      // Card à direita → popup abre à esquerda
+      side = 'left';
+      left = rect.left - POPUP_W - 12;
+      if (left < 12) left = 12;
+    }
+    const top = Math.max(12, Math.min(rect.top - 24, vh - 200));
+    setSelected(lead);
+    setPopupPos({ left, top, side });
+  }
+
+  function closeLead() {
+    setSelected(null);
+    setPopupPos(null);
+  }
+
+  useEffect(() => {
+    if (!selected) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') closeLead();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selected]);
 
   function exportCsv() {
     const rows = [
@@ -233,23 +548,83 @@ export default function Crm({ backendUrl }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-start">
         {CRM_STAGES.map((stage) => (
-          <div key={stage}>
+          <div
+            key={stage}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (dragOverStage !== stage) setDragOverStage(stage);
+            }}
+            onDragLeave={(e) => {
+              // Não apaga o destaque ao passar de um filho para outro dentro da coluna
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+              if (dragOverStage === stage) setDragOverStage(null);
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              const id = e.dataTransfer.getData('text/plain') || dragId;
+              if (id) moveLead(id, stage);
+            }}
+          >
             <div className="flex items-center gap-2 mb-3 px-1">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[stage] }} />
               <h3 className="text-[13.5px] font-semibold text-[#1a1d21]">{stage}</h3>
               <span className="ml-auto text-[12px] text-[#9aa0ab]">{grouped[stage].length}</span>
             </div>
 
-            <div className="space-y-3 min-h-[80px]">
+            <div
+              className={
+                'space-y-3 min-h-[120px] rounded-[12px] p-1 -m-1 transition-colors ' +
+                (dragOverStage === stage ? 'bg-blue-50 ring-2 ring-blue-300 ring-inset' : '')
+              }
+            >
               {grouped[stage].length === 0 && (
-                <div className="text-[12px] text-[#9aa0ab] text-center py-6 bg-[#f7f8fa] rounded-[12px]">
-                  Sem leads
+                <div className="text-[12px] text-[#9aa0ab] text-center py-6 bg-[#f7f8fa] rounded-[12px] border border-dashed border-[#d4d9e0]">
+                  {dragOverStage === stage ? 'Solte aqui' : 'Sem leads — arraste para cá'}
                 </div>
               )}
               {grouped[stage].map((lead) => {
                 const tierColor = TIER_COLORS[lead.tier];
+                const isDragging = dragId === lead.id;
                 return (
-                  <Card key={lead.id} className="p-3.5 cursor-pointer hover:shadow-md transition-shadow">
+                  <Card
+                    key={lead.id}
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', lead.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDragId(lead.id);
+                    }}
+                    onDragEnd={() => {
+                      dragEndAt.current = Date.now();
+                      setDragId(null);
+                      setDragOverStage(null);
+                    }}
+                    onDragEnter={(e) => {
+                      e.stopPropagation();
+                      if (dragOverStage !== stage) setDragOverStage(stage);
+                    }}
+                    onDragOver={(e) => {
+                      // Soltar em cima de outro card precisa liberar o drop aqui:
+                      // o card de baixo também é draggable, então cada card é
+                      // zona de drop da própria coluna.
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.dataTransfer.dropEffect = 'move';
+                      if (dragOverStage !== stage) setDragOverStage(stage);
+                    }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const id = e.dataTransfer.getData('text/plain') || dragId;
+                      if (id) moveLead(id, stage);
+                    }}
+                    className={
+                      'lead-card p-3.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow select-none ' +
+                      (isDragging ? 'opacity-50 ring-2 ring-blue-300' : '') +
+                      (movingId === lead.id ? ' opacity-60 pointer-events-none' : '')
+                    }
+                  >
                     <div className="flex items-center gap-2 mb-2">
                       <span
                         className="text-[11px] font-bold px-2 py-0.5 rounded-md"
@@ -274,7 +649,13 @@ export default function Crm({ backendUrl }: Props) {
                       </button>
                     </div>
 
-                    <div onClick={() => navigate(`/crm/${lead.id}`)}>
+                    <div
+                      onClick={(e) => {
+                        const anchor =
+                          (e.currentTarget.closest('.lead-card') as HTMLElement) || e.currentTarget;
+                        openLead(lead, anchor);
+                      }}
+                    >
                       <div className="font-semibold text-[13.5px] text-[#1a1d21] leading-snug truncate">
                         {lead.name}
                       </div>
@@ -287,6 +668,7 @@ export default function Crm({ backendUrl }: Props) {
                       <a
                         href={`tel:${lead.phone}`}
                         onClick={(e) => e.stopPropagation()}
+                        draggable={false}
                         className="flex-1 flex items-center justify-center gap-1 border border-[#d4d9e0] rounded-[8px] py-1.5 text-[11.5px] text-[#1a1d21] hover:bg-[#f4f6f9]"
                       >
                         <Phone size={12} /> Ligar
@@ -296,11 +678,13 @@ export default function Crm({ backendUrl }: Props) {
                         target="_blank"
                         rel="noreferrer"
                         onClick={(e) => e.stopPropagation()}
+                        draggable={false}
                         className="flex-1 flex items-center justify-center gap-1 border border-[#d4d9e0] rounded-[8px] py-1.5 text-[11.5px] text-[#1a1d21] hover:bg-[#f4f6f9]"
                       >
                         <MessageCircle size={12} /> WhatsApp
                       </a>
                     </div>
+
                   </Card>
                 );
               })}
@@ -311,6 +695,24 @@ export default function Crm({ backendUrl }: Props) {
 
       {showModal && (
         <NewLeadModal niches={niches} onClose={() => setShowModal(false)} onCreate={handleCreate} />
+      )}
+
+      {selected && popupPos && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={closeLead} />
+          <LeadPopup
+            lead={selected}
+            side={popupPos.side}
+            top={popupPos.top}
+            left={popupPos.left}
+            backendUrl={backendUrl}
+            onClose={closeLead}
+            onUpdated={(u) => {
+              setLeads((prev) => prev.map((l) => (l.id === u.id ? u : l)));
+              setSelected(u);
+            }}
+          />
+        </>
       )}
     </div>
   );
