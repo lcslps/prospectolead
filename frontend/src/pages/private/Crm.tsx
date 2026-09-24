@@ -366,6 +366,7 @@ export default function Crm({ backendUrl }: Props) {
   const [selected, setSelected] = useState<Lead | null>(null);
   const [popupPos, setPopupPos] = useState<{ left: number; top: number; side: 'left' | 'right' } | null>(null);
   const dragEndAt = useRef(0);
+  const draggedLeadId = useRef<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -448,6 +449,31 @@ export default function Crm({ backendUrl }: Props) {
       setDragId(null);
       setDragOverStage(null);
     }
+  }
+
+  function startDrag(event: React.DragEvent<HTMLDivElement>, id: string) {
+    draggedLeadId.current = id;
+    event.dataTransfer.setData('application/x-prospectolead-lead', id);
+    event.dataTransfer.setData('text/plain', id);
+    event.dataTransfer.effectAllowed = 'move';
+    setDragId(id);
+  }
+
+  function dropInStage(event: React.DragEvent<HTMLDivElement>, stage: LeadStage) {
+    event.preventDefault();
+    const id =
+      event.dataTransfer.getData('application/x-prospectolead-lead') ||
+      event.dataTransfer.getData('text/plain') ||
+      draggedLeadId.current ||
+      dragId;
+    if (id) moveLead(id, stage);
+  }
+
+  function endDrag() {
+    dragEndAt.current = Date.now();
+    draggedLeadId.current = null;
+    setDragId(null);
+    setDragOverStage(null);
   }
 
   function openLead(lead: Lead, anchor: HTMLElement) {
@@ -548,24 +574,7 @@ export default function Crm({ backendUrl }: Props) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 items-start">
         {CRM_STAGES.map((stage) => (
-          <div
-            key={stage}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.dataTransfer.dropEffect = 'move';
-              if (dragOverStage !== stage) setDragOverStage(stage);
-            }}
-            onDragLeave={(e) => {
-              // Não apaga o destaque ao passar de um filho para outro dentro da coluna
-              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-              if (dragOverStage === stage) setDragOverStage(null);
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              const id = e.dataTransfer.getData('text/plain') || dragId;
-              if (id) moveLead(id, stage);
-            }}
-          >
+          <div key={stage}>
             <div className="flex items-center gap-2 mb-3 px-1">
               <span className="w-2 h-2 rounded-full" style={{ backgroundColor: STAGE_COLORS[stage] }} />
               <h3 className="text-[13.5px] font-semibold text-[#1a1d21]">{stage}</h3>
@@ -573,8 +582,22 @@ export default function Crm({ backendUrl }: Props) {
             </div>
 
             <div
+              onDragEnter={(e) => {
+                e.preventDefault();
+                if (dragOverStage !== stage) setDragOverStage(stage);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverStage !== stage) setDragOverStage(stage);
+              }}
+              onDragLeave={(e) => {
+                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                if (dragOverStage === stage) setDragOverStage(null);
+              }}
+              onDrop={(e) => dropInStage(e, stage)}
               className={
-                'space-y-3 min-h-[120px] rounded-[12px] p-1 -m-1 transition-colors ' +
+                'space-y-3 min-h-[160px] rounded-[12px] p-1 -m-1 transition-colors ' +
                 (dragOverStage === stage ? 'bg-blue-50 ring-2 ring-blue-300 ring-inset' : '')
               }
             >
@@ -590,35 +613,8 @@ export default function Crm({ backendUrl }: Props) {
                   <Card
                     key={lead.id}
                     draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/plain', lead.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                      setDragId(lead.id);
-                    }}
-                    onDragEnd={() => {
-                      dragEndAt.current = Date.now();
-                      setDragId(null);
-                      setDragOverStage(null);
-                    }}
-                    onDragEnter={(e) => {
-                      e.stopPropagation();
-                      if (dragOverStage !== stage) setDragOverStage(stage);
-                    }}
-                    onDragOver={(e) => {
-                      // Soltar em cima de outro card precisa liberar o drop aqui:
-                      // o card de baixo também é draggable, então cada card é
-                      // zona de drop da própria coluna.
-                      e.preventDefault();
-                      e.stopPropagation();
-                      e.dataTransfer.dropEffect = 'move';
-                      if (dragOverStage !== stage) setDragOverStage(stage);
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const id = e.dataTransfer.getData('text/plain') || dragId;
-                      if (id) moveLead(id, stage);
-                    }}
+                    onDragStart={(e) => startDrag(e, lead.id)}
+                    onDragEnd={endDrag}
                     className={
                       'lead-card p-3.5 cursor-grab active:cursor-grabbing hover:shadow-md transition-shadow select-none ' +
                       (isDragging ? 'opacity-50 ring-2 ring-blue-300' : '') +
@@ -688,6 +684,11 @@ export default function Crm({ backendUrl }: Props) {
                   </Card>
                 );
               })}
+              {grouped[stage].length > 0 && dragOverStage === stage && (
+                <div className="rounded-[10px] border-2 border-dashed border-blue-300 bg-blue-100/70 py-3 text-center text-[12px] font-medium text-blue-700">
+                  Solte o lead nesta etapa
+                </div>
+              )}
             </div>
           </div>
         ))}
