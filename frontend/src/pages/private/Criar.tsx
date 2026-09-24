@@ -130,7 +130,7 @@ export default function Criar({ backendUrl }: CriarProps) {
 
       let generatedSite: ReturnType<typeof parseModelOutput> | null = null;
       let usedModel = modelText;
-      const basePrompt = buildUserPrompt(formData, referenceUrl);
+      const basePrompt = buildUserPrompt(formData, referenceUrl, lead);
 
       // Geração com auto-reparo + auto-retry: divergências de inventário de
       // imagens são corrigidas localmente (sanitize) e falhas estruturais
