@@ -5,7 +5,7 @@ Você é uma equipe multidisciplinar premiada — diretor de arte, UX designer, 
 
 CONTRATO CODEMAKERS (vale para toda decisão): priorize, nesta ordem, a intenção explícita e restrições do briefing; funcionamento e acesso à tarefa; fidelidade à marca/referência; clareza da informação; expressão visual; efeitos opcionais. Use conteúdo real fornecido pelo usuário. Nunca invente clientes, depoimentos, avaliações, métricas, certificações, prêmios, escassez, telefone, endereço, e-mail ou links sociais. Quando um dado não existir, crie uma alternativa honesta — uma explicação de processo, serviço, cobertura ou CTA que deixe claro que o contato será confirmado — sem preencher lacunas com dados plausíveis. A seção com id "depoimentos" pode apresentar prova verificável fornecida no briefing; na ausência dela, use uma seção de processo, compromisso de atendimento ou diferenciais, sem atribuir falas a pessoas inexistentes.
 
-PRECEDÊNCIA: o briefing e o contrato CodeMakers vencem preferências estéticas. O FORMATO DE SAÍDA (===IMAGES===, ===HTML===, limite de caracteres, ids das seções, img.hero-media, Lucide) governa somente a estrutura técnica obrigatória.
+PRECEDÊNCIA: o briefing e o contrato CodeMakers vencem preferências estéticas. INVARIANTES DO GERADOR: mantenha um header fixo, inicialmente transparente sobre o hero e sólido depois da rolagem, e um hero de campanha como primeira seção, com id="hero" e img.hero-media. Fora isso, cada página deve ter uma arquitetura própria: escolha a quantidade, a ordem, a finalidade e o nome das seções restantes a partir da tarefa principal, conteúdo, jornada e contexto do negócio. Não imponha seções, cards, depoimentos ou uma sequência padrão. O FORMATO DE SAÍDA (===IMAGES===, ===HTML===, limite de caracteres, img.hero-media e Lucide) governa somente a estrutura técnica obrigatória.
 
 LIBERDADE CRIATIVA: não existe template aqui. NENHUMA estrutura visual é obrigatória além do contrato de máquina do formato de saída (5 sections com ids fixos, 4 imagens, CTA funcional). VOCÊ decide composição, grid, ritmo e hierarquia para ESTE negócio. Cada site deve ser irreconhecível em relação ao anterior. Nunca repita uma fórmula que já usou.
 
@@ -40,7 +40,7 @@ COMPOSIÇÃO DO HERO (escolha UMA por site, varie entre gerações): A. palavra-
 
 TIPOGRAFIA — SEM SERIFA (regra absoluta; exceção serifada segue DESATIVADA): fallback sempre sans-serif. Título gigante: tracking -0.02em a -0.04em, line-height 0.9-1.0, clamp() com mín. 2.6rem e máx. 9rem (mobile: máx. 3 linhas). Mistura de pesos bem-vinda (700+300, ou normal + itálico da MESMA sans — o itálico substitui o acento serifado). Pares por nicho: comida Anton/Bebas/League/Archivo Black (+1 script Caveat/Kalam só p/ frases curtas); imobiliária premium Instrument Sans/Manrope/DM Sans/Plus Jakarta/Sora; segurança Sora/Space Grotesk/Plus Jakarta/Outfit; pet Fredoka/Baloo 2/Quicksand/Nunito Sans. Corpo sempre legível (~1rem+, entrelinha 1.5-1.7). Nunca repita a dupla do site anterior.
 
-PÓS-HERO (mantendo os 5 ids): diferenciais em 3-4 blocos curtos com Lucide, layout variado (lista numerada ou faixa horizontal — nunca cards idênticos); destaques em 3 cards ASSIMÉTRICOS (um grande + dois menores) com imagem, título, detalhe e CTA; na seção #depoimentos, use duas citações com nome, segmento e resultado somente se esses dados estiverem no briefing — caso contrário, use provas factuais fornecidas ou explique o processo/atendimento sem personificar avaliações; CTA final em bloco sólido ou foto, repetindo a voz do hero, com contato real quando fornecido ou uma ação de solicitação que não finja ter canal configurado.
+DEPOIS DO HERO: desenhe a narrativa que melhor resolve a tarefa do negócio. Uma imobiliária pode pedir busca, imóveis e regiões; um restaurante pode pedir cardápio, preparo e pedido; uma consultoria pode pedir diagnóstico, método e casos reais; um serviço local pode pedir cobertura, processo e agendamento. Varie topologia, densidade, escala de mídia e posição do texto entre gerações. Use depoimentos somente se existirem no briefing; se não existirem, não crie uma seção equivalente por obrigação. O CTA final deve repetir a voz do hero, com contato real quando fornecido ou uma ação de solicitação que não finja ter canal configurado.
 
 COPY: headline com ritmo, sem clichê ("Transformamos ideias...", "Excelência...", "Saiba mais" proibidos). Conteúdo específico do ramo em pt-BR e baseado nos dados disponíveis; nunca invente depoimentos, nomes, resultados ou alegações comerciais. Nunca lorem ipsum.
 
@@ -61,12 +61,13 @@ Formato OBRIGATÓRIO da sua resposta (não escreva nada fora desse formato, não
 
 ===IMAGES===
 uma linha por imagem necessária, no formato:
-id_da_imagem: prompt em inglês, detalhando uma FOTOGRAFIA publicitária realista profissional (não ilustração) para FLUX. Comece pelo tipo de foto ("commercial advertising photograph, shot on a full-frame camera, 35mm or 85mm lens, natural depth of field"). Especifique posição do sujeito + espaço negativo para o texto HTML ("subject placed in the lower right two thirds, clean open sky in the upper third for headline space" ou "left third empty and softly out of focus"). Especifique a luz (golden hour; estúdio dura com brilho no produto; ciano lateral em cena noturna). Por nicho: comida, macro extrema com textura (queijo derretendo, vapor, brilho), produto ocupando ~60% do quadro; arquitetura, residência luxuosa com vidro/madeira/piscina, sem pessoas, linhas limpas; segurança, técnico real trabalhando, terço direito, rim light ciano; solar, painéis reais com luz dramática realista; pet, animal expressivo com abertura de papel rasgado. Cards (card_1, card_2, card_3): variações do MESMO mundo do hero com enquadramentos diferentes (detalhe, ângulo aberto, close) — nunca repetir a cena. Nunca peça texto, logotipo, placa, rótulo, fachada identificada, nem pessoas sorrindo para a câmera. Não peça nome da empresa, logotipo, fachada identificada ou qualquer texto dentro da foto. Termine exatamente com: "absolutely no text, letters, numbers, logo, signage, labels, watermark, typography or brand mark; all surfaces blank".
-(gere entre 3 e 6 imagens: 1 hero grande, e o restante para os cards de destaque/produtos. dê ids curtos em snake_case, ex: hero, card_1, card_2, about)
+id_da_imagem: prompt em inglês, detalhando uma FOTOGRAFIA publicitária realista profissional (não ilustração) para FLUX. Comece pelo tipo de foto ("commercial advertising photograph, shot on a full-frame camera, 35mm or 85mm lens, natural depth of field"). Especifique posição do sujeito + espaço negativo para o texto HTML ("subject placed in the lower right two thirds, clean open sky in the upper third for headline space" ou "left third empty and softly out of focus"). Especifique a luz (golden hour; estúdio dura com brilho no produto; ciano lateral em cena noturna). Crie variações do mesmo universo visual com enquadramentos que sirvam à narrativa escolhida (detalhe, ângulo aberto, close, processo ou ambiente), nunca repetindo a mesma cena. Nunca peça texto, logotipo, placa, rótulo, fachada identificada, nem pessoas sorrindo para a câmera. Não peça nome da empresa, logotipo, fachada identificada ou qualquer texto dentro da foto. Termine exatamente com: "absolutely no text, letters, numbers, logo, signage, labels, watermark, typography or brand mark; all surfaces blank".
+(gere entre 3 e 6 imagens, incluindo obrigatoriamente uma imagem hero e apenas as imagens de apoio que a arquitetura escolhida realmente utilizar. dê ids curtos em snake_case, ex: hero, processo, ambiente, produto_destaque)
+REGRA ANTI-ERRO (vale reprovação): declare em ===IMAGES=== SOMENTE os ids que você realmente inserir no HTML como [[IMG:id]]. Todo id declarado precisa aparecer no HTML e todo [[IMG:id]] do HTML precisa estar declarado. Nunca declare imagem "reserva", planejada ou que você acabou não inserindo.
 
 ===HTML===
 o documento HTML completo, começando em <!DOCTYPE html> e terminando em </html>, 100% autocontido:
-- ORÇAMENTO DE SAÍDA OBRIGATÓRIO: entregue o documento inteiro em no máximo 18.000 caracteres. Não escreva comentários no HTML/CSS/JS. Use CSS reutilizável e curto, com poucas classes compartilhadas; não repita regras por card, nem crie descrições longas. Priorize as cinco seções completas, conteúdo visível e o fechamento </html> antes de qualquer detalhe decorativo. Use três cards de destaque; inclua depoimentos apenas quando o briefing fornecer conteúdo verificável para eles.
+- ORÇAMENTO DE SAÍDA OBRIGATÓRIO: entregue o documento inteiro em no máximo 18.000 caracteres. Não escreva comentários no HTML/CSS/JS. Use CSS reutilizável e curto, com poucas classes compartilhadas; não repita regras por componente, nem crie descrições longas. Priorize o hero, a jornada mais útil para este negócio, conteúdo visível e o fechamento </html> antes de qualquer detalhe decorativo. Escolha a quantidade de seções e blocos que a tarefa pede; não complete a página com cards ou depoimentos só para repetir uma fórmula.
 - CSS todo dentro de uma tag <style> no <head>. Importe exatamente as duas fontes SANS-SERIF do Google Fonts escolhidas (título + texto) via @import url(...) no topo do <style>, ex: @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap'); — troque os nomes/pesos pelas fontes escolhidas para este site específico. É PROIBIDO importar ou usar qualquer fonte serifada. Todo \`font-family\` deve ter fallback \`sans-serif\`.
 - ÍCONES (obrigatório): logo no início do body, ou no final antes do fechamento do body, inclua exatamente esta tag: <script src="https://unpkg.com/lucide@latest"></script>
   Em todo lugar que precisar de um ícone de UI, escreva: <i data-lucide="NOME_DO_ICONE" class="..." style="width:20px;height:20px"></i> (ajuste width/height conforme o contexto). No final do <body>, DEPOIS da tag script do lucide e depois de todo o HTML da página, adicione: <script>if (window.lucide) lucide.createIcons();</script>. NUNCA use caracteres emoji (📍✅⭐🔧📞🛡️↗ etc.) como ícone — use sempre <i data-lucide="...">.
@@ -74,17 +75,16 @@ o documento HTML completo, começando em <!DOCTYPE html> e terminando em </html>
 - DESIGN SYSTEM E REFERÊNCIAS: use a qualidade de composição e microinterações de 21st.dev como inspiração de acabamento, sem importar componentes React. Trate styles.refero.design, inspora.design e Framer Marketplace como repertório de paleta, tipografia, espaçamento e composição. Use a URL de referência do usuário quando fornecida, sem copiar marcas ou layouts. Crie sempre um layout específico e não-template.
 - em TODO lugar onde uma foto for usada, use exatamente <img src="[[IMG:id_da_imagem]]" ...> com o id correspondente que você definiu na seção ===IMAGES===. Não use nenhuma outra URL de imagem, nunca use placeholder.com, unsplash ou picsum.
 - todo o texto (títulos, menus, botões, seção de prova e rodapé) deve estar em português do Brasil e ser conteúdo real e específico do negócio informado, nunca "lorem ipsum", dados fabricados ou texto genérico como "Título aqui"
-- o site deve ter uma única página (one-page) com âncoras internas para cada seção no menu
+- o site deve ter uma única página (one-page). O menu deve conter âncoras apenas para destinos que existam e que ajudem a navegação; não crie itens para seções inexistentes.
 - LARGURA TOTAL OBRIGATÓRIA: o documento deve ocupar 100% da largura da viewport em desktop e mobile. Defina html e body com width: 100%, min-width: 0 e margin: 0; não aplique max-width, width fixa, margem horizontal automática ou padding externo ao body, main, ao hero ou ao wrapper raiz da página. O hero, fundos de seção e imagens de faixa devem ir de uma borda à outra da viewport (width: 100% ou 100vw). Somente blocos internos de leitura, como classes container/content, podem ter max-width e margin auto. Antes de responder, confirme que não haverá faixas vazias nas laterais em telas largas.
-- CHECKLIST OBRIGATÓRIO ANTES DE RESPONDER: entregue o HTML inteiro e fechado; inclua hero, diferenciais/sobre, destaques/produtos, a seção #depoimentos como prova honesta ou processo, e CTA/contato final, mesmo que alguma seção não tenha sido marcada no formulário. A seção de contato final deve exibir telefone/WhatsApp e cidade somente quando esses dados existirem; use link tel: ou https://wa.me/ apenas com contato real fornecido. Sem contato fornecido, crie um CTA funcional de âncora para um formulário local que informe que o canal será confirmado, com feedback local honesto. Confira ainda: manchete com duas vozes e maior elemento da página? ≥1 flutuante sobre o hero quando fizer sentido? prova factual na primeira dobra apenas se houver? paleta ≤4 cores com acento claro? elementos assinatura pertinentes ao nicho? CTAs com verbo específico? composição diferente da anterior? Nenhuma serifa, emoji-ícone, card vazio ou dado inventado? PISO IMPECCABLE: sem kicker/eyebrow, sem 01/02/03, sem cards idênticos, sem card-dentro-de-card, contraste corpo ≥4.5:1, ::selection e focus-visible na paleta? Se falhar, refaça.
-- ESTRUTURA VERIFICÁVEL: use cinco tags section reais, nesta ordem e com estes ids: section id="hero", section id="diferenciais", section id="destaques", section id="depoimentos" e section id="contato". Não esconda nenhuma seção com display:none, opacity:0, height:0, overflow:hidden ou posicionamento fora da tela. O footer pode vir depois do contato.
-- CARDS E IMAGENS: não deixe nenhum card, coluna, moldura ou área reservada vazia. Cada card de destaque precisa ter imagem, título, texto/detalhe e CTA. Para cada placeholder [[IMG:id]] usado no HTML, declare exatamente um id: correspondente em ===IMAGES===; não declare imagens que não sejam usadas. Gere exatamente 4 imagens: hero, card_1, card_2 e card_3, e use todas no HTML. A imagem principal do hero deve ser uma tag real <img class="hero-media" src="[[IMG:hero]]" alt="...">, posicionada absolutamente atrás do conteúdo com width: 100%, height: 100% e object-fit: cover. Nunca use [[IMG:hero]] em background-image, background ou url(...), nem coloque uma imagem base64 no CSS. A sobreposição escura do hero deve ser um pseudo-elemento ou elemento separado sobre a .hero-media, com opacidade máxima de 0.58; o conteúdo precisa ter z-index maior. Mantenha o HTML conciso o suficiente para terminar integralmente dentro do limite de resposta.
+- CHECKLIST OBRIGATÓRIO ANTES DE RESPONDER: entregue o HTML inteiro e fechado; mantenha o header e o hero como contrato fixo e construa as demais seções que a jornada realmente precisa. A seção de contato deve exibir telefone/WhatsApp e cidade somente quando esses dados existirem; use link tel: ou https://wa.me/ apenas com contato real fornecido. Sem contato fornecido, crie um CTA funcional de âncora para um formulário local que informe que o canal será confirmado, com feedback local honesto. Confira ainda: proposta e ação entendidas em 5 segundos? hero com hierarquia forte e composição adequada? prova factual apenas se houver? paleta ≤4 cores com acento claro? elementos assinatura pertinentes ao nicho? CTAs com verbo específico? estrutura diferente da anterior? Nenhuma serifa, emoji-ícone, área vazia ou dado inventado? PISO IMPECCABLE: sem kicker/eyebrow, sem 01/02/03, sem cards idênticos, sem card-dentro-de-card, contraste corpo ≥4.5:1, ::selection e focus-visible na paleta? Se falhar, refaça.
+- ESTRUTURA VERIFICÁVEL: use uma tag section real com id="hero" como primeira seção. Crie as demais tags section quando sua função for necessária, com ids semânticos e únicos. Não esconda conteúdo essencial com display:none, opacity:0, height:0, overflow:hidden ou posicionamento fora da tela. O footer pode vir depois da última seção.
+- IMAGENS: não deixe nenhuma área reservada vazia. Para cada placeholder [[IMG:id]] usado no HTML, declare exatamente um id correspondente em ===IMAGES===; não declare imagens que não sejam usadas. Gere entre 3 e 6 imagens, incluindo hero, apenas quando elas sustentarem a composição escolhida. A imagem principal do hero deve ser uma tag real <img class="hero-media" src="[[IMG:hero]]" alt="...">, posicionada absolutamente atrás do conteúdo com width: 100%, height: 100% e object-fit: cover. Nunca use [[IMG:hero]] em background-image, background ou url(...), nem coloque uma imagem base64 no CSS. A sobreposição escura do hero deve ser um pseudo-elemento ou elemento separado sobre a .hero-media, com opacidade máxima de 0.58; o conteúdo precisa ter z-index maior. Mantenha o HTML conciso o suficiente para terminar integralmente dentro do limite de resposta.
 - ÍCONES VISÍVEIS: todo elemento i com atributo data-lucide precisa estar dentro de um botão, link ou bloco de conteúdo com texto; não crie quadrados vazios, placeholders de ícone ou elementos decorativos sem ícone renderizável.
 - TIPOGRAFIA: valide antes de responder que NÃO existe nenhuma fonte serifada no HTML/CSS/imports. Nenhum \`serif\`, Georgia, Times, Fraunces, Playfair, Cormorant, Newsreader, Domine, Petrona, Bitter ou equivalente.
 `;
 
 export function buildUserPrompt(d: BusinessFormData, referenceUrl: string): string {
-  const sections = d.sections.join(', ');
   return `
 Crie um site institucional (landing page one-page) para o negócio abaixo.
 
@@ -96,11 +96,9 @@ Texto desejado para o botão principal (CTA): ${d.cta || '(escolha o mais adequa
 WhatsApp/telefone de contato: ${d.phone || '(não informado: não invente telefone ou WhatsApp; use um formulário local de interesse com aviso honesto de que o contato será confirmado)'}
 Cidade/região: ${d.city || '(não informado)'}
 Preferência de paleta de cores: ${d.colors || '(escolha a paleta mais adequada ao ramo, seguindo o guia de estilo)'}
-Seções obrigatórias no site: ${sections}
-
 Referência visual enviada pelo usuário (use apenas como inspiração, sem copiar): ${referenceUrl || 'Nenhuma'}
 
-Crie o layout do zero para ESTE negócio — proibido repetir fórmulas (hero centralizado; texto à esquerda + foto de banco à direita; gradiente azul/roxo; três cards iguais; ícones em círculos repetidos; imagens repetidas; fonte padrão; manchete pequena; depoimento genérico). Cada seção com composição própria: varie escala da mídia, posição do texto e densidade, mantendo um eixo de alinhamento.
+Crie o layout do zero para ESTE negócio. Preserve o header fixo e o hero de campanha como contratos do sistema, mas decida todo o restante: arquitetura, número de seções, sequência, tipos de bloco, quantidade de imagens e conteúdo devem nascer da tarefa principal do negócio. Proibido repetir fórmulas (hero centralizado; texto à esquerda + foto de banco à direita; gradiente azul/roxo; três cards iguais; ícones em círculos repetidos; imagens repetidas; fonte padrão; manchete pequena; depoimento genérico). Cada geração deve ter composição própria: varie escala da mídia, posição do texto, densidade e jornada, mantendo um eixo de alinhamento.
 
 ${OUTPUT_FORMAT}
 `;
@@ -138,13 +136,53 @@ export interface SiteValidation {
   warnings: string[];
 }
 
+// Repara automaticamente divergências entre ===IMAGES=== e ===HTML=== para
+// que um HTML completo nunca seja descartado por causa do inventário:
+// - declaração não utilizada no HTML é removida da lista (nunca seria gerada);
+// - placeholder usado no HTML sem declaração ganha uma entrada genérica, para
+//   não virar caixa "Imagem indisponível" no site final;
+// - ids duplicados são unificados (vale a primeira ocorrência).
+// O hero continua obrigatório e segue validado como bloqueante.
+export function sanitizeGeneratedSite(site: ParsedSite): { site: ParsedSite; fixed: string[] } {
+  const fixed: string[] = [];
+  const usedIds = new Set<string>();
+  const placeholderRe = /\[\[IMG:([a-zA-Z0-9_]+)\]\]/g;
+  let m: RegExpExecArray | null;
+  while ((m = placeholderRe.exec(site.html)) !== null) usedIds.add(m[1]);
+
+  const seen = new Set<string>();
+  const images: ParsedSite['images'] = [];
+  for (const img of site.images) {
+    if (seen.has(img.id)) {
+      fixed.push(`imagem duplicada "${img.id}" removida`);
+      continue;
+    }
+    seen.add(img.id);
+    if (!usedIds.has(img.id)) {
+      fixed.push(`imagem "${img.id}" declarada mas não usada no HTML — removida`);
+      continue;
+    }
+    images.push(img);
+  }
+  for (const id of usedIds) {
+    if (!seen.has(id)) {
+      images.push({
+        id,
+        prompt: `commercial advertising photograph, shot on a full-frame camera, natural depth of field, premium editorial composition matching the surrounding website section, realistic materials and lighting. absolutely no text, letters, numbers, logo, signage, labels, watermark, typography or brand mark; all surfaces blank`,
+      });
+      fixed.push(`imagem "${id}" usada no HTML mas não declarada — entrada criada`);
+    }
+  }
+  return { site: { images, html: site.html }, fixed };
+}
+
 export function validateGeneratedSite(site: ParsedSite): SiteValidation {
   const { images, html } = site;
   const normalized = html.toLowerCase();
   const blocking: string[] = [];
   const warnings: string[] = [];
-  const requiredSections = ['hero', 'diferenciais', 'destaques', 'depoimentos', 'contato'];
-  const requiredImages = ['hero', 'card_1', 'card_2', 'card_3'];
+  const requiredSections = ['hero'];
+  const requiredImages = ['hero'];
 
   if (!/^<!doctype html/i.test(html) || !/<\/html>\s*$/i.test(html)) blocking.push('o documento HTML não está completo');
   if (!/<body[\s>]/i.test(html)) blocking.push('a tag body está ausente');
@@ -161,8 +199,23 @@ export function validateGeneratedSite(site: ParsedSite): SiteValidation {
     if (!suppliedImageIds.includes(id)) blocking.push(`a imagem ${id} não foi declarada`);
     if (!html.includes(`[[IMG:${id}]]`)) blocking.push(`a imagem ${id} não foi usada no HTML`);
   }
-  if (images.length !== requiredImages.length || suppliedImageIds.some((id) => !requiredImages.includes(id))) {
-    blocking.push('a lista de imagens não corresponde ao conjunto obrigatório');
+  // Divergências de inventário (declarada-sem-uso, usada-sem-declaração,
+  // duplicadas, total fora de 3-6) são reparadas automaticamente por
+  // sanitizeGeneratedSite antes desta validação — aqui viram só aviso para
+  // nunca descartar um HTML completo por causa delas.
+  if (images.length < 3 || images.length > 6) {
+    warnings.push(`o ideal são 3 a 6 imagens (atual: ${images.length})`);
+  }
+  if (new Set(suppliedImageIds).size !== suppliedImageIds.length) {
+    warnings.push('a lista de imagens contém ids duplicados');
+  }
+  for (const id of suppliedImageIds) {
+    if (!html.includes(`[[IMG:${id}]]`)) warnings.push(`a imagem ${id} foi declarada, mas não foi usada no HTML`);
+  }
+  const usedPlaceholderRe = /\[\[IMG:([a-zA-Z0-9_]+)\]\]/g;
+  let usedMatch: RegExpExecArray | null;
+  while ((usedMatch = usedPlaceholderRe.exec(html)) !== null) {
+    if (!suppliedImageIds.includes(usedMatch[1])) warnings.push(`a imagem ${usedMatch[1]} é usada no HTML, mas não foi declarada`);
   }
 
   const hasDirectContact = /(tel:|https:\/\/wa\.me\/)/i.test(html);

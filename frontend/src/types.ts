@@ -7,7 +7,6 @@ export interface BusinessFormData {
   phone: string;
   city: string;
   colors: string;
-  sections: string[];
 }
 
 export interface ImagePromptSpec {
@@ -50,8 +49,6 @@ export const NICHES = [
   { value: 'consultoria', label: 'Consultoria / B2B / SaaS' },
   { value: 'outro', label: 'Outro (descreva abaixo)' },
 ] as const;
-
-export const DEFAULT_SECTIONS = ['Hero', 'Destaques/Produtos', 'Sobre', 'Depoimentos', 'Contato/CTA final'];
 
 /* -------------------------------------------------------------------- */
 /* Leads / CRM                                                          */

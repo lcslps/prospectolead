@@ -1,5 +1,5 @@
 import { Rocket } from 'lucide-react';
-import { NICHES, DEFAULT_SECTIONS } from '../types';
+import { NICHES } from '../types';
 import type { BusinessFormData, LogEntry } from '../types';
 import { Card, Field, inputClassName } from './layout';
 import Select from './Select';
@@ -38,11 +38,6 @@ export default function BusinessForm({
 }: Props) {
   function set<K extends keyof BusinessFormData>(key: K, value: BusinessFormData[K]) {
     setData({ ...data, [key]: value });
-  }
-
-  function toggleSection(section: string) {
-    const has = data.sections.includes(section);
-    set('sections', has ? data.sections.filter((s) => s !== section) : [...data.sections, section]);
   }
 
   return (
@@ -139,28 +134,6 @@ export default function BusinessForm({
           className={inputClass}
         />
       </Field>
-
-      <label className="block text-[12.5px] text-[#5f6570] font-medium mt-3.5 mb-1.5">Seções que o site deve ter</label>
-      <div className="flex flex-wrap gap-2 mt-1.5">
-        {DEFAULT_SECTIONS.map((s) => {
-          const active = data.sections.includes(s);
-          return (
-            <button
-              key={s}
-              type="button"
-              onClick={() => toggleSection(s)}
-              className={
-                'border rounded-full px-3 py-1.5 text-[12.5px] transition-colors ' +
-                (active
-                  ? 'bg-[#5b8cff14] border-[#5b8cff] text-[#2f5fe0] font-medium'
-                  : 'border-[#d4d9e0] text-[#5f6570] bg-white hover:border-[#c9d0d9]')
-              }
-            >
-              {s}
-            </button>
-          );
-        })}
-      </div>
 
       <button
         onClick={onGenerate}

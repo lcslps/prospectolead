@@ -8,10 +8,9 @@ import { PageHeader } from '../../components/layout';
 import Select from '../../components/Select';
 import { callGeminiTextWithFallback } from '../../lib/gemini';
 import { callCloudflareImage } from '../../lib/cloudflare';
-import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, LOADING_IMAGE_SVG, validateGeneratedSite, repairHtmlSite } from '../../lib/prompts';
+import { buildUserPrompt, parseModelOutput, STYLE_GUIDE, FALLBACK_IMAGE_SVG, LOADING_IMAGE_SVG, validateGeneratedSite, sanitizeGeneratedSite, repairHtmlSite } from '../../lib/prompts';
 import { getCrmLead, listCrmLeads, saveLeadSite } from '../../lib/leads';
 import type { BusinessFormData, Lead, LogEntry, LogKind } from '../../types';
-import { DEFAULT_SECTIONS } from '../../types';
 import { Card, Field, inputClassName } from '../../components/layout';
 
 const EMPTY_FORM: BusinessFormData = {
@@ -23,7 +22,6 @@ const EMPTY_FORM: BusinessFormData = {
   phone: '',
   city: '',
   colors: '',
-  sections: [...DEFAULT_SECTIONS],
 };
 
 // Monta os dados do formulário automaticamente a partir de um lead do CRM,
@@ -42,7 +40,6 @@ function formDataFromLead(lead: Lead): BusinessFormData {
     phone: lead.phone || '',
     city: lead.city && lead.state ? `${lead.city}, ${lead.state}` : lead.city || lead.state || '',
     colors: '',
-    sections: [...DEFAULT_SECTIONS],
   };
 }
 
@@ -135,16 +132,46 @@ export default function Criar({ backendUrl }: CriarProps) {
       let usedModel = modelText;
       const basePrompt = buildUserPrompt(formData, referenceUrl);
 
-      // 1ª chamada: geração completa no modelo escolhido (o fallback interno
-      // em callGeminiTextWithFallback já cobre 503/quota trocando de modelo).
-      const result = await callGeminiTextWithFallback(backendUrl, modelText, STYLE_GUIDE, basePrompt, log);
-      usedModel = result.model;
-      let candidate = parseModelOutput(result.text);
-      let validation = validateGeneratedSite(candidate);
+      // Geração com auto-reparo + auto-retry: divergências de inventário de
+      // imagens são corrigidas localmente (sanitize) e falhas estruturais
+      // geram nova tentativa automática com prompt de correção — o usuário
+      // só vê erro se todas as tentativas falharem.
+      const MAX_TEXT_ATTEMPTS = 3;
+      let candidate: ReturnType<typeof parseModelOutput> | null = null;
+      let validation = { blocking: [] as string[], warnings: [] as string[] };
+      let lastBlocking: string[] = [];
+      for (let attempt = 1; attempt <= MAX_TEXT_ATTEMPTS; attempt += 1) {
+        const attemptPrompt =
+          attempt === 1
+            ? basePrompt
+            : `${basePrompt}\n\nCORREÇÃO OBRIGATÓRIA (tentativa ${attempt}): sua resposta anterior foi rejeitada por estes problemas: ${lastBlocking.join('; ')}. Gere novamente a resposta COMPLETA (===IMAGES=== + ===HTML===) corrigindo todos eles. Declare em ===IMAGES=== SOMENTE os ids que você realmente inserir no HTML como [[IMG:id]].`;
+        if (attempt > 1) log(`▸ Tentativa ${attempt}/${MAX_TEXT_ATTEMPTS} com correções...`, 'go');
+        const result = await callGeminiTextWithFallback(backendUrl, modelText, STYLE_GUIDE, attemptPrompt, log);
+        usedModel = result.model;
+        try {
+          candidate = parseModelOutput(result.text);
+        } catch (e) {
+          lastBlocking = [(e as Error)?.message || 'formato de resposta inválido'];
+          log(`✘ Tentativa ${attempt}: resposta fora do formato esperado.`, 'err');
+          candidate = null;
+          continue;
+        }
+        const sanitized = sanitizeGeneratedSite(candidate);
+        if (sanitized.fixed.length > 0) {
+          log(`▸ Ajuste automático (tentativa ${attempt}): ${sanitized.fixed.join('; ')}.`, 'muted');
+        }
+        candidate = sanitized.site;
+        validation = validateGeneratedSite(candidate);
+        if (validation.blocking.length === 0) break;
+        lastBlocking = validation.blocking;
+        log(`✘ Tentativa ${attempt} incompleta: ${validation.blocking.join('; ')}.`, 'err');
+        candidate = null;
+      }
 
-      if (validation.blocking.length > 0) {
-        log(`✘ Estrutura incompleta: ${validation.blocking.join('; ')}.`, 'err');
-        throw new Error('O modelo não entregou um site completo. Nenhum site foi salvo — revise os dados e clique em gerar novamente.');
+      if (!candidate) {
+        throw new Error(
+          `O modelo não entregou um site completo após ${MAX_TEXT_ATTEMPTS} tentativas (${lastBlocking.join('; ')}). Ajuste os dados e clique em gerar novamente.`
+        );
       }
 
       generatedSite = candidate;
